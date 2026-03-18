@@ -1,3 +1,4 @@
+```mermaid
 sequenceDiagram
 autonumber
 actor U as User
@@ -39,3 +40,4 @@ A-->>U: error (비밀번호를 확인하세요)
 end
 end
 deactivate A
+```

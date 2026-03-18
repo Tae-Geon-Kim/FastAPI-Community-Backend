@@ -1,3 +1,4 @@
+```mermaid
 sequenceDiagram
     autonumber
     actor U as User
@@ -49,3 +50,4 @@ sequenceDiagram
     deactivate D
     A-->>U: 탈퇴 처리 성공 (로그아웃 처리)
     deactivate A
+```

@@ -1,3 +1,4 @@
+```mermaid
 sequenceDiagram
     autonumber
     actor U as User
@@ -64,3 +65,4 @@ sequenceDiagram
         end
     end
     deactivate A
+```
