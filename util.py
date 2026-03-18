@@ -33,4 +33,3 @@ async def login(name: str, pw: str):
 # hashed_pw[password] 라고 써야하는 이유: hashed_pw 는 {key : value} 값 return
 # 비밀번호 자체만 가져올라면 hashed_pw['password'] -> 'password'인 이유: sql 문에서 내가 password라 지정함.
 
-변경한 부분 (다른 파일과) 변수 이름 통합
