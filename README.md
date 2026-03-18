@@ -45,8 +45,22 @@
 - [사용자 관리 로직 상세 (User Flow)](./docs/user_flow.md)
 - [게시판 CRUD 로직 상세 (Board Flow)](./docs/boards_flow.md)
 
-## 🧱 프로젝트 구조 
-여기에 파일 구조 
+## 📁 프로젝트 구조 
+
+```text
+.
+├── README.md
+├── boards.py
+├── database.py
+├── 📁docs
+│   ├── auth_flow.md
+│   ├── boards_flow.md
+│   └── user_flow.md
+├── encryption.py
+├── main.py
+├── user.py
+└── util.py
+```
 
 ## 🗃️ 데이터베이스 스키마
 ### 테이블 구조
