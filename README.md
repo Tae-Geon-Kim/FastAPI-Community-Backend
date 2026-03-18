@@ -43,7 +43,7 @@
 ## 📊 시스템 다큐먼트
 - [인증 로직 상세 (Auth Flow)](./docs/auth_flow.md)
 - [사용자 관리 로직 상세 (User Flow)](./docs/user_flow.md)
-- [게시판 CRUD 로직 상세 (Board Flow)](./docs/board_flow.md)
+- [게시판 CRUD 로직 상세 (Board Flow)](./docs/boards_flow.md)
 
 ## 🧱 프로젝트 구조 
 여기에 파일 구조 
