@@ -8,15 +8,15 @@
 ---
 
 ## 📋 목차
-[프로젝트 소개](#-프로젝트-소개)
+- [프로젝트 소개](#-프로젝트-소개)
 
-[게발 스펙 및 개발 환경](#-개발-스펙-및-개발-환경)
+- [개발 스펙 및 개발 환경](#-개발-스펙-및-개발-환경)
 
-[주요 기능](#-주요-기능)
+- [주요 기능](#-주요-기능)
 
-[시스템 아키텍처](#-시스탬-아키텍처)
+- [시스템 아키텍처](#-시스템-아키텍처)
 
-[API](#-API)
+- [API](#-API)
 
 ---
 
@@ -90,8 +90,9 @@
 └── util.py
 ```
 
-## 🗃️ 데이터베이스 스키마
+### 🗃️ 데이터베이스 스키마
 ### 테이블 구조
+
 ```mermaid
 %%{init: {"theme": "neutral", "cssStyles": ".er.relationshipLabelBox { fill: white !important; fill-opacity: 1 !important; stroke: none !important; } .er.relationshipLabel { fill: black !important; }"}}%%
 erDiagram
@@ -109,13 +110,13 @@ erDiagram
 		varchar title  ""  
 		text content  ""  
 		timestamp reg_date  ""  
-		timestamp update_date  ""  
-		int user_index FK ""  
+		timestamp update_date  ""
+		varchar(50) author ""
+		int user_index FK ""
 	}
 
-	user||--o{boards: "writes"
+	user||--o{boards: "작성"
 ```
-
 ### 테이블 설명 
 표로 만들어서 각 테이블 설명
 
