@@ -91,27 +91,27 @@
 ```
 
 ### 🗃️ 데이터베이스 스키마
-### 테이블 구조
+### 🗄️ 테이블 구조
 - [DB 테이블 구조](./docs/db_table.md)
-### 테이블 설명
-#### User Table
-|Column||Description|
-|:--||:--|
-|index| 사용자 고유 식별 번호(PK) |
-|id| 사용자 로그인 ID |
-|password| 해싱된 비밀번호 |
-|reg_date| 회원 가입 일시 |
-|update_date| 회원 정보 수정 일시 |
+### 💬 테이블 설명
+#### - User Table
+|Column|Description|
+|:--|:--|
+| **index** | 사용자 고유 식별 번호(PK) |
+| **id** | 사용자 로그인 ID |
+| **password** | 해싱된 비밀번호 |
+| **reg_date** | 회원 가입 일시 |
+| **update_date** | 회원 정보 수정 일시 |
 
-#### Boards Table
-|Column||Description|
-|:--||:--|
-|index| 게시글 고유 식별 번호(PK) |
-|title| 게시판 제목 |
-|content| 게시글 내용 |
-|reg_date| 최초 생성 일시 |
-|update_date| 최종 수정 일시 |
-|user_index| 작성자 고유 번호(FK: user.index) |
+#### - Boards Table
+|Column|Description|
+|:--|:--|
+| **index** | 게시글 고유 식별 번호(PK) |
+| **title** | 게시판 제목 |
+| **content** | 게시글 내용 |
+| **reg_date** | 최초 생성 일시 |
+| **update_date** | 최종 수정 일시 |
+| **user_index** | 작성자 고유 번호(FK: user.index) |
 
 ---
 
