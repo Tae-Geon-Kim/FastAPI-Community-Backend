@@ -15,9 +15,7 @@ class Data(BaseModel):
     title: str
     content: str
     
-# 게시판 생성 -> reg_date
-# 로그인 로직이 완료되어 로그인이 됐을 경우에만 가능
-# 제목 지정 (null이면 안되니까 검증) -> 내용 입력 
+# 게시판 생성
 @router.post("/bregister")
 async def bregister(user : Data):
     sql = 'INSERT INTO "boards" (title, content, author) VALUES ($1, $2, $3)'
