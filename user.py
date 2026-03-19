@@ -68,3 +68,24 @@ async def check(user : userData):
 
     finally:
         await conn.close()
+
+# 사용자 정보 조회
+@router.post("/uinfo")
+async def userInfo(user : userData):
+
+    sql = 'SELECT * FROM "user" WHERE id = ($1)'
+
+    if await login(user.name, user.pw) == 1:
+        conn = await connect_db()
+        try:
+            user_info = await conn.fetchrow(sql, user.name) #if user_info: 해서 최종 검증 로직 만드는거 고민 (방어적 프로그래밍)
+            return {
+                "메세지" : "사용자 정보 조회 성공",
+                "아이디" : user_info['id'],
+                "회원 가입 일시" : user_info['reg_date'],
+                "회원 정보 수정 일시" : user_info['update_date'] 
+            }
+        finally:
+            await conn.close()
+    else:
+        return {"Message" : "로그인에 실패했습니다."}
