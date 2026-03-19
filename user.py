@@ -12,32 +12,47 @@ class userData(BaseModel):
     name: str
     pw: str
 
-# 신규 회원가입 비밀번호를 입력했을 때, 해싱된 비밀번호 값을 DB에 저장 -> reg_date
+# 신규 회원가입 비밀번호를 입력했을 때, 해싱된 비밀번호 값을 DB에 저장 -> reg_date // 저장하기전에 전체적으로 다시 재검증 해야함.
 @router.post("/uregister")
 async def register(user : userData):
+
+    # 비밀번호 공백 & 빈 문자열 검사
+    if not user.pw.strip() or " " in user.pw:
+        return {"Message" : "비밀번호에 공백을 사용할 수 없으며, 반드시 입력해야 합니다."}
+
+    user.name = user.name.strip() # ID 앞 뒤 공백 삭제
+    if not user.name:
+        return {"Message" : "아이디로 빈 문자열을 사용할 수 없습니다."}
+
     conn = await connect_db()
-    sql = 'INSERT INTO "user" (id, password) VALUES ($1, $2)'
+    sql_push = 'INSERT INTO "user" (id, password) VALUES ($1, $2)'
+    sql_pull = 'SELECT id FROM "user" WHERE id = $1'
 
     try:
+        id_duplicate = await conn.fetchrow(sql_pull, user.name)
+
+        if id_duplicate:
+            return {"Message" : "중복되는 아이디입니다!"}
+
         hash_pw = hash_password(user.pw)
-        await conn.execute(sql, user.name, hash_pw)
+        await conn.execute(sql_push, user.name, hash_pw)
 
         return {"Message" : "회원가입이 성공적으로 완료되었습니다."}
 
     finally:
         await conn.close()
 
-# 신규 회원 비밀번호 공백 검사 / 아이디 중복 검사 -> @router.post("/check")에 구현
+# 신규 회원 아이디 중복, not null 검사
 @router.post("/ucheck")
 async def check(user : userData):
 
-    # 비밀번호 공백 검사
-    if not user.pw.strip():
-        return {"Message" : "비밀번호에 공백을 사용할 수 없습니다."}
+    # ID not null 검사 
+    user.name = user.name.strip() # ID 앞 뒤 공백 제거
+    if not user.name:
+        return {"Message" : "아이디로 빈 문자열을 사용할 수 없습니다."}
 
     conn = await connect_db()
     sql_get = 'SELECT id FROM "user" WHERE id = $1'
-    sql_put = 'INSERT INTO "user" (id) VALUES ($1)'
 
     # 아이디 중복 체크
     try:
@@ -46,10 +61,10 @@ async def check(user : userData):
 
         if id_duplicate:
         # 만약 입력받은  ID가 DB 상에 있는 ID들과 일치하는게 있으면 예외처리 (ID 중복)
-            return {"Message" : "중복되는아이디입니다!"}
+            return {"Message" : "중복되는 아이디입니다!"}
         else:
         # 만약 입력받은 ID가 DB 상에 있는 ID들과 일치하는게 없으면 (ID 중복 x)
-            await conn.execute(sql_put, user.name)
+            return  {"Message" : "사용 가능한 아이디 입니다!"}
 
     finally:
         await conn.close()
