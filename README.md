@@ -45,8 +45,8 @@
 - **Security**: Bcrypt (Password Hashing), JWT (Token Auth)
 
 ### 🗄️ Database & Storage
-- **DBMS**: PostgreSQL 0.31.0
-- **Driver**: Asyncpg (Asynchronous Python driver)
+- **DBMS**: PostgreSQL 16.13
+- **Driver**: Asyncpg 0.31.0 (Asynchronous Python driver)
 
 ### 🛠️ Tools
 - **IDE**: VS Code
