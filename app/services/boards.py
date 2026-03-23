@@ -1,34 +1,38 @@
-#boards API
-import asyncpg
-import asyncio
+from asyncpg import Connection
+from app.schemas.boards import CreateBoard
+from app.models.boards import insert_boards_db
+from app.services.util import login
 
-from database import connect_db
-from fastapi import APIRouter
-from pydantic import BaseModel
-from util import login
+async def create_boards_services(conn: Connection, data: CreateBoard):
 
-router = APIRouter()
+    # 게시판 제목이 빈 문자열인 경우
+    if not data.title.strip():
+        return {
+            "성공 여부" : "False",
+            "메시지" : "게시판 제목에는 빈 문자열을 사용할 수 없습니다."
+        }
 
-class Data(BaseModel):
-    name: str
-    pw: str
-    title: str
-    content: str
+    # 게시판 내용이 빈 문자열인 경우
+    if not data.content.strip():
+        return {
+            "성공 여부" : "False",
+            "메시지" : "게시판 내용에는 빈 문자열을 사용할 수 없습니다."
+        }
     
-# 게시판 생성
-@router.post("/bregister")
-async def bregister(user : Data):
-    sql = 'INSERT INTO "boards" (title, content, author) VALUES ($1, $2, $3)'
+    # 로그인에 실패한 경우
+    if login(data.name, data.pw) != 1:
+        return {
+            "성공 여부" : "False",
+            "메시지" : "로그인 정보를 다시 확인해주세요."
+        }
 
-    if not user.title.strip(): # 제목이 공백이라면
-        return {"Message" : "제목에 공백을 사용할 수 없습니다."}
+    await insert_boards_db(conn, data)
 
-    if await login(user.name, user.pw) == 1: # 로그인에 성공한 경우
-        conn = await connect_db()
-        try:
-            await conn.execute(sql, user.title, user.content, user.name)
-            return {"Message" : "게시글 등록에 성공하였습니다."}
-        finally:
-            await conn.close()
-    else: # 로그인에 실패했을 때
-        return {"Message" : "로그인에 실패했습니다."}
+    return {
+        "성공 여부" : "True",
+         "메시지" : "게시판을 생성을 성공적으로 완료했습니다."       
+    }
+
+
+
+

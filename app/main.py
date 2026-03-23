@@ -1,14 +1,14 @@
-import asyncpg
-import asyncio
-import uvicorn
 from fastapi import FastAPI
-from fastapi import APIRouter
-from pydantic import BaseModel
-from database import connect_db
+from app.db.database import lifespan
+from app.api.boards import router as boards_router
 
+app = FastAPI(lifespan = lifespan)
 
-app = FastAPI()
+# user 테이블에 관련된 라우터 합치기
 
-@app.get("/")
-def read_root():
-    return {"Message" : "Welcome"}
+# boards 테이블에 관련된 라우터 합치기
+app.include_router(boards_router, prefix = "/boards", tags = ["Boards"])
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
