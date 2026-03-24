@@ -11,7 +11,7 @@
 - [프로젝트 소개](#프로젝트-소개)
 - [개발 스펙 및 개발 환경](#개발-스펙-및-개발-환경)
 - [주요 기능](#주요-기능)
-- [시스템 아키텍처](#시스템-아키텍처)
+- [시스템 아키텍처](#system-architecture)
 - [API](#api)
 
 ---
@@ -64,7 +64,7 @@
 - 게시글 목록 조회 (페이징 처리)
 
 ---
-
+<a name="system-architecture"></a>
 ## 🏗️ 시스템 아키텍처
 ### 📊 시스템 다큐먼트
 - [인증 로직 상세 (Auth Flow)](./docs/auth_flow.md)
@@ -76,26 +76,26 @@
 ```text
 .
 ├── README.md
-├── app
-│   ├── api
+├── 📁 app
+│   ├── 📁 api
 │   │   ├── boards.py
 │   │   └── user.py
-│   ├── core
+│   ├── 📁 core
 │   │   └── security.py
-│   ├── db
+│   ├── 📁 db
 │   │   └── database.py
 │   ├── main.py
-│   ├── models
+│   ├── 📁 models
 │   │   ├── boards.py
 │   │   └── user.py
-│   ├── schemas
+│   ├── 📁 schemas
 │   │   ├── boards.py
 │   │   └── user.py
-│   └── services
+│   └── 📁 services
 │       ├── auth.py
 │       ├── boards.py
 │       └── user.py
-├── docs
+├── 📁 docs
 │   ├── auth_flow.md
 │   ├── boards_flow.md
 │   ├── db_table.md
