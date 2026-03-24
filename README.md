@@ -8,15 +8,11 @@
 ---
 
 ## 📋 목차
-- [프로젝트 소개](#-프로젝트-소개)
-
-- [개발 스펙 및 개발 환경](#-개발-스펙-및-개발-환경)
-
-- [주요 기능](#-주요-기능)
-
-- [시스템 아키텍처](#-시스템-아키텍처)
-
-- [API](#-API)
+- [프로젝트 소개](#프로젝트-소개)
+- [개발 스펙 및 개발 환경](#개발스펙-및-개발환경)
+- [주요 기능](#주요-기능)
+- [시스템 아키텍처](#시스템-아키텍처)
+- [API](#api)
 
 ---
 
@@ -80,16 +76,31 @@
 ```text
 .
 ├── README.md
-├── boards.py
-├── database.py
-├── 📁docs
+├── 📁 app
+│   ├── 📁 api
+│   │   ├── boards.py
+│   │   └── user.py
+│   ├── 📁 core
+│   ├── 📁 db
+│   │   └── database.py
+│   ├── main.py
+│   ├── 📁 models
+│   │   ├── boards.py
+│   │   └── user.py
+│   ├── 📁 schemas
+│   │   ├── boards.py
+│   │   └── user.py
+│   └── 📁 services
+│       ├── boards.py
+│       ├── encryption.py
+│       ├── user.py
+│       └── util.py
+├── 📁 docs
 │   ├── auth_flow.md
 │   ├── boards_flow.md
+│   ├── db_table.md
 │   └── user_flow.md
-├── encryption.py
-├── main.py
-├── user.py
-└── util.py
+└── requirement.txt
 ```
 
 ### 🗃️ 데이터베이스 스키마
@@ -97,30 +108,31 @@
 - [DB 테이블 구조](./docs/db_table.md)
 ### 💬 테이블 설명
 #### - User Table
-|Column|Description|
-|:--|:--|
-| **index** | 사용자 고유 식별 번호(PK) |
-| **id** | 사용자 로그인 ID |
-| **password** | 해싱된 비밀번호 |
-| **reg_date** | 회원 가입 일시 |
-| **update_date** | 회원 정보 수정 일시 |
+|Column|Description|Constraint|
+|:--|:--|:--|
+| **index** | 사용자 고유 식별 번호 | PK (NOT NULL) |
+| **id** | 사용자 로그인 ID | NOT NULL, UNIQUE |
+| **password** | 해싱된 비밀번호 | NOT NULL |
+| **reg_date** | 회원 가입 일시 | NOT NULL, DEFAULT |
+| **update_date** | 회원 정보 수정 일시 | |
 
 #### - Boards Table
-|Column|Description|
-|:--|:--|
-| **index** | 게시글 고유 식별 번호(PK) |
-| **title** | 게시판 제목 |
-| **content** | 게시글 내용 |
-| **reg_date** | 최초 생성 일시 |
-| **update_date** | 최종 수정 일시 |
-| **user_index** | 작성자 고유 번호(FK: user.index) |
+|Column|Description|Constraint|
+|:--|:--|:--|
+| **index** | 게시글 고유 식별 번호 | PK (NOT NULL) |
+| **title** | 게시판 제목 | NOT NULL |
+| **content** | 게시글 내용 | NOT NULL |
+| **reg_date** | 최초 생성 일시 | NOT NULL, DEFAULT |
+| **update_date** | 최종 수정 일시 | |
+| **user_index** | 작성자 고유 번호 (user.index 참조) | FK (NOT NULL) |
 
 ---
 
 ## 📡 API
 
-[API 상세 명세서]( 여기에 링크 )
-[Swagger UI]( 여기에 링크 )를 참조하세요.
+- [API 상세 명세서]( 여기에 링크 )
+
+- [Swagger UI]( 여기에 링크 )
 
 | Category | Method | Endpoint | Description |
 | :--- | :---: | :--- | :--- |
