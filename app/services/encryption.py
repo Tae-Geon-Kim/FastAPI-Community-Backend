@@ -9,7 +9,6 @@ def hash_password(pw: str):
     hashed = bcrypt.hashpw(pw, bcrypt.gensalt()) # hashed에는 bytes가 
 
     return hashed.decode('utf-8') # string으로 -> DB 저장 필요
-                                  # DB에 저장할 떄는 database.py SQL문 사용해서
 
 # main.py에서 해싱된 값 가져와 검증
 def verify(plain_password: str, hashed_password: str):
