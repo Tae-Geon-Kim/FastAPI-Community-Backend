@@ -9,7 +9,7 @@
 
 ## 📋 목차
 - [프로젝트 소개](#프로젝트-소개)
-- [개발 스펙 및 개발 환경](#개발스펙-및-개발환경)
+- [개발 스펙 및 개발 환경](#개발-스펙-및-개발-환경)
 - [주요 기능](#주요-기능)
 - [시스템 아키텍처](#시스템-아키텍처)
 - [API](#api)
@@ -76,26 +76,26 @@
 ```text
 .
 ├── README.md
-├── 📁 app
-│   ├── 📁 api
+├── app
+│   ├── api
 │   │   ├── boards.py
 │   │   └── user.py
-│   ├── 📁 core
-│   ├── 📁 db
+│   ├── core
+│   │   └── security.py
+│   ├── db
 │   │   └── database.py
 │   ├── main.py
-│   ├── 📁 models
+│   ├── models
 │   │   ├── boards.py
 │   │   └── user.py
-│   ├── 📁 schemas
+│   ├── schemas
 │   │   ├── boards.py
 │   │   └── user.py
-│   └── 📁 services
+│   └── services
+│       ├── auth.py
 │       ├── boards.py
-│       ├── encryption.py
-│       ├── user.py
-│       └── util.py
-├── 📁 docs
+│       └── user.py
+├── docs
 │   ├── auth_flow.md
 │   ├── boards_flow.md
 │   ├── db_table.md
