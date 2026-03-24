@@ -8,14 +8,14 @@
 ---
 
 ## 📋 목차
-- [프로젝트 소개](#프로젝트-소개)
-- [개발 스펙 및 개발 환경](#개발-스펙-및-개발-환경)
-- [주요 기능](#주요-기능)
+- [프로젝트 소개](#project-intro)
+- [개발 스펙 및 개발 환경](#dev-spec)
+- [주요 기능](#features)
 - [시스템 아키텍처](#system-architecture)
 - [API](#api)
 
 ---
-
+<a name="project-intro"></a>
 ## 📌 프로젝트 소개
 본 프로젝트는 **회원관리 및 게시판 기능을 포함한 백엔드 시스템**을 구현한 프로젝트입니다.  
 
@@ -33,7 +33,7 @@
 ✅ JWT 기반 토큰 인증 방식 도입
 
 ---
-
+<a name="dev-spec"></a>
 ## ⚙️ 개발 스펙 및 개발 환경
 ### 🧩 Backend
 - **Language**: Python 3.12.3
@@ -50,7 +50,7 @@
 - **API Test**: Swagger UI (Built-in), Postman
 
 ---
-
+<a name="features"></a>
 ## ✨ 주요 기능
 ### 👤 회원 관리
 - 회원가입 / 로그인 / 로그아웃
@@ -127,7 +127,7 @@
 | **user_index** | 작성자 고유 번호 (user.index 참조) | FK (NOT NULL) |
 
 ---
-
+<a name="api"></a>
 ## 📡 API
 
 - [API 상세 명세서]( 여기에 링크 )
