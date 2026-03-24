@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.db_pool = await asyncpg.create_pool(
         user="cutshion",
-        password="cutshion%40",
+        password="cutshion@",
         database="CommunityBackendDB",
         host="127.0.0.1",
         port=5432,

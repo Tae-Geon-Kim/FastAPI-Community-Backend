@@ -10,18 +10,18 @@ from app.models.user import pull_pw_login
 
 async def login(conn: Connection, data: UserCreate):
 
-        hashed_pw = await pull_pw_login(conn, data)
+        login_data = await pull_pw_login(conn, data)
 
         # 사용자가 입력한 아이디가 DB에 존재하지 않을 때
-        if hashed_pw == None:
-            return 0 
+        if login_data is None:
+            return None 
 
         # 사용자가 입력한 비밀번호가 해싱된 비밀번호와 일치할 때
-        if verify(data.pw, hashed_pw['pw']): 
-            return 1   
+        if verify(data.password, login_data['password']): 
+            return login_data['index']
         else:
-            return 0
+            return None
    
-# hashed_pw[password] 라고 써야하는 이유: hashed_pw 는 {key : value} 값 return
-# 비밀번호 자체만 가져올라면 hashed_pw['password'] -> 'password'인 이유: sql 문에서 내가 password라 지정함.
+# hashed_password[password] 라고 써야하는 이유: hashed_password 는 {key : value} 값 return
+# 비밀번호 자체만 가져올라면 hashed_password['password'] -> 'password'인 이유: sql 문에서 내가 password라 지정함.
 

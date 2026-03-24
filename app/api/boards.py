@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import APIRouter, Depends
 from asyncpg import Connection
 from app.schemas.boards import CreateBoard
 from app.services.boards import create_boards_services

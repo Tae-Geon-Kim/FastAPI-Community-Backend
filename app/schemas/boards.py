@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class CreateBoard(BaseModel):
-    name: str
-    pw: str
+    id: str
+    password: str
     title: str
     content: str

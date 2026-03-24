@@ -3,7 +3,7 @@
 from asyncpg import Connection
 from app.schemas.boards import CreateBoard
 
-async def insert_boards_db(conn: Connection, data: CreateBoard):
-	sql = 'INSERT INTO "boards" (title, content, name) VALUES ($1, $2, $3)'
+async def insert_boards_db(conn: Connection, data: CreateBoard, user_num: int):
+	sql = 'INSERT INTO "boards" (title, content, user_index) VALUES ($1, $2, $3)'
 
-	return await conn.execute(sql, data.title, data.content, data.name)
+	return await conn.execute(sql, data.title, data.content, user_num)
