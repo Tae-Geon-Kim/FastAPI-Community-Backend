@@ -7,3 +7,24 @@ async def insert_boards_db(conn: Connection, data: CreateBoard, user_num: int):
 	sql = 'INSERT INTO "boards" (title, content, user_index) VALUES ($1, $2, $3)'
 
 	return await conn.execute(sql, data.title, data.content, user_num)
+
+# 특정 유저의 게시판 정보 조회 (INNER JOIN)
+async def certain_user_boards_info(conn: Connection, user_id: str):
+	sql = """
+		SELECT
+			b.index,
+			b.title,
+			b.content,
+			b.reg_date,
+			b.update_date,
+			u.id
+			FROM boards AS b
+			INNER JOIN "user" as u 
+			ON b.user_index = u.index
+			WHERE u.id = $1
+			ORDER BY b.index DESC
+	"""
+	# ORDER BY b.index DESC : 가장 최근에 쓴 글 (가장 큰 번호)이 가장 위로 
+
+	return await conn.fetch(sql, user_id)
+
