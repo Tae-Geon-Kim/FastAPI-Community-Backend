@@ -10,6 +10,7 @@
 ## 📋 목차
 - [프로젝트 소개](#project-intro)
 - [개발 스펙 및 개발 환경](#dev-spec)
+- [시작하기](#start)
 - [주요 기능](#features)
 - [시스템 아키텍처](#system-architecture)
 - [API](#api)
@@ -49,6 +50,15 @@
 - **Version Control**: Git, GitHub
 - **API Test**: Swagger UI (Built-in), Postman
 
+---
+<a name="start"></a>
+## 🚀 시작하기
+### 📋 사전 요구 사항
+- Python 3.12.3
+- PostgreSQL 16.13
+### 📦 의존성 관리
+
+### 🧪 설치 및 실행
 ---
 <a name="features"></a>
 ## ✨ 주요 기능
@@ -129,6 +139,7 @@
 ---
 <a name="api"></a>
 ## 📡 API
+### 🔌 엔드포인트 요약
 
 - [API 상세 명세서]( 여기에 링크 )
 
@@ -142,5 +153,6 @@
 | **Board** | `POST` | `/bregister` | 신규 게시글 등록 (제목 공백 검증) |
 | **Board** | `POST` | `/bupdate` | 게시글 수정 및 PW 재인증 후 삭제 |
 
+### 🧾 Swagger 테스트 결과
 
 ---
