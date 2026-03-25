@@ -21,6 +21,6 @@ async def id_duplicate(conn: Connection, data: UserId):
 
 # 사용자 정보 조회
 async def pull_user_info(conn: Connection, data: UserId):
-    sql = 'SELECT * FROM "user" WHERE id = $1'
+    sql = 'SELECT id, reg_date, update_date FROM "user" WHERE id = $1'
 
     return await conn.fetchrow(sql, data.id)
