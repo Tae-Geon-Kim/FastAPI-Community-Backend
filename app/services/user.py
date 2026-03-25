@@ -57,9 +57,13 @@ async def user_name_services(conn: Connection, data: UserIdCheck):
 
 
 # 사용자 정보조회
-async def user_info_services(conn: Connection, data: UserCreate):
+async def user_info_services(conn: Connection, data: UserCreate)
 
-    if await login(conn, data) != 1:
+    user_num = await login(conn, data)
+    user_data = await pull_user_info(conn, data)
+
+    # 로그인 실패
+    if user_num is None:
         return {
             "성공 여부" : "False",
             "메시지" : "로그인에 실패하였습니다. 로그인 정보를 다시 확인해주세요."
@@ -68,6 +72,7 @@ async def user_info_services(conn: Connection, data: UserCreate):
         return {
             "성공 여부" : "True",
             "메시지" : "로그인에 성공하였습니다. 사용자 정보를 출력합니다.",
-            "아이디" : data.id,
-            "비밀번호" : data.password
+            "아이디" : user_data['id'],
+            "회원가입 일시" : ,user_data['reg_date'],
+            "회원정보 수정 일시" : user_data['update_date']
         }

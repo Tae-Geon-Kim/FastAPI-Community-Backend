@@ -1,8 +1,17 @@
 from pydantic import BaseModel
+from datetime import datetime
 
-class UserCreate(BaseModel):
+class UserLogin(BaseModel):
     id: str
     password: str
 
-class UserIdCheck(BaseModel):
+class UserId(BaseModel):
     id: str
+
+class UserInfo(BaseModel):
+    id: str
+    reg_date: datetime
+    update_date: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
