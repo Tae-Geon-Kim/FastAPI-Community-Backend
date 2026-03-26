@@ -1,8 +1,9 @@
 from asyncpg import Connection
 from fastapi import HTTPException
-from app.schemas.boards import CreateBoard, BoardInfo, CommonResponse
+from collections import defaultdict
+from app.schemas.boards import *
+from app.models.boards import *
 from app.schemas.user import UserId
-from app.models.boards import insert_boards_db, certain_user_boards_info
 from app.models.user import id_duplicate
 from app.services.auth import login
 
@@ -30,7 +31,7 @@ async def create_boards_services(conn: Connection, data: CreateBoard):
     return CommonResponse(message = "게시판이 생성되었습니다.")
 
 # 특정 사용자의 게시판 목록을 출력 (사용자의 이름 입력 받아서 있음 출력 아님 에러 / 로그인 필요 없음)
-async def boards_info_services(conn: Connection, data: UserId):
+async def certain_boards_info_services(conn: Connection, data: UserId):
 
     user_exist = await id_duplicate(conn, data)
 
@@ -50,4 +51,35 @@ async def boards_info_services(conn: Connection, data: UserId):
     # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
     # DB에서 가져온 모든 Record 객체를 각각 dict로 변환하여 리스트 형태로 반환
 
-    return CommonResponse(message = "게시글 조회에 성공하였습니다. 게시판 정보를 출력합니다.", data = board_list)
+    return CommonResponse(message = f"{data.id}님의 게시판을 출력합니다.", data = board_list)
+
+
+# 전체 게시판을 출력 (사용자 별로 / 로그인 필요 없음)
+async def all_boards_info_services(conn: Connection):
+
+    rows = await all_user_boards_info(conn)
+    # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
+
+    # boards 테이블에 게시판이 아예 하나도 존재하지 않을 때
+    if not rows:
+        raise HTTPException(status_code = 404, detail = "등록된 게시글이 존재하지않습니다.")
+    
+    grouped_dict =defaultdict(list)
+    # 빈 딕셔너리 생성
+
+    for row in rows:
+        row_dict = dict(row)
+        author_id = row_dict['author']
+        grouped_dict[author_id].append(row_dict)
+
+    final_data = []
+
+    for author_name, post_list in grouped_dict.items():
+        user_group = AllBoardInfoResponse(author = author_name, posts = post_list)
+
+        final_data.append(user_group)
+    
+    return CommonResponse(
+        message = "전체 게시글을 사용자별로 분류하여 출력합니다.",
+        data = final_data
+    )

@@ -9,7 +9,7 @@ class CreateBoard(BaseModel):
     title: str
     content: str
 
-# 게시판 정보 조회
+# 게시판 정보 조회 (certain)
 class BoardInfo(BaseModel):
     id: str
     title: str
@@ -19,6 +19,22 @@ class BoardInfo(BaseModel):
 
     class Config: 
         from_attributes = True
+
+# 게시판 정보 조회(all)
+class AllBoardInfo(BaseModel):
+    index: int
+    title: str
+    content: str
+    reg_date: datetime
+    update_date: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+# 게시판 정보 조회(all) 응답
+class AllBoardInfoResponse(BaseModel):
+    author: str
+    posts : list[AllBoardInfo]
 
 # 응답 규격화
 class CommonResponse(BaseModel):

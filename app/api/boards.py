@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from asyncpg import Connection
 from app.schemas.boards import CreateBoard
-from app.services.boards import create_boards_services, boards_info_services
+from app.services.boards import create_boards_services, certain_boards_info_services, all_boards_info_services
 from app.schemas.user import UserId
 from app.db.database import get_db
 
@@ -16,10 +16,18 @@ async def bregister(data: CreateBoard, conn: Connection = Depends(get_db)):
 
     return result
 
-# 게시판 조회
-@router.post("/binfo")
-async def binfo(data: UserId, conn: Connection = Depends(get_db)):
+# 특정 유저의 게시판 조회
+@router.post("/certain_binfo")
+async def certain_binfo(data: UserId, conn: Connection = Depends(get_db)):
 
-    result = await boards_info_services(conn, data)
+    result = await certain_boards_info_services(conn, data)
+
+    return result
+
+# 모든 유저의 게시판 조회
+@router.get("/all_binfo")
+async def all_binfo(conn: Connection = Depends(get_db)):
+
+    result = await all_boards_info_services(conn)
 
     return result
