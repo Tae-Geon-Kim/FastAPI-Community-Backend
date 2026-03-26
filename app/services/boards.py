@@ -1,6 +1,6 @@
 from asyncpg import Connection
 from fastapi import HTTPException
-from app.schemas.boards import CreateBoard, BoardInfo
+from app.schemas.boards import CreateBoard, BoardInfo, CommonResponse
 from app.schemas.user import UserId
 from app.models.boards import insert_boards_db, certain_user_boards_info
 from app.models.user import id_duplicate
@@ -27,10 +27,7 @@ async def create_boards_services(conn: Connection, data: CreateBoard):
     # 게시판을 저장할 때 user_num도 같이 저장
     await insert_boards_db(conn, data, user_num)
 
-    return {
-        "성공 여부" : "True",
-         "메시지" : "게시판을 생성을 성공적으로 완료했습니다."       
-    }
+    return CommonResponse(message = "게시판이 생성되었습니다.")
 
 # 특정 사용자의 게시판 목록을 출력 (사용자의 이름 입력 받아서 있음 출력 아님 에러 / 로그인 필요 없음)
 async def boards_info_services(conn: Connection, data: UserId):
@@ -49,9 +46,5 @@ async def boards_info_services(conn: Connection, data: UserId):
         raise HTTPException(status_code = 404, detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다.")
     
     board_list = [BoardInfo.model_validate(dict(row)) for row in rows]
-    
-    return {
-        "성공 여부" : "True",
-        "메시지" : "게시글 조회에 성공하였습니다. 게시판 정보를 출력합니다.",
-        "data" : board_list
-    }
+
+    return CommonResponse(message = "게시글 조회에 성공하였습니다.\n 게시판 정보를 출력합니다.", data = board_list)

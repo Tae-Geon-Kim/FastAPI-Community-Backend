@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 # 게시판 생성
 class CreateBoard(BaseModel):
@@ -19,3 +19,9 @@ class BoardInfo(BaseModel):
 
     class Config: 
         from_attributes = True
+
+# 응답 규격화
+class CommonResponse(BaseModel):
+    success: bool = True
+    message: str = "사용자의 요청이 성공적으로 수행되었습니다."
+    data: Optional[Any] = None
