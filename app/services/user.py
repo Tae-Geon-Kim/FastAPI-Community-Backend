@@ -2,8 +2,8 @@ from asyncpg import Connection
 from fastapi import HTTPException
 from app.schemas.user import UserLogin, UserId, UserInfo, CommonResponse
 from app.models.user import id_duplicate, push_id_pw, pull_user_info
-from app.services.encryption import hash_password, verify
-from app.services.util import login
+from app.core.security import hash_password, verify
+from app.services.auth import login
 
 # 사용자 비밀번호 검사 
 async def user_pw_services(conn: Connection, data: UserLogin):
@@ -44,8 +44,10 @@ async def user_info_services(conn: Connection, data: UserLogin):
         raise HTTPException(status_code = 401, detail = "로그인 정보를 다시 확인해주세요.")
     
     user_data = await pull_user_info(conn, UserId(id = data.id))
+    # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
 
     return CommonResponse(
         message = "사용자 정보를 출력합니다.",
-        data = UserInfo.model_validate(user_data)
+        data = UserInfo.model_validate(dict(user_data))
+        # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
     )

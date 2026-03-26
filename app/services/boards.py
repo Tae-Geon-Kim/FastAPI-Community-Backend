@@ -4,7 +4,7 @@ from app.schemas.boards import CreateBoard, BoardInfo, CommonResponse
 from app.schemas.user import UserId
 from app.models.boards import insert_boards_db, certain_user_boards_info
 from app.models.user import id_duplicate
-from app.services.util import login
+from app.services.auth import login
 
 async def create_boards_services(conn: Connection, data: CreateBoard):
 
@@ -39,6 +39,7 @@ async def boards_info_services(conn: Connection, data: UserId):
         raise HTTPException(status_code = 404, detail = "해당 사용자가 존재하지않습니다.")
 
     # 해당 사용자가 존재 / 해당 사용자의 전체 게시글 fetch
+    # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
     rows = await certain_user_boards_info(conn, data.id)
 
     # 해당 사용자가 쓴 게시글이 없는 경우
@@ -46,5 +47,7 @@ async def boards_info_services(conn: Connection, data: UserId):
         raise HTTPException(status_code = 404, detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다.")
     
     board_list = [BoardInfo.model_validate(dict(row)) for row in rows]
+    # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
+    # DB에서 가져온 모든 Record 객체를 각각 dict로 변환하여 리스트 형태로 반환
 
-    return CommonResponse(message = "게시글 조회에 성공하였습니다.\n 게시판 정보를 출력합니다.", data = board_list)
+    return CommonResponse(message = "게시글 조회에 성공하였습니다. 게시판 정보를 출력합니다.", data = board_list)
