@@ -22,11 +22,11 @@ async def user_pw_services(conn: Connection, data: UserLogin):
 
 # 신규 회원 아이디 중복, 빈 문자열 검사
 async def user_name_services(conn: Connection, data: UserId):
-    
+
+    # 아이디가 공백 or 빈 문자열인 경우
     data.id = data.id.strip()
-    # 아이디가 빈 문자열인 경우
-    if not data.id:
-        raise HTTPException(status_code = 400, detail = "빈 문자열을 아이디로 사용할 수 없습니다.")
+    if not data.id or " " in data.id:
+        raise HTTPException(status_code = 400, detail = "아이디에는 공백을 사용할 수 없으며 빈 문자열은 아이디로 사용할 수 없습니다.")
 
     # 아이디가 중복되는 경우
     if await id_duplicate(conn, data):
