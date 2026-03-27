@@ -3,7 +3,7 @@ from app.schemas.user import UserLogin, UserId
 
 # 로그인: 아이디에 맞는 비밀번호 확인
 async def pull_pw_login(conn: Connection, data: UserLogin):
-    sql = 'SELECT index, password FROM "user" WHERE id = $1'
+    sql = 'SELECT index, password FROM "user" WHERE id = $1 AND deleted_at IS NULL'
 
     return await conn.fetchrow(sql, data.id)
 
@@ -21,7 +21,7 @@ async def id_duplicate(conn: Connection, data: UserId):
 
 # 사용자 정보 조회
 async def pull_user_info(conn: Connection, data: UserId):
-    sql = 'SELECT id, reg_date, update_date FROM "user" WHERE id = $1'
+    sql = 'SELECT id, reg_date, update_date FROM "user" WHERE id = $1 AND deleted_at IS NULL'
 
     return await conn.fetchrow(sql, data.id)
 

@@ -21,9 +21,11 @@ async def certain_user_boards_info(conn: Connection, user_id: str):
 			b.update_date,
 			u.id
 			FROM boards AS b
-			INNER JOIN "user" AS u 
+			INNER JOIN "user" AS u
 			ON b.user_index = u.index
 			WHERE u.id = $1
+				AND b.deleted_at IS NULL
+				AND u.deleted_at IS NULL
 			ORDER BY b.index DESC
 	"""
 	# ORDER BY b.index DESC : 가장 최근에 쓴 글 (가장 큰 번호)이 가장 위로 
@@ -44,6 +46,8 @@ async def all_user_boards_info(conn: Connection):
 		FROM boards AS b
 		INNER JOIN "user" AS u
 		ON b.user_index = u.index
+			WHERE b.deleted_at IS NULL
+			AND u.deleted_at IS NULL
 		ORDER BY u.id ASC, b.index DESC
 	""" 
 	# ORDER BY u.id ASC : 사용자 아이디를 가나나 / ABC 순으로
