@@ -1,5 +1,5 @@
 from asyncpg import Connection
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from app.schemas.user import *
 from app.models.user import *
 from app.models.boards import soft_withdraw_boards
@@ -13,7 +13,10 @@ async def user_pw_services(conn: Connection, data: UserLogin):
 
     # 비밀번호 공백 포함 or 빈 문자열인 경우
     if not data.password.strip() or " " in data.password:
-        raise HTTPException(status_code = 400, detail = "비밀번호에는 공백을 사용할 수 없으며 빈 문자열은 비밀번호로 사용할 수 없습니다.")
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = "비밀번호에는 공백을 사용할 수 없으며 빈 문자열은 비밀번호로 사용할 수 없습니다."
+        )
 
     # 비밀번호 해싱 처리 후 저장
     data.password = hash_password(data.password)
@@ -27,12 +30,18 @@ async def user_name_services(conn: Connection, data: UserId):
     # 아이디가 공백 or 빈 문자열인 경우
     data.id = data.id.strip()
     if not data.id or " " in data.id:
-        raise HTTPException(status_code = 400, detail = "아이디에는 공백을 사용할 수 없으며 빈 문자열은 아이디로 사용할 수 없습니다.")
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQEUST,
+            detail = "아이디에는 공백을 사용할 수 없으며 빈 문자열은 아이디로 사용할 수 없습니다."
+        )
 
     # 아이디가 중복되는 경우
     if await id_duplicate(conn, data):
-        raise HTTPException(status_code = 409, detail = "이미 사용중인 아이디입니다")
-    
+        raise HTTPException(
+            status_code = status.HTTP_409_CONFLICT,
+            detail = "이미 사용중인 아이디입니다."
+        )
+
     return CommonResponse(message = "사용 가능한 아이디입니다!")
 
 # 사용자 정보조회
@@ -42,7 +51,10 @@ async def user_info_services(conn: Connection, data: UserLogin):
 
     # 로그인 실패
     if user_num is None:
-        raise HTTPException(status_code = 401, detail = "로그인 정보를 다시 확인해주세요.")
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
     
     user_data = await pull_user_info(conn, UserId(id = data.id))
     # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
@@ -59,7 +71,10 @@ async def user_withdraw_services(conn: Connection, data: UserLogin):
     user_num = await login(conn, data)
        
     if user_num is None:
-        raise HTTPException(status_code = 401, detail = "로그인 정보를 다시 확인해주세요.")
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
         
     async with conn.transaction():
         # soft delete

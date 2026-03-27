@@ -1,5 +1,5 @@
 from asyncpg import Connection
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from collections import defaultdict
 from app.schemas.boards import *
 from app.models.boards import *
@@ -11,11 +11,17 @@ async def create_boards_services(conn: Connection, data: CreateBoard):
 
     # 게시판 제목이 빈 문자열인 경우
     if not data.title.strip():
-        raise HTTPException(status_code = 400, detail = "게시판 제목에는 빈 문자열을 사용할 수 없습니다.")
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = "게시판 제목에는 빈 문자열을 사용할 수 없습니다."
+        )
 
     # 게시판 내용이 빈 문자열인 경우
     if not data.content.strip():
-        raise HTTPException(status_code = 400, detail = "게시판 내용에는 빈 문자열을 사용할 수 없습니다.")
+        raise HTTPExcepiton(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = "게시판 내용에는 빈 문자열을 사용할 수 없습니다."
+        )
     
     user_num = await login(conn, data)
     # 로그인 성공 시 user_num 에는 사용자의 index 가
@@ -23,7 +29,10 @@ async def create_boards_services(conn: Connection, data: CreateBoard):
 
     # 로그인에 실패한 경우
     if user_num is None:
-        raise HTTPException(status_code = 401, detail = "로그인 정보를 다시 확인해주세요.")
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
 
     # 게시판을 저장할 때 user_num도 같이 저장
     await insert_boards_db(conn, data, user_num)
@@ -37,7 +46,10 @@ async def certain_boards_info_services(conn: Connection, data: UserId):
 
     # 해당 사용자가 존재 x
     if not user_exist:
-        raise HTTPException(status_code = 404, detail = "해당 사용자가 존재하지않습니다.")
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "해당 사용자가 존재하지않습니다."
+        )
 
     # 해당 사용자가 존재 / 해당 사용자의 전체 게시글 fetch
     # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
@@ -45,7 +57,10 @@ async def certain_boards_info_services(conn: Connection, data: UserId):
 
     # 해당 사용자가 쓴 게시글이 없는 경우
     if not rows:
-        raise HTTPException(status_code = 404, detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다.")
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
+        )
     
     board_list = [BoardInfo.model_validate(dict(row)) for row in rows]
     # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
@@ -62,7 +77,10 @@ async def all_boards_info_services(conn: Connection):
 
     # boards 테이블에 게시판이 아예 하나도 존재하지 않을 때
     if not rows:
-        raise HTTPException(status_code = 404, detail = "등록된 게시글이 존재하지않습니다.")
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "등록된 게시글이 존재하지않습니다."
+        )
     
     grouped_dict =defaultdict(list)
     # 빈 딕셔너리 생성
