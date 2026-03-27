@@ -52,3 +52,10 @@ async def all_user_boards_info(conn: Connection):
 	# DESC: 내림차순
 
 	return await conn.fetch(sql)
+
+# 게시판 soft 삭제
+async def soft_withdraw_boards(conn: Connection, user_index: int):
+
+	sql = 'UPDATE boards SET deleted_at = NOW() WHERE user_index = $1'
+
+	return await conn.execute(sql, user_index)

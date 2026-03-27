@@ -1,9 +1,10 @@
 from asyncpg import Connection
 from fastapi import HTTPException
-from app.schemas.user import UserLogin, UserId, UserInfo, CommonResponse
-from app.models.user import id_duplicate, push_id_pw, pull_user_info
-from app.core.security import hash_password, verify
-from app.services.auth import login
+from app.schemas.user import *
+from app.models.user import *
+from app.models.boards import soft_withdraw_boards
+from app.core.security import *
+from app.services.auth import *
 
 # 사용자 비밀번호 검사 
 async def user_pw_services(conn: Connection, data: UserLogin):
@@ -51,3 +52,22 @@ async def user_info_services(conn: Connection, data: UserLogin):
         data = UserInfo.model_validate(dict(user_data))
         # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
     )
+
+# 시용자 정보 삭제
+async def user_withdraw_services(conn: Connection, data: UserLogin):
+
+    user_num = await login(conn, data)
+       
+    if user_num is None:
+        raise HTTPException(status_code = 401, detail = "로그인 정보를 다시 확인해주세요.")
+        
+    async with conn.transaction():
+        # soft delete
+        await soft_withdraw_user(conn, data.id)
+        await soft_withdraw_boards(conn, user_num)
+    
+    return CommonResponse(message = f"{data.id}님의 회원탈퇴가 성공적으로 처리되었습니다.")
+
+async def withdraw_perman(pool):
+    async with pool.acquire() as conn:
+        await withdraw_permanently(conn)

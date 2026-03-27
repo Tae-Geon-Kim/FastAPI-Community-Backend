@@ -13,13 +13,19 @@ async def uregister(data: UserLogin, conn: Connection = Depends(get_db)):
     return await user_pw_services(conn, data)
 
 # 신규 회원 아이디 중복, not null 검사
-@router.post("/ucheck", response_model = CommonResponse)
+@router.post("/uCheck", response_model = CommonResponse)
 async def ucheck(data: UserId, conn : Connection = Depends(get_db)):
 
     return await user_name_services(conn, data)
 
 # 사용자 정보 조회
-@router.post("/uinfo", response_model = CommonResponse)
+@router.post("/uInfo", response_model = CommonResponse)
 async def uinfo(data: UserLogin, conn: Connection = Depends(get_db)):
 
     return await user_info_services(conn, data)
+
+# 사용자 회원탈퇴 
+@router.post("/withdraw", response_model = CommonResponse)
+async def withdraw(data: UserLogin, conn: Connection = Depends(get_db)):
+
+    return await user_withdraw_services(conn, data)

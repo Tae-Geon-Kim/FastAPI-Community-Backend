@@ -2,6 +2,7 @@ import asyncpg
 from asyncpg import Connection, Pool
 from fastapi import FastAPI, Depends, Request
 from contextlib import asynccontextmanager
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # TODO: 보안을 위해 하드코딩된 DB 접속 정보를 .env 환경 변수로 분리할 것
 @asynccontextmanager
@@ -17,9 +18,16 @@ async def lifespan(app: FastAPI):
     )
     print("DB 커넥션 풀이 준비되었습니다!")
 
+    from app.services.user import withdraw_perman
+
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(withdraw_perman, 'interval', hours = 3, args = [app.state.db_pool])
+    scheduler.start()
+
     yield
 
-    if app.state.db_pool: 
+    if app.state.db_pool:
+        scheduler.shutdown()
         await app.state.db_pool.close()
         print("DB 연결이 안전하게 종료되었습니다.")
 
