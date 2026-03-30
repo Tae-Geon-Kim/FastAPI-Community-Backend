@@ -72,8 +72,15 @@ async def check_boards_owner(conn: Connection, boards_index: int):
 	return await conn.fetchrow(sql, int(boards_index))
 
 # 게시판 제목 변경
-async def title_modify(conn: Connection, data: ModiTitle):
+async def title_modify(conn: Connection, new_title: str, board_index: int):
 
 	sql = 'UPDATE boards SET title = $1, update_date = NOW() WHERE index = $2'
 
-	return await conn.execute(sql, data.new_title, data.board_index)
+	return await conn.execute(sql, new_title, board_index)
+
+# 게시판 내용 변경
+async def content_modify(conn: Connection, new_content: str, board_index: int):
+
+	sql = 'UPDATE boards SET content = $1, update_date = NOW() WHERE index = $2'
+
+	return await conn.execute(sql, new_content, board_index)

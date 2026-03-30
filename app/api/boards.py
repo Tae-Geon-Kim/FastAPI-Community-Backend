@@ -39,3 +39,10 @@ async def modiTitle(data: ModiTitle, conn: Connection = Depends(get_db)):
     result = await title_modify_services(conn, data)
 
     return result
+
+@router.post("/modiContent", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+async def modiContent(data: ModiContent, conn: Connection = Depends(get_db)):
+
+    result = await content_modify_services(conn, data)
+
+    return result

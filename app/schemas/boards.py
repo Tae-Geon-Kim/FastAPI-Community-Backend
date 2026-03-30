@@ -43,6 +43,13 @@ class ModiTitle(BaseModel):
     board_index: int
     new_title: str
 
+# 게시판 내용 변경
+class ModiContent(BaseModel):
+    id: str
+    password: str
+    board_index: int
+    new_content: str
+
 # 응답 규격화
 class CommonResponse(BaseModel):
     success: bool = True
