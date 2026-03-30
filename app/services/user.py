@@ -65,7 +65,7 @@ async def user_info_services(conn: Connection, data: UserLogin):
         # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
     )
 
-# 시용자 정보 삭제
+# 시용자 회원탈퇴 (복구 기능 포함)
 async def user_withdraw_services(conn: Connection, data: UserLogin):
 
     user_num = await login(conn, data)
@@ -86,3 +86,35 @@ async def user_withdraw_services(conn: Connection, data: UserLogin):
 async def withdraw_perman(pool):
     async with pool.acquire() as conn:
         await withdraw_permanently(conn)
+
+# 사용자 아이디 변경
+async def userId_modify_services(conn: Connection, data: ModiId):
+
+    user_num = await login(conn, UserLogin(id = data.id, password = data.password))
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
+
+    # 아이디 공백 포함 빈 문자열 검사
+    data.new_id = data.new_id.strip() # 아이디 양쪽 공백 제거
+    if not data.new_id or " " in data.new_id:
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = "아이디에는 공백을 사용할 수 없으며 빈 문자열은 아이디로 사용할 수 없습니다."
+        )
+
+    # 아이디가 중복되는 경우
+    if await id_duplicate(conn, UserId(id = data.new_id)):
+        raise HTTPException(
+            status_code = status.HTTP_409_CONFLICT,
+            detail = "중복되는 아이디가 존재합니다."
+        )
+    
+    await userId_modify(conn, data)
+
+    return CommonResponse(
+        message = f"{data.id}님의 아이디가 {data.new_id}로 수정되었습니다."
+    )

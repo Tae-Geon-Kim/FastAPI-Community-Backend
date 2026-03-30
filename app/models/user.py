@@ -9,18 +9,21 @@ async def pull_pw_login(conn: Connection, data: UserLogin):
 
 # 아이디, 비밀번호 저장
 async def push_id_pw(conn: Connection, data: UserLogin):
+
     sql = 'INSERT INTO "user" (id, password) VALUES ($1, $2)'
 
     return await conn.execute(sql, data.id, data.password)
 
 # 아이디 중복 확인
 async def id_duplicate(conn: Connection, data: UserId):
+
     sql = 'SELECT id FROM "user" WHERE id = $1'
 
     return await conn.fetchrow(sql, data.id)
 
 # 사용자 정보 조회
 async def pull_user_info(conn: Connection, data: UserId):
+
     sql = 'SELECT id, reg_date, update_date FROM "user" WHERE id = $1 AND deleted_at IS NULL'
 
     return await conn.fetchrow(sql, data.id)
@@ -42,3 +45,10 @@ async def withdraw_permanently(conn: Connection):
         """
     
     return await conn.execute(sql)
+
+# 사용자 아이디 변경
+async def userId_modify(conn: Connection, data: ModiId):
+
+    sql = 'UPDATE "user" SET id = $1, update_date = NOW() WHERE id = $2'
+
+    return await conn.execute(sql, data.new_id, data.id)
