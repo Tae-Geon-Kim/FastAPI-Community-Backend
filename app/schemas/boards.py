@@ -36,6 +36,13 @@ class AllBoardInfoResponse(BaseModel):
     author: str
     posts : list[AllBoardInfo]
 
+# 게시판 제목 변경
+class ModiTitle(BaseModel):
+    id: str
+    password: str
+    board_index: int
+    new_title: str
+
 # 응답 규격화
 class CommonResponse(BaseModel):
     success: bool = True

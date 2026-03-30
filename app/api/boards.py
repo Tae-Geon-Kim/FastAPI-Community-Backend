@@ -31,3 +31,11 @@ async def all_binfo(conn: Connection = Depends(get_db)):
     result = await all_boards_info_services(conn)
 
     return result
+
+# 게시판 제목 변경
+@router.post("/modiTitle", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+async def modiTitle(data: ModiTitle, conn: Connection = Depends(get_db)):
+
+    result = await title_modify_services(conn, data)
+
+    return result

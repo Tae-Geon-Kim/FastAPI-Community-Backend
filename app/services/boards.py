@@ -3,7 +3,7 @@ from fastapi import HTTPException, status
 from collections import defaultdict
 from app.schemas.boards import *
 from app.models.boards import *
-from app.schemas.user import UserId
+from app.schemas.user import UserId, UserLogin
 from app.models.user import id_duplicate
 from app.services.auth import login
 
@@ -18,7 +18,7 @@ async def create_boards_services(conn: Connection, data: CreateBoard):
 
     # 게시판 내용이 빈 문자열인 경우
     if not data.content.strip():
-        raise HTTPExcepiton(
+        raise HTTPException(
             status_code = status.HTTP_400_BAD_REQUEST,
             detail = "게시판 내용에는 빈 문자열을 사용할 수 없습니다."
         )
@@ -101,3 +101,41 @@ async def all_boards_info_services(conn: Connection):
         message = "전체 게시글을 사용자별로 분류하여 출력합니다.",
         data = final_data
     )
+
+# 게시판 제목 수정
+async def title_modify_services(conn: Connection, data: ModiTitle):
+
+    user_num = await login(conn, UserLogin(id = data.id, password = data.password))
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
+
+    boards_owner = await check_boards_owner(conn, data.board_index)
+    # check_boards_owner()는 fetchrow() --> fetchrow()는 Record 객체 반환
+
+    if not boards_owner:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
+        )
+    
+    # boards_owner는 {'user_index': 5} 같은 모양의 객체 --> 이걸 user_num(정수 5)과 직접 비교하면 항상 다르다고 판단
+    # boards_owner['user_index'] 라고 해야한다.
+    if boards_owner['user_index'] != user_num:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "본인의 게시글만 수정할 수 있습니다."
+        )
+
+    if not data.new_title.strip():
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = "게시판 제목에는 빈 문자열을 사용할 수 없습니다."
+        )
+
+    await title_modify(conn, data)
+
+    return CommonResponse(message = f"{data.id}의 게시판 제목이 {data.new_title}로 변경되었습니다.")

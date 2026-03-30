@@ -63,3 +63,17 @@ async def soft_withdraw_boards(conn: Connection, user_index: int):
 	sql = 'UPDATE boards SET deleted_at = NOW() WHERE user_index = $1'
 
 	return await conn.execute(sql, user_index)
+
+# 해당 User가 쓴 글인지 확인 (글 번호를 <-> 작성자 번호)
+async def check_boards_owner(conn: Connection, boards_index: int):
+
+	sql = 'SELECT user_index FROM boards WHERE index = $1 AND deleted_at IS NULL'
+
+	return await conn.fetchrow(sql, int(boards_index))
+
+# 게시판 제목 변경
+async def title_modify(conn: Connection, data: ModiTitle):
+
+	sql = 'UPDATE boards SET title = $1, update_date = NOW() WHERE index = $2'
+
+	return await conn.execute(sql, data.new_title, data.board_index)
