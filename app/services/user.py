@@ -118,3 +118,28 @@ async def userId_modify_services(conn: Connection, data: ModiId):
     return CommonResponse(
         message = f"{data.id}님의 아이디가 {data.new_id}로 수정되었습니다."
     )
+
+async def userPw_modify_services(conn: Connection, data: ModiPw):
+
+    user_num = await login(conn, UserLogin(id = data.id, password = data.password))
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
+
+     # 비밀번호 검사 (비밀번호 공백 포함 or 빈 문자열 여부)
+    if not data.new_password or " " in data.new_password:
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = "비밀번호에는 공백을 사용할 수 없으며 빈 문자열은 비밀번호로 사용할 수 없습니다."
+        )
+    
+    # 새로운 비밀번호 해싱처리
+    data.new_password = hash_password(data.new_password)
+
+    # DB 저장
+    await userPw_modify(conn, data)
+
+    return CommonResponse(message = f"{data.id}님의 비밀번호가 변경되었습니다.")

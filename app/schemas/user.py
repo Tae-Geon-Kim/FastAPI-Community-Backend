@@ -26,3 +26,8 @@ class ModiId(BaseModel):
     id: str
     password: str
     new_id: str
+
+class ModiPw(BaseModel):
+    id: str
+    password: str
+    new_password: str

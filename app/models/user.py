@@ -52,3 +52,11 @@ async def userId_modify(conn: Connection, data: ModiId):
     sql = 'UPDATE "user" SET id = $1, update_date = NOW() WHERE id = $2'
 
     return await conn.execute(sql, data.new_id, data.id)
+
+# 사용자 비밀번호 변경
+
+async def userPw_modify(conn: Connection, data: ModiPw):
+
+    sql = 'UPDATE "user" SET password = $1, update_date = NOW() WHERE id = $2'
+
+    return await conn.execute(sql, data.new_password, data.id)
