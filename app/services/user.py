@@ -119,6 +119,7 @@ async def userId_modify_services(conn: Connection, data: ModiId):
         message = f"{data.id}님의 아이디가 {data.new_id}로 수정되었습니다."
     )
 
+# 사용자 비밀번호 변경
 async def userPw_modify_services(conn: Connection, data: ModiPw):
 
     user_num = await login(conn, UserLogin(id = data.id, password = data.password))

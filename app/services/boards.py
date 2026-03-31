@@ -173,3 +173,42 @@ async def content_modify_services(conn: Connection, data: ModiContent):
     await content_modify(conn, data.new_content, data.board_index)
 
     return CommonResponse(message = f"{data.id}님의 게시판 내용이 변경되었습니다.")
+
+# 게시판 삭제 (soft delete)
+async def boards_delete_services(conn: Connection, data: DeleteBoards):
+
+    # 사용자 로그인
+    user_num = await login(conn, UserLogin(id = data.id, password = data.password))
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
+    
+    boards_owner = await check_boards_owner(conn, data.boards_index)
+
+    # 해당 User가 작성한 글이 존재하는지 확인
+    if boards_owner is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND 
+            detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
+        )
+    
+    # 삭제하려 하는 글의 User와 로그인한 User가 동일한 인물인지 확인
+    if boards_owner['user_index'] != user_num:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN
+            detail = "본인의 게시글만 삭제할 수 있습니다."
+        )
+
+    # soft delete
+    await soft_delete_boards(conn, data.board_index)
+
+    return CommonResponse(message = f"{data.id}님의 요청하신 삭제 요청이 성공적으로 처리되었습니다.")
+
+# 게시판 삭제 (실제 삭제)
+async def delete_perman(pool):
+
+    async with pool.acquire() as conn:
+        await delete_boards(conn)

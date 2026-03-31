@@ -84,3 +84,20 @@ async def content_modify(conn: Connection, new_content: str, board_index: int):
 	sql = 'UPDATE boards SET content = $1, update_date = NOW() WHERE index = $2'
 
 	return await conn.execute(sql, new_content, board_index)
+
+# 게시판 삭제 (실제 삭제 x, deleted_at 상태값만 변경)
+async def soft_delete_boards(conn: Connection, boards_index: str):
+
+	sql = 'UPDATE boards SET deleted_at = NOW() WHERE index = $1'
+
+	return await conn.execute(sql, boards_index)
+
+# 게시판 삭제 (실제 삭제)
+async def delete_boards(conn: Connection):
+
+	sql = """
+		DELETE FROM boards WHERE deleted_at IS NOT NULL
+		AND deleted_at <= NOW() - INTERVAL '3 days'
+	"""
+
+	return await conn.execute(sql)

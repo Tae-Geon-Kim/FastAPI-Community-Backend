@@ -2,6 +2,12 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, Any
 
+# 응답 규격화
+class CommonResponse(BaseModel):
+    success: bool = True
+    message: str = "사용자의 요청이 성공적으로 수행되었습니다."
+    data: Optional[Any] = None
+
 # 게시판 생성
 class CreateBoard(BaseModel):
     id: str
@@ -50,8 +56,8 @@ class ModiContent(BaseModel):
     board_index: int
     new_content: str
 
-# 응답 규격화
-class CommonResponse(BaseModel):
-    success: bool = True
-    message: str = "사용자의 요청이 성공적으로 수행되었습니다."
-    data: Optional[Any] = None
+# 게시판 삭제
+class DeleteBoards(BaseModel):
+    id: str
+    password: str
+    board_index: int

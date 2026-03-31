@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from asyncpg import Connection
 from app.schemas.boards import CreateBoard
 from app.services.boards import *
-from app.schemas.user import UserId, CommonResponse
+from app.schemas.user import UserId, UserLogin
 from app.db.database import get_db
 
 router = APIRouter()
@@ -40,9 +40,18 @@ async def modiTitle(data: ModiTitle, conn: Connection = Depends(get_db)):
 
     return result
 
+# 게시판 내용 변경 
 @router.post("/modiContent", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def modiContent(data: ModiContent, conn: Connection = Depends(get_db)):
 
     result = await content_modify_services(conn, data)
+
+    return result
+
+# 게시판 삭제
+@router.post("/deleteBoards", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+async def deleteBoards(data: UserLogin, conn: Connection = Depends(get_db)):
+
+    result = await boards_delete_services(conn, data)
 
     return result
