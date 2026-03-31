@@ -1,16 +1,16 @@
 from asyncpg import Connection
 
 # 아이디에 맞는 비밀번호 확인
-async def pull_pw_lofin(conn: Connection, user_id: str):
+async def pull_pw_login(conn: Connection, user_id: str):
 
-    sql = sql = 'SELECT index, password FROM "user" WHERE id = $1 AND deleted_at IS NULL'
+    sql = 'SELECT index, password FROM "user" WHERE id = $1 AND deleted_at IS NULL'
 
     return await conn.fetchrow(sql, user_id)
 
 # 아이디, 비밀번호 저장
 async def push_id_pw(conn: Connection, user_id: str, user_password: str):
 
-    sql = 'INSERT INTO "user" (id, password) VALUSE ($1, $2)'
+    sql = 'INSERT INTO "user" (id, password) VALUES ($1, $2)'
 
     return await conn.execute(sql, user_id, user_password)
 
@@ -47,16 +47,15 @@ async def withdraw_permanently(conn: Connection):
     return await conn.execute(sql)
 
 # 사용자 아이디 변경
-async def userId_modify(conn: Connection, data: ModiId):
+async def userId_modify(conn: Connection, new_id: str, user_id: str):
 
     sql = 'UPDATE "user" SET id = $1, update_date = NOW() WHERE id = $2'
 
-    return await conn.execute(sql, data.new_id, data.id)
+    return await conn.execute(sql, new_id, user_id)
 
 # 사용자 비밀번호 변경
-
-async def userPw_modify(conn: Connection, data: ModiPw):
+async def userPw_modify(conn: Connection, new_password: str, user_id: str):
 
     sql = 'UPDATE "user" SET password = $1, update_date = NOW() WHERE id = $2'
 
-    return await conn.execute(sql, data.new_password, data.id)
+    return await conn.execute(sql, new_password, user_id)

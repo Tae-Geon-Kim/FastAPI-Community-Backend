@@ -113,7 +113,7 @@ async def userId_modify_services(conn: Connection, data: ModiId):
             detail = "중복되는 아이디가 존재합니다."
         )
     
-    await userId_modify(conn, data)
+    await userId_modify(conn, data.new_id, data.id)
 
     return CommonResponse(
         message = f"{data.id}님의 아이디가 {data.new_id}로 수정되었습니다."
@@ -141,6 +141,6 @@ async def userPw_modify_services(conn: Connection, data: ModiPw):
     data.new_password = hash_password(data.new_password)
 
     # DB 저장
-    await userPw_modify(conn, data)
+    await userPw_modify(conn, data.new_password, data.id)
 
     return CommonResponse(message = f"{data.id}님의 비밀번호가 변경되었습니다.")
