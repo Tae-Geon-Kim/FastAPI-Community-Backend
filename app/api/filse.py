@@ -17,3 +17,16 @@ async def upload_files(
     result = await upload_files_service(conn, file, data, board_index)
 
     return result
+
+# 파일 삭제
+@router.post("/delete_files", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+async def delete_files(
+    conn: Connection = Depends(get_db),
+    data: UserLogin,
+    boards_index: int,
+    files_index: int
+):
+
+    result = await delete_files_service(conn, data, boards_index, files_index) 
+
+    return result

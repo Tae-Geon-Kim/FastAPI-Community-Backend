@@ -81,3 +81,48 @@ async def upload_files_service(conn: Connection, file: UploadFile , data: UserLo
     await upload_files_db(conn, file.filename, filename, filepath, file.size, board_index)
 
     return CommonResponse(message = f"{data.id}님이 요청하신 {file.filename}파일의 업로드 작업이 완료되었습니다.")
+
+# 파일 삭제
+async def delete_files_service(conn: Connection, data: UserLogin, board_index: int, files_index: int):
+
+    # 로그인 정보 확인
+    user_num = await login(conn, data)
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
+
+    # 해당 User의 게시판이 존재하는지
+    boards_owner = await check_boards_owner(conn, board_index)
+
+    if boards_owner is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
+        )
+    
+    # 권한 확인
+    if boards_owner['user_index'] != user_num:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "권한이 없습니다."
+        )
+    
+    if await check_files_belong(conn, files_index, board_index) is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "삭제하려는 파일이 이미 삭제되었거나 해당 게시들에 소속되어 있지 않습니다"
+            # files_index 와 board_index 매칭 되는 데이터가 존재하지않는다.
+        )
+
+    # soft_delete
+    await soft_delete_files(conn, files_index)
+
+    return CommonResponse(message = f"{data.id}님이 요청하신 삭제 요청이 성공적으로 처리되었습니다.")
+
+# 실제 삭제
+async def delete_files_perman(pool):
+    async with pool.acquire() as conn:
+        await delete_files(conn)

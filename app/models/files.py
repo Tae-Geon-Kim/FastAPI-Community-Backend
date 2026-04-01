@@ -9,3 +9,34 @@ async def upload_files_db(conn: Connection, original_name: str, stored_name: str
     '''
 
     return await conn.execute(sql, original_name, stored_name, file_path, file_size, board_index)
+
+# 파일이 해당 게시판에 소속되어있는지 확인
+# files_index 와 boards index에 해당하는 파일이 있으면 1 없므면 None
+async def check_files_belong(conn: Connection, files_index: int, board_index: int):
+
+    sql = '''
+        SELECT 1
+        FROM files 
+        WHERE index = $1 
+        AND board_index = $2
+        AND deleted_at IS NULL
+    '''
+    
+    return await conn.fetchval(sql, files_index, board_index)
+
+# 파일 삭제 (실제 삭제 x, deleted_at 상태값만 변경)
+async def soft_delete_files(conn: Connection, files_index: int):
+
+    sql = 'UPDATE files SET deleted_at = NOW() WHERE index = $1'
+
+    return await conn.execute(sql, files_index)
+
+# 파일 삭제 (실제 삭제)
+async def delete_files(conn: Connection):
+
+    sql = """
+        DELETE FROM files WHERE deleted_at IS NOT NULL
+        AND deleted_at <= NOW() - INTERVAL '3 days'
+    """
+
+    return await conn.execute(sql)
