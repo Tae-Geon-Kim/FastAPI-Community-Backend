@@ -56,13 +56,6 @@ async def all_user_boards_info(conn: Connection):
 
 	return await conn.fetch(sql)
 
-# 게시판 soft 삭제
-async def soft_withdraw_boards(conn: Connection, user_index: int):
-
-	sql = 'UPDATE boards SET deleted_at = NOW() WHERE user_index = $1'
-
-	return await conn.execute(sql, user_index)
-
 # 해당 User가 쓴 글인지 확인 (글 번호를 <-> 작성자 번호)
 async def check_boards_owner(conn: Connection, boards_index: int):
 
