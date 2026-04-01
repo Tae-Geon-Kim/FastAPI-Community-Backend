@@ -3,18 +3,19 @@ from asyncpg import Connection, Pool
 from fastapi import FastAPI, Depends, Request
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from app.core.config import settings
 
-# TODO: 보안을 위해 하드코딩된 DB 접속 정보를 .env 환경 변수로 분리할 것
+# DB 점속 정보를 .env 환경 변수로 분리
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.db_pool = await asyncpg.create_pool(
-        user="cutshion",
-        password="cutshion@",
-        database="CommunityBackendDB",
-        host="127.0.0.1",
-        port=5432,
-        min_size=5,
-        max_size=10
+        user = settings.DB_USER,
+        password = settings.DB_PASSWORD,
+        database = settings.DB_NAME,
+        host = settings.DB_HOST,
+        port = settings.DB_PORT,
+        max_size = settings.DB_MAX_SIZE,
+        min_size = settings.DB_MIN_SIZE
     )
     print("DB 커넥션 풀이 준비되었습니다!")
 

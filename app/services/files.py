@@ -7,18 +7,19 @@ from app.schemas.files import *
 from app.models.files import *
 from app.schemas.user import UserLogin
 from app.models.boards import check_boards_owner
+from app.core.config import settings
 
-UPLOAD_DIR = "uploads"
+upload_dir = settings.UPLOAD_DIR
 # 허용되는 파일 확장자: jpg, jpeg, png, gif, webp, pdf, docx, xlsx, pptx, txt, hwp, zip, 7z
 ALLOWED_EXTENSIONS = {'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain',
                         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                         'application/x-hwp', 'application/zip', 'application/x-7z-compressed'}
-MAX_SIZE = 5 * 1024 * 1024 # 5MB
+file_max_size = settings.FILE_MAX_SIZE
 
-# UPLOAD_DIR 파일 이름이 존재하지 않으면 파일 생성 (있으면 그냥 넘어감)
-os.makedirs(UPLOAD_DIR, exist_ok = True)
+# upload_dir 파일 이름이 존재하지 않으면 파일 생성 (있으면 그냥 넘어감)
+os.makedirs(upload_dir, exist_ok = True)
 
 # 파일 업로드
 async def upload_files_service(conn: Connection, file: UploadFile , data: UserLogin, board_index: int):
@@ -59,10 +60,11 @@ async def upload_files_service(conn: Connection, file: UploadFile , data: UserLo
         )
 
     # 업로드하는 파일의 크기가 허용되는 크기인지 확인
-    if file.size > MAX_SIZE:
+    if file.size > file_max_size:
+        file_max_size_mb = file_max_size // (1024 * 1024)
         raise HTTPException(
             status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail = "파일 용량이 너무 큽니다. (최대 5MB)"
+            detail = f"파일 용량이 너무 큽니다. (최대 {file_max_size_mb}MB)"
         )
 
     # filepath 생성
@@ -71,7 +73,7 @@ async def upload_files_service(conn: Connection, file: UploadFile , data: UserLo
     # _를 쓰면 dummy_variable로써 파일명을 무시하게 만들 수 있음. -> ,_: 반대로 확장자를 무시
 
     filename = f"{uuid.uuid4()}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
+    filepath = os.path.join(upload_dir, filename)
 
     # 비동기 파일처리
     async with aiofiles.open(filepath, "wb") as out_file:
