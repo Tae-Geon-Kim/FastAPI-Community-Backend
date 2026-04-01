@@ -208,7 +208,7 @@ async def boards_delete_services(conn: Connection, data: DeleteBoards):
     return CommonResponse(message = f"{data.id}님의 요청하신 삭제 요청이 성공적으로 처리되었습니다.")
 
 # 게시판 삭제 (실제 삭제)
-async def delete_perman(pool):
+async def delete_boards_perman(pool):
 
     async with pool.acquire() as conn:
         await delete_boards(conn)
