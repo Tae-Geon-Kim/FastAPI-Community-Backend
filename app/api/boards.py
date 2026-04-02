@@ -50,7 +50,7 @@ async def modiContent(data: ModiContent, conn: Connection = Depends(get_db)):
 
 # 게시판 삭제
 @router.post("/deleteBoards", response_model = CommonResponse, status_code = status.HTTP_200_OK)
-async def deleteBoards(data: UserLogin, conn: Connection = Depends(get_db)):
+async def deleteBoards(data: DeleteBoards, conn: Connection = Depends(get_db)):
 
     result = await boards_delete_services(conn, data)
 

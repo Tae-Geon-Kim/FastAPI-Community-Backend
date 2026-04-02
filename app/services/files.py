@@ -72,7 +72,7 @@ async def upload_files_service(conn: Connection, file: UploadFile , data: UserLo
     # allow_max_total_fsize: 하나의 게시판에 업로드 할 수 있는 허용되는 파일 (여러 파일 용량들의 합) 용량 (bytes)
 
     # 현재 업로드 된 파일의 총 용량 + 업로드 하려는 파일의 용량이 허용되는 크기인지 확인
-    if (cur_total_fsize + file.size) > file_total_max_size:
+    if (cur_total_fsize + file.size) > allow_max_totla_fsize:
         raise HTTPException(
             status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
              detail = f"허용하는 파일의 용량을 초과하였습니다. (최대: {(allow_max_total_fsize / (1024 * 1024)):.2f} 현재: {(cur_total_fsize / (1024 * 1024)):.2f} 업로드 파일: {(file.size / (1024 * 1024)):.2f})"
@@ -138,7 +138,7 @@ async def delete_files_service(conn: Connection, data: UserLogin, board_index: i
         )
 
     # soft_delete
-    await soft_delete_files(conn, files_index)
+    await soft_delete_one_file(conn, files_index)
 
     return CommonResponse(message = f"{data.id}님이 요청하신 삭제 요청이 성공적으로 처리되었습니다.")
 
@@ -166,7 +166,7 @@ async def delete_all_services(conn: Connection, data: UserLogin, board_index: in
 
     if board_owner is None:
         raise HTTPException(
-            status_code = stauts.HTTP_404_NOT_FOUND,
+            status_code = status.HTTP_404_NOT_FOUND,
             detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
         )
 
@@ -179,7 +179,7 @@ async def delete_all_services(conn: Connection, data: UserLogin, board_index: in
         )
 
     # soft delete
-    await soft_delete_all(conn, board_index)
+    await soft_delete_all_file(conn, board_index)
 
     return CommonResponse(message = f"{data.id}님이 요청하신 해당 게시물의 모든 파일이 삭제되었습니다.")
 

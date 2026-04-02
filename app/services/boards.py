@@ -3,8 +3,9 @@ from fastapi import HTTPException, status
 from collections import defaultdict
 from app.schemas.boards import *
 from app.models.boards import *
-from app.schemas.user import UserId, UserLogin
 from app.models.user import id_duplicate
+from app.models.files import soft_delete_all_file, delete_files
+from app.schemas.user import UserId, UserLogin
 from app.services.auth import login
 
 async def create_boards_services(conn: Connection, data: CreateBoard):
@@ -186,24 +187,26 @@ async def boards_delete_services(conn: Connection, data: DeleteBoards):
             detail = "로그인 정보를 다시 확인해주세요."
         )
     
-    boards_owner = await check_boards_owner(conn, data.boards_index)
+    boards_owner = await check_boards_owner(conn, data.board_index)
 
     # 해당 User가 작성한 글이 존재하는지 확인
     if boards_owner is None:
         raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND 
+            status_code = status.HTTP_404_NOT_FOUND,
             detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
         )
     
     # 삭제하려 하는 글의 User와 로그인한 User가 동일한 인물인지 확인
     if boards_owner['user_index'] != user_num:
         raise HTTPException(
-            status_code = status.HTTP_403_FORBIDDEN
+            status_code = status.HTTP_403_FORBIDDEN,
             detail = "본인의 게시글만 삭제할 수 있습니다."
         )
 
-    # soft delete
-    await soft_delete_boards(conn, data.board_index)
+    async with conn.transaction():
+        #  soft delete
+        await soft_delete_boards(conn, data.board_index)
+        await soft_delete_all_file(conn, data.board_index)
 
     return CommonResponse(message = f"{data.id}님의 요청하신 삭제 요청이 성공적으로 처리되었습니다.")
 
@@ -212,3 +215,4 @@ async def delete_boards_perman(pool):
 
     async with pool.acquire() as conn:
         await delete_boards(conn)
+        await delete_files(conn)

@@ -23,11 +23,11 @@ async def upload_files(
 async def delete_files(
     conn: Connection = Depends(get_db),
     data: UserLogin,
-    boards_index: int,
+    board_index: int,
     files_index: int
 ):
 
-    result = await delete_files_service(conn, data, boards_index, files_index) 
+    result = await delete_files_service(conn, data, board_index, files_index) 
 
     return result
 
