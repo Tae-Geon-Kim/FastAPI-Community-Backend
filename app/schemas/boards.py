@@ -15,6 +15,7 @@ class CreateBoard(BaseModel):
     title: str
     content: str
 
+# 특정 유저 게시판 조회 / 전체 게시판 조회 모두에서 사용
 class BoardFileResponse(BaseModel):
     index: int # 파일의 인덱스
     original_name: str
@@ -31,17 +32,18 @@ class BoardInfo(BaseModel):
     update_date: Optional[datetime] = None
     files: list[BoardFileResponse] = []
 
-
     class Config: 
         from_attributes = True
 
 # 게시판 정보 조회(all)
 class AllBoardInfo(BaseModel):
+    author: str
     index: int
     title: str
     content: str
     reg_date: datetime
     update_date: Optional[datetime] = None
+    files: list[BoardFileResponse] = []
 
     class Config:
         from_attributes = True

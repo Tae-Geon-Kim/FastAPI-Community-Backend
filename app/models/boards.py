@@ -47,18 +47,29 @@ async def all_user_boards_info(conn: Connection):
 
 	sql = """
 		SELECT
-		b.index,
-		b.title,
-		b.content,
-		b.reg_date,
-		b.update_date,
-		u.id AS author
-		FROM boards AS b
-		INNER JOIN "user" AS u
-		ON b.user_index = u.index
+			b.index,
+			b.title,
+			b.content,
+			b.reg_date,
+			b.update_date,
+			u.id As author,
+			COALESCE(
+			(SELECT json_agg(json_build_object (
+				'index', f.index,
+				'original_name', f.original_name,
+				'file_size', f.file_size,
+				'reg_date', f.reg_date
+			))
+			FROM files as f
+			WHERE f.board_index = b.index
+			AND f.deleted_at IS NULL),
+			'[]'::json
+			) AS files
+			FROM boards AS b
+			INNER JOIN "user" AS u ON b.user_index = u.index
 			WHERE b.deleted_at IS NULL
-			AND u.deleted_at IS NULL
-		ORDER BY u.id ASC, b.index DESC
+				AND u.deleted_at IS NULL
+			ORDER BY u.id ASC, b.index DESC
 	""" 
 	# ORDER BY u.id ASC : 사용자 아이디를 가나나 / ABC 순으로
 	# ORDER BY b.index DESC : 게시글 중 가장 번호가 큰 글 (최신) 위로 정렬

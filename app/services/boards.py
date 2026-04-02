@@ -36,7 +36,7 @@ async def create_boards_services(conn: Connection, data: CreateBoard):
         )
 
     # 게시판을 저장할 때 user_num도 같이 저장
-    await insert_boards_db(conn, data.title, data.content user_num)
+    await insert_boards_db(conn, data.title, data.content, user_num)
     
     return CommonResponse(message = "게시판이 생성되었습니다.")
 
@@ -88,14 +88,13 @@ async def all_boards_info_services(conn: Connection):
     for row in rows:
         row_dict = dict(row)
         author_id = row_dict['author']
-        grouped_dict[author_id].append(row_dict)
+        validate_post = AllBoardInfo.model_validate(row_dict)
+        grouped_dict[author_id].append(validate_post)
 
-    final_data = []
-
-    for author_name, post_list in grouped_dict.items():
-        user_group = AllBoardInfoResponse(author = author_name, posts = post_list)
-
-        final_data.append(user_group)
+    final_data = [
+        AllBoardInfoResponse(author=name, posts=posts) 
+        for name, posts in grouped_dict.items()
+    ]
     
     return CommonResponse(
         message = "전체 게시글을 사용자별로 분류하여 출력합니다.",
