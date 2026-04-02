@@ -36,8 +36,8 @@ async def create_boards_services(conn: Connection, data: CreateBoard):
         )
 
     # 게시판을 저장할 때 user_num도 같이 저장
-    await insert_boards_db(conn, data, user_num)
-
+    await insert_boards_db(conn, data.title, data.content user_num)
+    
     return CommonResponse(message = "게시판이 생성되었습니다.")
 
 # 특정 사용자의 게시판 목록을 출력 (사용자의 이름 입력 받아서 있음 출력 아님 에러 / 로그인 필요 없음)

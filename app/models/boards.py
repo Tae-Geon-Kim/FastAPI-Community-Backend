@@ -18,14 +18,25 @@ async def certain_user_boards_info(conn: Connection, user_id: str):
 			b.content,
 			b.reg_date,
 			b.update_date,
-			u.id
+			u.id,
+			COALESCE(
+			(SELECT json_agg(json_build_object (
+				'index', f.index,
+				'original_name', f.original_name,
+				'file_size', f.file_size,
+				'reg_date', f.reg_date
+				))
+				FROM files as f
+				WHERE f.board_index = b.index
+				AND f.deleted_at IS NULL),
+				'[]'::json
+				) AS files
 			FROM boards AS b
-			INNER JOIN "user" AS u
-			ON b.user_index = u.index
+			INNER JOIN "user" AS u ON b.user_index = u.index
 			WHERE u.id = $1
 				AND b.deleted_at IS NULL
 				AND u.deleted_at IS NULL
-			ORDER BY b.index DESC
+			ORDER BY b.index DESC	
 	"""
 	# ORDER BY b.index DESC : 가장 최근에 쓴 글 (가장 큰 번호)이 가장 위로 
 

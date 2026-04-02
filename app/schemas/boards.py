@@ -15,13 +15,22 @@ class CreateBoard(BaseModel):
     title: str
     content: str
 
+class BoardFileResponse(BaseModel):
+    index: int # 파일의 인덱스
+    original_name: str
+    file_size: int
+    reg_date: datetime
+
 # 게시판 정보 조회 (certain)
 class BoardInfo(BaseModel):
     id: str
+    index: int # 게시판의 인덱스
     title: str
     content: str
     reg_date: datetime
     update_date: Optional[datetime] = None
+    files: list[BoardFileResponse] = []
+
 
     class Config: 
         from_attributes = True
