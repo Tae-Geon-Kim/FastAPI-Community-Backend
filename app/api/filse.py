@@ -18,7 +18,7 @@ async def upload_files(
 
     return result
 
-# 파일 삭제
+# 단일 파일 삭제
 @router.post("/delete_files", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def delete_files(
     conn: Connection = Depends(get_db),
@@ -28,5 +28,17 @@ async def delete_files(
 ):
 
     result = await delete_files_service(conn, data, boards_index, files_index) 
+
+    return result
+
+# 파일 전체를 삭제 (게시판은 삭제 x)
+@router.post("/delete_all", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+async def delete_all(
+    conn: Connection = Depends(get_db),
+    data: UserLogin,
+    board_index: int,
+):
+
+    result = await delete_all_services(conn, data, board_index)
 
     return result

@@ -79,10 +79,10 @@ async def upload_files_service(conn: Connection, file: UploadFile , data: UserLo
         )
 
     # 업로드하는 파일의 크기가 허용되는 크기인지 확인
-    if file.size > allow_max_fisze:
+    if file.size > allow_max_fsize:
         raise HTTPException(
             status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail = f"파일 용량이 너무 큽니다. (최대 {.2f(allow_max_fsize / (1024 * 1024))}MB)"
+            detail = f"파일 용량이 너무 큽니다. (최대 {(allow_max_fsize / (1024 * 1024)):.2f}MB)"
         )
 
     # filepath 생성
@@ -127,7 +127,7 @@ async def delete_files_service(conn: Connection, data: UserLogin, board_index: i
     if boards_owner['user_index'] != user_num:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
-            detail = "권한이 없습니다."
+            detail = "권한이 없습니다. 본인 게시글의 파일만 삭제할 수 있습니다."
         )
     
     if await check_files_belong(conn, files_index, board_index) is None:
@@ -144,5 +144,46 @@ async def delete_files_service(conn: Connection, data: UserLogin, board_index: i
 
 # 실제 삭제
 async def delete_files_perman(pool):
+    async with pool.acquire() as conn:
+        await delete_files(conn)
+
+# 한 게시판에 존재하는 모든 파일을 삭제 (게시판은 삭제 x)
+async def delete_all_services(conn: Connection, data: UserLogin, board_index: int):
+
+    # 로그인 정보 확인
+
+    user_num = await login(conn, data)
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 확인해주세요."
+        )
+    
+    # 해당 User의 게시판이 존재하는지
+
+    board_owner = await check_boards_owner(conn, board_index)
+
+    if board_owner is None:
+        raise HTTPException(
+            status_code = stauts.HTTP_404_NOT_FOUND,
+            detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
+        )
+
+    # 권한 확인
+
+    if board_owner['user_index'] != user_num:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "권한이 없습니다. 본인 게시글의 파일만 삭제할 수 있습니다."
+        )
+
+    # soft delete
+    await soft_delete_all(conn, board_index)
+
+    return CommonResponse(message = f"{data.id}님이 요청하신 해당 게시물의 모든 파일이 삭제되었습니다.")
+
+# 실제 삭제
+async def delete_all_perman(pool):
     async with pool.acquire() as conn:
         await delete_files(conn)

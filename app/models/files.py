@@ -38,12 +38,19 @@ async def get_total_fsize(conn: Connection, board_index: int):
 
     return result if result else 0
 
-# 파일 삭제 (실제 삭제 x, deleted_at 상태값만 변경)
+# 단일 파일 삭제 (실제 삭제 x, deleted_at 상태값만 변경)
 async def soft_delete_files(conn: Connection, files_index: int):
 
     sql = 'UPDATE files SET deleted_at = NOW() WHERE index = $1'
 
     return await conn.execute(sql, files_index)
+
+# 한 게시판의 전체 파일 삭제 (실제 삭제 x, deleted_at 상태값만 변경)
+async def soft_delete_all(conn: Connection, board_index: int):
+
+    sql = 'UPDATE files SET deleted_at = NOW() WHERE board_index = $1'
+
+    return await conn.execute(sql, board_index)
 
 # 파일 삭제 (실제 삭제)
 async def delete_files(conn: Connection):
