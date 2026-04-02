@@ -24,6 +24,20 @@ async def check_files_belong(conn: Connection, files_index: int, board_index: in
     
     return await conn.fetchval(sql, files_index, board_index)
 
+# 특정 게시판의 전체 파일 용량을 확인
+async def get_total_fsize(conn: Connection, board_index: int):
+
+    sql = '''
+        SELECT SUM(file_size)
+        FROM files
+        WHERE board_index = $1
+        AND deleted_at IS NULL
+    '''
+
+    result = await conn.fetchval(sql, board_index)
+
+    return result if result else 0
+
 # 파일 삭제 (실제 삭제 x, deleted_at 상태값만 변경)
 async def soft_delete_files(conn: Connection, files_index: int):
 

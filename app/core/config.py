@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str
 
     FILE_MAX_SIZE: int
+    FILE_TOTAL_MAX_SIZE: int
 
     class Config:
         env_file = ".env"

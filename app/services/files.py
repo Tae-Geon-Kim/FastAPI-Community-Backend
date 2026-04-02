@@ -16,7 +16,8 @@ ALLOWED_EXTENSIONS = {'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'app
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                         'application/x-hwp', 'application/zip', 'application/x-7z-compressed'}
-file_max_size = settings.FILE_MAX_SIZE
+allow_max_fsize = settings.FILE_MAX_SIZE
+allow_max_total_fsize = settings.FILE_TOTAL_MAX_SIZE
 
 # upload_dir 파일 이름이 존재하지 않으면 파일 생성 (있으면 그냥 넘어감)
 os.makedirs(upload_dir, exist_ok = True)
@@ -58,13 +59,30 @@ async def upload_files_service(conn: Connection, file: UploadFile , data: UserLo
             status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail = "허용되는 확장자가 아닙니다."
         )
+    
+    # 개별 파일을 업로드 하기전에 해당 게시판에 파일을 올릴 수 있는지 확인
+    # bytes 단위로 먼저 비교하고 출력할 때만 MB로 
 
-    # 업로드하는 파일의 크기가 허용되는 크기인지 확인
-    if file.size > file_max_size:
-        file_max_size_mb = file_max_size // (1024 * 1024)
+    cur_total_fsize = await get_total_fsize(conn, board_index) # 현재 게시판에 올라가 있는 파일 용량의 총합 (bytes)
+
+    # bytes 를 MB 로 바꿀라면 ((1024) * (1024)) 를 나누기
+
+    # file.size : 현재 업로드 하려하는 파일의 용량 (bytes)
+    # allow_max_fsize: 업로드 하는 파일 하나의 허용되는 파일 용량 (bytes)
+    # allow_max_total_fsize: 하나의 게시판에 업로드 할 수 있는 허용되는 파일 (여러 파일 용량들의 합) 용량 (bytes)
+
+    # 현재 업로드 된 파일의 총 용량 + 업로드 하려는 파일의 용량이 허용되는 크기인지 확인
+    if (cur_total_fsize + file.size) > file_total_max_size:
         raise HTTPException(
             status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail = f"파일 용량이 너무 큽니다. (최대 {file_max_size_mb}MB)"
+             detail = f"허용하는 파일의 용량을 초과하였습니다. (최대: {(allow_max_total_fsize / (1024 * 1024)):.2f} 현재: {(cur_total_fsize / (1024 * 1024)):.2f} 업로드 파일: {(file.size / (1024 * 1024)):.2f})"
+        )
+
+    # 업로드하는 파일의 크기가 허용되는 크기인지 확인
+    if file.size > allow_max_fisze:
+        raise HTTPException(
+            status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail = f"파일 용량이 너무 큽니다. (최대 {.2f(allow_max_fsize / (1024 * 1024))}MB)"
         )
 
     # filepath 생성
