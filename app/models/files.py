@@ -62,7 +62,7 @@ async def delete_files(conn: Connection):
 
     return await conn.execute(sql)
 
-# 파일 삭제로 인해 변동된 게시판의 총 파일 용량 업데이트
+# 파일 추가, 삭제로 인해 변동된 게시판의 총 파일 용량 업데이트
 async def update_total_fsize(conn: Connection, total_file_size: int, board_index: int):
 
     sql = 'UPDATE boards SET total_file_size = $1 WHERE index = $2'
@@ -81,9 +81,23 @@ async def restore_check_files_belong(conn: Connection, files_index: int, board_i
 
     return await conn.fetchval(sql, files_index, board_index)
 
-# soft delete된 데이터를 복구
+# soft delete된 단일 파일 데이터를 복구
 async def restore_files(conn: Connection, files_index: int, board_index: int):
 
     sql = 'UPDATE files SET deleted_at = NULL WHERE index = $1 AND board_index = $2'
 
     return await conn.execute(sql, files_index, board_index)
+
+# soft delete된 파일 데이터들 일괄 복구
+async def restore_all_files(conn: Connection, board_index: int):
+
+    sql = 'UPDATE files SET deleted_at = NULL WHERE board_index = $1'
+
+    return await conn.execute(sql, board_index)
+
+# 복구하려는 파일들이 게시판에 속한지 확인
+async def restore_all_check_files_belong(conn: Connection, board_index: int):
+
+    sql = 'SELECT 1 FROM files WHERE board_index = $1 AND deleted_at IS NOT NULL LIMIT 1'
+
+    return await conn.fetchval(sql, board_index)

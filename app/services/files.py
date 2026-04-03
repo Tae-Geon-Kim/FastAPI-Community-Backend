@@ -198,7 +198,7 @@ async def delete_all_perman(pool):
     async with pool.acquire() as conn:
         await delete_files(conn)
 
-# 삭제된 파일 복구시 용량 재계산 
+# 삭제된 단일 파일 복구 (용량 재계산) / 게시판은 삭제 상태 x
 async def restore_file_services(conn: Connection, data: UserLogin, files_index: int, board_index: int):
 
     user_num = await login(conn, data)
@@ -236,3 +236,44 @@ async def restore_file_services(conn: Connection, data: UserLogin, files_index: 
         await update_total_fsize(conn, new_total_fsize, board_index)
     
     return CommonResponse(message = f"{data.id}님이 요청하신 파일이 복구되었습니다. 새로운 전체 용량: {new_total_fsize}")
+
+# 삭제된 파일 일괄 복구 (용량 재계산) / 게시판은 삭제 상태 x
+async def restore_all_file_services(conn: Connection, data: UserLogin, board_index: int):
+
+    user_num = await login(conn, data)
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
+    
+    boards_owner = await check_boards_owner(conn, board_index)
+
+    if boards_owner is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
+        )
+    
+    if boards_owner['user_index'] != user_num:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "권한이 없습니다. 본인의 게시글 파일만 복구할 수 있습니다."
+        )    
+    
+    restore_files_belong = await restore_all_check_files_belong(conn, board_index)
+
+   if restore_files_belong is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "해당 게시판에는 복구 가능한 파일이 존재하지 않습니다."
+        )
+
+    async with conn.transaction():
+        # 파일 복구 & 용량 계산 
+        await restore_all_files(conn, board_index)
+        new_total_fsize = await get_total_fsize(conn, board_index)
+        await update_total_fsize(conn, new_total_fsize, board_index)
+
+    return CommonResponse(message = f"{data.id}님이 요청하신 해당 게시판의 모든 파일을 복구하였습니다.")
