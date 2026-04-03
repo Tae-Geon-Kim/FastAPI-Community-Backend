@@ -42,3 +42,15 @@ async def delete_all(
     result = await delete_all_services(conn, data, board_index)
 
     return result
+
+# 삭제된 파일 복구시 게시판 전체 용량 재계산
+@router.post("/restore_file", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+async def restore_file(
+    conn: Connection = Depends(get_db),
+    data: UserLogin,
+    files_index: int,
+    board_index: int
+):
+    result = await restore_file_services(conn, data, files_index, board_index)
+
+    return result

@@ -68,3 +68,22 @@ async def update_total_fsize(conn: Connection, total_file_size: int, board_index
     sql = 'UPDATE boards SET total_file_size = $1 WHERE index = $2'
     
     return await conn.execute(sql, total_file_size, board_index)
+
+async def restore_check_files_belong(conn: Connection, files_index: int, board_index: int):
+
+    sql = '''
+        SELECT 1
+        FROM files
+        WHERE index = $1
+        AND board_index = $2
+        AND deleted_at IS NOT NULL
+    '''
+
+    return await conn.fetchval(sql, files_index, board_index)
+
+# soft delete된 데이터를 복구
+async def restore_files(conn: Connection, files_index: int, board_index: int):
+
+    sql = 'UPDATE files SET deleted_at = NULL WHERE index = $1 AND board_index = $2'
+
+    return await conn.execute(sql, files_index, board_index)

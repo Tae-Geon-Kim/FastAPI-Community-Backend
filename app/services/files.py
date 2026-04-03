@@ -136,7 +136,7 @@ async def delete_files_service(conn: Connection, data: UserLogin, board_index: i
     if await check_files_belong(conn, files_index, board_index) is None:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
-            detail = "삭제하려는 파일이 이미 삭제되었거나 해당 게시들에 소속되어 있지 않습니다"
+            detail = "삭제하려는 파일이 이미 삭제되었거나 해당 게시들에 등록되어 있지 않습니다"
             # files_index 와 board_index 매칭 되는 데이터가 존재하지않는다.
         )
     
@@ -197,3 +197,42 @@ async def delete_all_services(conn: Connection, data: UserLogin, board_index: in
 async def delete_all_perman(pool):
     async with pool.acquire() as conn:
         await delete_files(conn)
+
+# 삭제된 파일 복구시 용량 재계산 
+async def restore_file_services(conn: Connection, data: UserLogin, files_index: int, board_index: int):
+
+    user_num = await login(conn, data)
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 확인해주세요."
+        )
+    
+    boards_owner = await check_boards_owner(conn, board_index)
+
+    if boards_owner is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
+        )
+    
+    if boards_owner['user_index'] != user_num:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "권한이 없습니다. 본인의 게시글 파일만 복구할 수 있습니다."
+        )
+    
+    if await restore_check_files_belong(conn, files_index, board_index) is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "삭제하려는 파일이 이미 삭제되었거나 해당 게시물에 등록되어 있지 않습니다."
+            # files_index 와 board_index 매칭 되는 데이터가 존재하지않는다.
+        )
+    
+    async with conn.transaction():
+        await restore_files(conn, files_index, board_index)
+        new_total_fsize = await get_total_fsize(conn, board_index)
+        await update_total_fsize(conn, new_total_fsize, board_index)
+    
+    return CommonResponse(message = f"{data.id}님이 요청하신 파일이 복구되었습니다. 새로운 전체 용량: {new_total_fsize}")
