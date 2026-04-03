@@ -100,7 +100,7 @@ async def content_modify(conn: Connection, new_content: str, board_index: int):
 	return await conn.execute(sql, new_content, board_index)
 
 # 게시판 삭제 (실제 삭제 x, deleted_at 상태값만 변경)
-async def soft_delete_boards(conn: Connection, boards_index: str):
+async def soft_delete_boards(conn: Connection, boards_index: int):
 
 	sql = 'UPDATE boards SET deleted_at = NOW() WHERE index = $1'
 
@@ -115,3 +115,17 @@ async def delete_boards(conn: Connection):
 	"""
 
 	return await conn.execute(sql)
+
+# 삭제된 게시판 중 복구하려는 게시판이 해당 User가 쓴 글인지 확인
+async def check_restore_boards_owner(conn: Connection, board_index: int):
+
+	sql = 'SELECT user_index FROM boards WHERE index = $1 AND deleted_at IS NOT NULL'
+
+	return await conn.fetchval(sql, board_index)
+
+# soft delete된 게시판 데이터를 복구
+async def restore_board(conn: Connection, board_index: int):
+
+	sql = 'UPDATE boards SET deleted_at = NULL WHERE index =  $1'
+
+	return await conn.execute(sql, board_index)

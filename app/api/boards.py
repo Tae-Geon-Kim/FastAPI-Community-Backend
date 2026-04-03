@@ -55,3 +55,13 @@ async def deleteBoards(data: DeleteBoards, conn: Connection = Depends(get_db)):
     result = await boards_delete_services(conn, data)
 
     return result
+
+@router.post("/restore_boards", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+async def restore_boards(
+    conn: Connection = Depends(get_db),
+    data: UserLogin,
+    board_index: int
+):
+    result = await restore_boards_services(conn, data, board_index)
+
+    return result

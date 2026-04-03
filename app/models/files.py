@@ -91,7 +91,7 @@ async def restore_files(conn: Connection, files_index: int, board_index: int):
 # soft delete된 파일 데이터들 일괄 복구
 async def restore_all_files(conn: Connection, board_index: int):
 
-    sql = 'UPDATE files SET deleted_at = NULL WHERE board_index = $1'
+    sql = 'UPDATE files SET deleted_at = NULL WHERE board_index = $1 AND deleted_at IS NOT NUll'
 
     return await conn.execute(sql, board_index)
 

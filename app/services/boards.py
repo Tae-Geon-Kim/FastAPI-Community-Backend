@@ -4,7 +4,7 @@ from collections import defaultdict
 from app.schemas.boards import *
 from app.models.boards import *
 from app.models.user import id_duplicate
-from app.models.files import soft_delete_all_file, delete_files
+from app.models.files import *
 from app.schemas.user import UserId, UserLogin
 from app.services.auth import login
 
@@ -199,7 +199,7 @@ async def boards_delete_services(conn: Connection, data: DeleteBoards):
     if boards_owner['user_index'] != user_num:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
-            detail = "본인의 게시글만 삭제할 수 있습니다."
+            detail = "권한이 없습니다. 본인의 게시글만 삭제할 수 있습니다."
         )
 
     async with conn.transaction():
@@ -215,3 +215,39 @@ async def delete_boards_perman(pool):
     async with pool.acquire() as conn:
         await delete_boards(conn)
         await delete_files(conn)
+
+# 게시판 삭제 데이터 복구 로직
+async def restore_board_services(conn: Connection, data: UserLogin, board_index: int):
+
+    user_num = await login(conn, data)
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 확인해주세요."
+        )
+
+    restore_boards_owner = await check_restore_boards_owner(conn, board_index)
+
+    if restore_boards_owner is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
+        )
+    
+    if restore_boards_owner != user_num:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail =  "권한이 없습니다. 본인의 게시글만 복구시킬 수 있습니다."
+        )
+    
+    async with conn.transaction():
+        # 게시판 데이터 복구
+        # 게시판 내에 저장되어 있던 파일들이 있으면 파일들 일괄 복구
+        # 파일들이 복구됐으면 파일 용량 다시 계산 & 업로드
+        await restore_board(conn, board_index) # 게시판 데이터 복구
+        await restore_all_files(conn, board_index)
+        new_total_fsize = await get_total_fsize(conn, board_index)
+        await update_total_fsize(conn, new_total_fsize, board_index)
+
+    return CommonResponse(message = f"{data.id}님이 요청하신 게시판이 복구되었습니다.")

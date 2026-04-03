@@ -237,7 +237,7 @@ async def restore_file_services(conn: Connection, data: UserLogin, files_index: 
     
     return CommonResponse(message = f"{data.id}님이 요청하신 파일이 복구되었습니다. 새로운 전체 용량: {new_total_fsize}")
 
-# 삭제된 파일 일괄 복구 (용량 재계산) / 게시판은 삭제 상태 x
+# 삭제된 파일 일괄 복구 (용량 재계산) / 게시판은 삭제 상태 x)
 async def restore_all_file_services(conn: Connection, data: UserLogin, board_index: int):
 
     user_num = await login(conn, data)
