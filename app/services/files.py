@@ -72,7 +72,7 @@ async def upload_files_service(conn: Connection, file: UploadFile , data: UserLo
     # allow_max_total_fsize: 하나의 게시판에 업로드 할 수 있는 허용되는 파일 (여러 파일 용량들의 합) 용량 (bytes)
 
     # 현재 업로드 된 파일의 총 용량 + 업로드 하려는 파일의 용량이 허용되는 크기인지 확인
-    if (cur_total_fsize + file.size) > allow_max_totla_fsize:
+    if (cur_total_fsize + file.size) > allow_max_total_fsize:
         raise HTTPException(
             status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
              detail = f"허용하는 파일의 용량을 초과하였습니다. (최대: {(allow_max_total_fsize / (1024 * 1024)):.2f} 현재: {(cur_total_fsize / (1024 * 1024)):.2f} 업로드 파일: {(file.size / (1024 * 1024)):.2f})"
@@ -98,11 +98,14 @@ async def upload_files_service(conn: Connection, file: UploadFile , data: UserLo
         content = await file.read()
         await out_file.write(content)
     
-    await upload_files_db(conn, file.filename, filename, filepath, file.size, board_index)
+    async with conn.transaction():
+        await upload_files_db(conn, file.filename, filename, filepath, file.size, board_index)
+        new_total_fsize = await get_total_fsize(conn, board_index)
+        await update_total_fsize(conn, new_total_fsize, board_index)
 
     return CommonResponse(message = f"{data.id}님이 요청하신 {file.filename}파일의 업로드 작업이 완료되었습니다.")
 
-# 파일 삭제
+# 단일 파일 삭제
 async def delete_files_service(conn: Connection, data: UserLogin, board_index: int, files_index: int):
 
     # 로그인 정보 확인
@@ -136,11 +139,16 @@ async def delete_files_service(conn: Connection, data: UserLogin, board_index: i
             detail = "삭제하려는 파일이 이미 삭제되었거나 해당 게시들에 소속되어 있지 않습니다"
             # files_index 와 board_index 매칭 되는 데이터가 존재하지않는다.
         )
+    
+    async with conn.transaction():
+        # soft delete
+        await soft_delete_one_file(conn, files_index)
+        
+        new_total_fsize = await get_total_fsize(conn, board_index)
+        await update_total_fsize(conn, new_total_fsize, board_index)
 
-    # soft_delete
-    await soft_delete_one_file(conn, files_index)
 
-    return CommonResponse(message = f"{data.id}님이 요청하신 삭제 요청이 성공적으로 처리되었습니다.")
+    return CommonResponse(message = f"{data.id}님이 요청하신 삭제 요청이 성공적으로 처리되었습니다. 새로운 전체 용량: {new_total_fsize}")
 
 # 실제 삭제
 async def delete_files_perman(pool):
@@ -174,12 +182,14 @@ async def delete_all_services(conn: Connection, data: UserLogin, board_index: in
 
     if board_owner['user_index'] != user_num:
         raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
+            status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다. 본인 게시글의 파일만 삭제할 수 있습니다."
         )
 
-    # soft delete
-    await soft_delete_all_file(conn, board_index)
+    async with conn.transaction():
+        # soft delete
+        await soft_delete_all_file(conn, board_index)
+        await update_total_fsize(conn, 0, board_index)
 
     return CommonResponse(message = f"{data.id}님이 요청하신 해당 게시물의 모든 파일이 삭제되었습니다.")
 

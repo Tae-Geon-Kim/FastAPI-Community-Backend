@@ -61,3 +61,10 @@ async def delete_files(conn: Connection):
     """
 
     return await conn.execute(sql)
+
+# 파일 삭제로 인해 변동된 게시판의 총 파일 용량 업데이트
+async def update_total_fsize(conn: Connection, total_file_size: int, board_index: int):
+
+    sql = 'UPDATE boards SET total_file_size = $1 WHERE index = $2'
+    
+    return await conn.execute(sql, total_file_size, board_index)
