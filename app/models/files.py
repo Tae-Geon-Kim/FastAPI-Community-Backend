@@ -101,3 +101,27 @@ async def restore_all_check_files_belong(conn: Connection, board_index: int):
     sql = 'SELECT 1 FROM files WHERE board_index = $1 AND deleted_at IS NOT NULL LIMIT 1'
 
     return await conn.fetchval(sql, board_index)
+
+# 특정 유저가 올린 모든 파일을 삭제 (soft delete)
+async def soft_withdraw_files(conn: Connection, user_index: int):
+
+    sql = '''
+        UPDATE files
+        SET deleted_at = NOW()
+        WHERE board_index IN (SELECT index FROM boards WHERE user_index = $1)
+        AND deleted_at IS NULL
+    '''
+
+    return await conn.execute(sql, user_index)
+
+# 사용자 회원탈퇴 복구 (해당 유저의 모든 파일) 
+async def restore_user_file(conn: Connection, user_index: int):
+
+    sql = '''
+        UPDATE files
+        SET deleted_at = NULL
+        WHERE board_index IN  (SELECT index FROM boards WHERE user_index = $1)
+        AND deleted_at IS NOT NULL
+    '''
+
+    return await conn.execute(sql, user_index)

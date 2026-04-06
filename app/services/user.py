@@ -2,9 +2,10 @@ from asyncpg import Connection
 from fastapi import HTTPException, status
 from app.schemas.user import *
 from app.models.user import *
-from app.models.boards import soft_withdraw_boards
+from app.models.boards import *
 from app.core.security import *
 from app.services.auth import *
+from app.models.files import *
 
 # 사용자 비밀번호 검사 
 async def user_pw_services(conn: Connection, data: UserLogin):
@@ -31,7 +32,7 @@ async def user_name_services(conn: Connection, data: UserId):
     data.id = data.id.strip()
     if not data.id or " " in data.id:
         raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQEUST,
+            status_code = status.HTTP_400_BAD_REQUEST,
             detail = "아이디에는 공백을 사용할 수 없으며 빈 문자열은 아이디로 사용할 수 없습니다."
         )
 
@@ -80,6 +81,7 @@ async def user_withdraw_services(conn: Connection, data: UserLogin):
         # soft delete
         await soft_withdraw_user(conn, data.id)
         await soft_withdraw_boards(conn, user_num)
+        await soft_withdraw_files(conn, user_num)
     
     return CommonResponse(message = f"{data.id}님의 회원탈퇴가 성공적으로 처리되었습니다.")
 
@@ -144,3 +146,23 @@ async def userPw_modify_services(conn: Connection, data: ModiPw):
     await userPw_modify(conn, data.new_password, data.id)
 
     return CommonResponse(message = f"{data.id}님의 비밀번호가 변경되었습니다.")
+
+# 사용자 회원탈퇴 복구
+async def restore_user_services(conn: Connection, data: UserLogin):
+
+    # 회원 로그인 (권한 확인)
+    user_num = await restore_login(conn, data)
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
+    
+    # 사용자 데이터 복구
+    async with conn.transaction():
+        await restore_user_data(conn, data.id)
+        await restore_user_boards(conn, user_num)
+        await restore_user_file(conn, user_num)
+
+    return CommonResponse(message = f"{data.id}님의 아이디가 복구되었습니다.")

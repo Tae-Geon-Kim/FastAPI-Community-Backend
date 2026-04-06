@@ -59,3 +59,17 @@ async def userPw_modify(conn: Connection, new_password: str, user_id: str):
     sql = 'UPDATE "user" SET password = $1, update_date = NOW() WHERE id = $2'
 
     return await conn.execute(sql, new_password, user_id)
+
+# 사용자 회원탈퇴 복구 (user 정보)
+async def restore_user_data(conn: Connection, user_id: str):
+
+    sql = 'UPDATE "user" SET deleted_at = NULL WHERE id = $1 AND deleted_at IS NOT NULL'
+
+    return await conn.execute(sql, user_id)
+
+# 아이디에 맞는 비밀번호를 확인
+async def pull_pw_restore_login(conn: Connection, user_id: str):
+
+    sql = 'SELECT index, password FROM "user" WHERE id = $1 AND deleted_at IS NOT NULL'
+
+    return await conn.fetchrow(sql, user_id)

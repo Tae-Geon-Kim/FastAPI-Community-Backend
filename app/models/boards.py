@@ -123,9 +123,16 @@ async def check_restore_boards_owner(conn: Connection, board_index: int):
 
 	return await conn.fetchval(sql, board_index)
 
-# soft delete된 게시판 데이터를 복구
+# soft delete된 게시판 하나의 데이터를 복구
 async def restore_board(conn: Connection, board_index: int):
 
 	sql = 'UPDATE boards SET deleted_at = NULL WHERE index =  $1'
 
 	return await conn.execute(sql, board_index)
+
+# 사용자 회원탈퇴 복구 (해당 유저의 모든 게시판)
+async def restore_user_boards(conn: Connection, user_index: int):
+
+    sql = 'UPDATE boards SET deleted_at = NULL WHERE user_index = $1 AND deleted_at IS NOT NULL'
+
+    return await conn.execute(sql, user_index)
