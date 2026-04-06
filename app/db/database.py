@@ -19,10 +19,14 @@ async def lifespan(app: FastAPI):
     )
     print("DB 커넥션 풀이 준비되었습니다!")
 
-    from app.services.user import withdraw_perman
+    from app.services.user import withdraw_user_perman
+    from app.services.boards import delete_boards_perman
+    from app.services.files import delete_files_perman
 
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(withdraw_perman, 'interval', hours = 3, args = [app.state.db_pool])
+    scheduler.add_job(withdraw_user_perman, 'interval', hours = 3, args = [app.state.db_pool])
+    scheduler.add_job(delete_boards_perman, 'interval', hours = 3, args = [app.state.db_pool])
+    scheduler.add_job(delete_files_perman, 'interval', hours = 3, args = [app.state.db_pool])
     scheduler.start()
 
     yield

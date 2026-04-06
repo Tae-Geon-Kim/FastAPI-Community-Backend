@@ -85,7 +85,7 @@ async def user_withdraw_services(conn: Connection, data: UserLogin):
     
     return CommonResponse(message = f"{data.id}님의 회원탈퇴가 성공적으로 처리되었습니다.")
 
-async def withdraw_perman(pool):
+async def withdraw_user_perman(pool):
     async with pool.acquire() as conn:
         await withdraw_permanently(conn)
 

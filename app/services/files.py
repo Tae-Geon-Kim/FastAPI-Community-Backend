@@ -150,11 +150,6 @@ async def delete_files_service(conn: Connection, data: UserLogin, board_index: i
 
     return CommonResponse(message = f"{data.id}님이 요청하신 삭제 요청이 성공적으로 처리되었습니다. 새로운 전체 용량: {new_total_fsize}")
 
-# 실제 삭제
-async def delete_files_perman(pool):
-    async with pool.acquire() as conn:
-        await delete_files(conn)
-
 # 한 게시판에 존재하는 모든 파일을 삭제 (게시판은 삭제 x)
 async def delete_all_services(conn: Connection, data: UserLogin, board_index: int):
 
@@ -192,11 +187,6 @@ async def delete_all_services(conn: Connection, data: UserLogin, board_index: in
         await update_total_fsize(conn, 0, board_index)
 
     return CommonResponse(message = f"{data.id}님이 요청하신 해당 게시물의 모든 파일이 삭제되었습니다.")
-
-# 실제 삭제
-async def delete_all_perman(pool):
-    async with pool.acquire() as conn:
-        await delete_files(conn)
 
 # 삭제된 단일 파일 복구 (용량 재계산) / 게시판은 삭제 상태 x
 async def restore_file_services(conn: Connection, data: UserLogin, files_index: int, board_index: int):
@@ -277,3 +267,25 @@ async def restore_all_file_services(conn: Connection, data: UserLogin, board_ind
         await update_total_fsize(conn, new_total_fsize, board_index)
 
     return CommonResponse(message = f"{data.id}님이 요청하신 해당 게시판의 모든 파일을 복구하였습니다.")
+
+# DB에서 실제로 삭제된 파일을 컴퓨터 메모리상에서 삭제
+async def delete_files_perman(pool):
+    async with pool.acquire() as conn:
+        await delete_files_perman_api(conn)
+
+async def delete_files_perman_api(conn: Connection):
+
+    file_path_record = await get_delete_file_path(conn)
+
+    for record in file_path_record:
+        file_path = record['file_path']
+        if not os.path.exists(file_path):
+            print("파일이 이미 삭제되었거나 존재하지않습니다.")
+            continue
+        try:
+            os.remove(file_path)
+            print("파일 삭제에 성공하였습니다.")
+        except Exception as e:
+            print("파일 삭제에 실패하였습니다.")
+
+    await delete_files(conn)

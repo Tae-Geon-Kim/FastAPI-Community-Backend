@@ -52,16 +52,6 @@ async def soft_delete_all_file(conn: Connection, board_index: int):
 
     return await conn.execute(sql, board_index)
 
-# 파일 삭제 (실제 삭제)
-async def delete_files(conn: Connection):
-
-    sql = """
-        DELETE FROM files WHERE deleted_at IS NOT NULL
-        AND deleted_at <= NOW() - INTERVAL '3 days'
-    """
-
-    return await conn.execute(sql)
-
 # 파일 추가, 삭제로 인해 변동된 게시판의 총 파일 용량 업데이트
 async def update_total_fsize(conn: Connection, total_file_size: int, board_index: int):
 
@@ -125,3 +115,25 @@ async def restore_user_file(conn: Connection, user_index: int):
     '''
 
     return await conn.execute(sql, user_index)
+
+# 파일 삭제 (실제 삭제)
+async def delete_files(conn: Connection):
+
+    sql = '''
+        DELETE FROM files 
+        WHERE deleted_at IS NOT NULL
+        AND deleted_at <= NOW() - INTERVAL '3 days'
+    '''
+
+    return await conn.execute(sql)
+
+# 지워야 할 파일의 실제 파일 경로를 가져온다.
+async def get_delete_file_path(conn: Connection):
+
+    sql = '''
+        SELECT file_path FROM files
+        WHERE deleted_at IS NOT NULL
+        AND deleted_at <= NOW() - INTERVAL '3 days'
+    '''
+
+    return await conn.fetch(sql)
