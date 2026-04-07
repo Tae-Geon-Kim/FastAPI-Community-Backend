@@ -254,7 +254,7 @@ async def restore_all_file_services(conn: Connection, data: UserLogin, board_ind
     
     restore_files_belong = await restore_all_check_files_belong(conn, board_index)
 
-   if restore_files_belong is None:
+    if restore_files_belong is None:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
             detail = "해당 게시판에는 복구 가능한 파일이 존재하지 않습니다."

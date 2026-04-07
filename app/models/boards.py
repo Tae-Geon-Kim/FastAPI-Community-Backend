@@ -136,3 +136,10 @@ async def restore_user_boards(conn: Connection, user_index: int):
     sql = 'UPDATE boards SET deleted_at = NULL WHERE user_index = $1 AND deleted_at IS NOT NULL'
 
     return await conn.execute(sql, user_index)
+
+# 게시판 정보 삭제
+async def soft_withdraw_boards(conn: Connection, user_index: int):
+
+	sql = 'UPDATE boards SET deleted_at = NOW() where user_index = $1 AND deleted_at IS NULL'
+
+	return conn.execute(sql, user_index)

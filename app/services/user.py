@@ -21,7 +21,7 @@ async def user_pw_services(conn: Connection, data: UserLogin):
 
     # 비밀번호 해싱 처리 후 저장
     data.password = hash_password(data.password)
-    await push_id_pw(conn, data)
+    await push_id_pw(conn, data.id, data.password)
 
     return CommonResponse(message = "회원가입이 성공적으로 완료되었습니다.")
 
@@ -37,7 +37,7 @@ async def user_name_services(conn: Connection, data: UserId):
         )
 
     # 아이디가 중복되는 경우
-    if await id_duplicate(conn, data):
+    if await id_duplicate(conn, data.id):
         raise HTTPException(
             status_code = status.HTTP_409_CONFLICT,
             detail = "이미 사용중인 아이디입니다."
@@ -57,7 +57,7 @@ async def user_info_services(conn: Connection, data: UserLogin):
             detail = "로그인 정보를 다시 확인해주세요."
         )
     
-    user_data = await pull_user_info(conn, UserId(id = data.id))
+    user_data = await pull_user_info(conn, data.id)
     # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
 
     return CommonResponse(
@@ -109,7 +109,7 @@ async def userId_modify_services(conn: Connection, data: ModiId):
         )
 
     # 아이디가 중복되는 경우
-    if await id_duplicate(conn, UserId(id = data.new_id)):
+    if await id_duplicate(conn, data.new_id):
         raise HTTPException(
             status_code = status.HTTP_409_CONFLICT,
             detail = "중복되는 아이디가 존재합니다."

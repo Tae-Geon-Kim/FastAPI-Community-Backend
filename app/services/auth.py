@@ -9,7 +9,7 @@ from app.models.user import pull_pw_login, pull_pw_restore_login
 # 입력한 아이디가 없는 경우에 대한 예외처리
 async def login(conn: Connection, data: UserLogin):
 
-        login_data = await pull_pw_login(conn, data)
+        login_data = await pull_pw_login(conn, data.id)
 
         # 사용자가 입력한 아이디가 DB에 존재하지 않을 때
         if login_data is None:

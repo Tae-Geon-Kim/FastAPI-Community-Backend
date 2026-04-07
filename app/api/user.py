@@ -43,9 +43,9 @@ async def pwModify(data: ModiPw, conn: Connection = Depends(get_db)):
     return await userPw_modify_services(conn, data)
 
 # 사용자 회원탈퇴 복구
-@router.post("/restore_user", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+@router.post("/restoreUser", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def restore_user(
-    conn: Connection = Depends(get_db),
-    data: UserLogin
+    data: UserLogin,
+    conn: Connection = Depends(get_db)
 ):
     return await restore_user_services(conn, data)

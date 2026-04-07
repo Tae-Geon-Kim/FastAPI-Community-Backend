@@ -9,7 +9,7 @@ router = APIRouter()
 # 파일별로 API를 나누기 위해 APIRouter를 사용
 
 # 게시판 생성
-@router.post("/bregister", response_model = CommonResponse, status_code = status.HTTP_201_CREATED)
+@router.post("/bRegister", response_model = CommonResponse, status_code = status.HTTP_201_CREATED)
 async def bregister(data: CreateBoard, conn: Connection = Depends(get_db)):
 
     result = await create_boards_services(conn, data)
@@ -17,7 +17,7 @@ async def bregister(data: CreateBoard, conn: Connection = Depends(get_db)):
     return result
 
 # 특정 유저의 게시판 조회
-@router.post("/certain_binfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+@router.post("/certainBInfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def certain_binfo(data: UserId, conn: Connection = Depends(get_db)):
 
     result = await certain_boards_info_services(conn, data)
@@ -25,7 +25,7 @@ async def certain_binfo(data: UserId, conn: Connection = Depends(get_db)):
     return result
 
 # 모든 유저의 게시판 조회
-@router.get("/all_binfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+@router.get("/allBInfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def all_binfo(conn: Connection = Depends(get_db)):
 
     result = await all_boards_info_services(conn)
@@ -56,12 +56,13 @@ async def deleteBoards(data: DeleteBoards, conn: Connection = Depends(get_db)):
 
     return result
 
-@router.post("/restore_boards", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+# 게시판 복구
+@router.post("/restoreBoards", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def restore_boards(
-    conn: Connection = Depends(get_db),
     data: UserLogin,
-    board_index: int
+    board_index: int,
+    conn: Connection = Depends(get_db)
 ):
-    result = await restore_boards_services(conn, data, board_index)
+    result = await restore_board_services(conn, data, board_index)
 
     return result

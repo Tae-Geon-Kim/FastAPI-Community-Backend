@@ -1,3 +1,4 @@
+import json
 from asyncpg import Connection
 from fastapi import HTTPException, status
 from collections import defaultdict
@@ -43,7 +44,7 @@ async def create_boards_services(conn: Connection, data: CreateBoard):
 # 특정 사용자의 게시판 목록을 출력 (사용자의 이름 입력 받아서 있음 출력 아님 에러 / 로그인 필요 없음)
 async def certain_boards_info_services(conn: Connection, data: UserId):
 
-    user_exist = await id_duplicate(conn, data)
+    user_exist = await id_duplicate(conn, data.id)
 
     # 해당 사용자가 존재 x
     if not user_exist:
@@ -63,9 +64,15 @@ async def certain_boards_info_services(conn: Connection, data: UserId):
             detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
         )
     
-    board_list = [BoardInfo.model_validate(dict(row)) for row in rows]
-    # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
-    # DB에서 가져온 모든 Record 객체를 각각 dict로 변환하여 리스트 형태로 반환
+    board_list = []
+    for row in rows:
+        row_dict = dict(row)
+        if isinstance(row_dict.get('files'), str):
+            row_dict['files'] = json.loads(row_dict['files'])
+
+        board_list.append(BoardInfo.model_validate(row_dict))
+        # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
+        # DB에서 가져온 모든 Record 객체를 각각 dict로 변환하여 리스트 형태로 반환
 
     return CommonResponse(message = f"{data.id}님의 게시판을 출력합니다.", data = board_list)
 
@@ -88,6 +95,8 @@ async def all_boards_info_services(conn: Connection):
     for row in rows:
         row_dict = dict(row)
         author_id = row_dict['author']
+        if isinstance(row_dict.get('files'), str):
+            row_dict['files'] = json.loads(row_dict['files'])
         validate_post = AllBoardInfo.model_validate(row_dict)
         grouped_dict[author_id].append(validate_post)
 
@@ -232,7 +241,7 @@ async def restore_board_services(conn: Connection, data: UserLogin, board_index:
     if restore_boards_owner is None:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
-            detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
+            detail = f"요청하신 {board_index}번 게시판은 존재하지않거나, 복구 대상(삭제 상태)이 아닙니다."
         )
     
     if restore_boards_owner != user_num:
