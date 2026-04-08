@@ -51,7 +51,7 @@ async def withdraw(
 
 # 사용자 아이디 변경
 @router.post("/idModify", response_model = CommonResponse, status_code = status.HTTP_200_OK)
-async def idModify(
+async def id_modify(
     data: ModiId,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(verify_token)
@@ -60,7 +60,7 @@ async def idModify(
 
 # 사용자 비밀번호 변경
 @router.post("/pwModify", response_model = CommonResponse, status_code = status.HTTP_200_OK)
-async def pwModify(
+async def pw_modify(
     data: ModiPw,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(verify_token)

@@ -10,8 +10,6 @@ class CommonResponse(BaseModel):
 
 # 게시판 생성
 class CreateBoard(BaseModel):
-    id: str
-    password: str
     title: str
     content: str
 
@@ -55,20 +53,22 @@ class AllBoardInfoResponse(BaseModel):
 
 # 게시판 제목 변경
 class ModiTitle(BaseModel):
-    id: str
     password: str
     board_index: int
     new_title: str
 
 # 게시판 내용 변경
 class ModiContent(BaseModel):
-    id: str
     password: str
     board_index: int
     new_content: str
 
 # 게시판 삭제
 class DeleteBoards(BaseModel):
-    id: str
+    password: str
+    board_index: int
+
+# 게시판 복구
+class RestoreBoards(BaseModel):
     password: str
     board_index: int

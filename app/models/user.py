@@ -22,11 +22,11 @@ async def push_id_pw(conn: Connection, user_id: str, user_password: str):
     return await conn.execute(sql, user_id, user_password)
 
 # 아이디 중복 확인
-async def id_duplicate(conn: Connection, user_id: str):
+async def id_duplicate(conn: Connection, user_index: int):
 
-    sql = 'SELECT id FROM "user" WHERE id = $1'
+    sql = 'SELECT id FROM "user" WHERE index = $1'
 
-    return await conn.fetchrow(sql, user_id)
+    return await conn.fetchrow(sql, user_index)
 
 # 사용자 정보 조회
 async def pull_user_info(conn: Connection, user_index: int):
