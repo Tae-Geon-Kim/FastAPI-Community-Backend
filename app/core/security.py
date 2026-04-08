@@ -1,6 +1,10 @@
-# main.py에서 입력받은 암호를 해싱해서 DB에 보관
-# 로그인 할 때, DB에서 해싱값을 가져와 검증
 import bcrypt
+from app.core.config import JWT_Auth
+
+secret_key = jwt_auth.SECRET_KEY
+algorithm = jwt_auth.ALGORITHM
+access_token_expire_minutes = jwt_auth.ACCESS_TOKEN_EXPIRE_MINUTES
+refresh_token_expire_days = jwt_auth.REFRESH_TOKEN_EXPIRE_DAYS
 
 # 비밀번호를 해싱해서 암호화 후 반환 (return 값: string)
 def hash_password(password: str):
@@ -10,7 +14,7 @@ def hash_password(password: str):
 
     return hashed_password.decode('utf-8') # string으로 -> DB 저장 필요
 
-# main.py에서 해싱된 값 가져와 검증
+# DB에서 해싱처리된 비밀번호 값을 가져와 검증
 def verify(plain_password: str, hashed_password: str):
 
     password = bytes(plain_password, 'utf-8')
@@ -19,3 +23,55 @@ def verify(plain_password: str, hashed_password: str):
     # checkpw(password:bytes, hashed_password: bytes)
 
     return bcrypt.checkpw(password, hashed_password) # 반환 값: boolean
+
+# access token 생성
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+
+    to_encode = data.copy()
+
+    # 토큰 만료 시간 설정
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes = access_token_expire_minutes)
+
+    to_encode.update({"exp": expire})
+
+    # JWT access token 생성
+    encode_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm = algorithm)
+    return encode_jwt
+
+# refresh token 생성
+def create_refresh_token(data:dict, expires_delta: timedelta | None = None):
+
+    to_encode = data.copy()
+
+    # 토큰 만료 시간 설정
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(days = refresh_token_expire_days)
+
+    to_encode.update({"exp": expire})
+
+    # JWT refresh token 생성
+    encode_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm = algorithm)
+    return encode_jwt
+
+# 토큰 확인
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY = secret_key, algorithms = [algorithm])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code = status.HTTP_401_UNAUTHORIZED,
+                detail = "유효하지 않은 인증 자격입니다."
+            )
+        return username
+    except JWTError:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "유효하지 않은 인증 자격입니다."
+        )

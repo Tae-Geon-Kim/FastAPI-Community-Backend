@@ -7,6 +7,74 @@ from app.core.security import *
 from app.services.auth import *
 from app.models.files import *
 
+secret_key = jwt_auth.SECRET_KEY
+algorithm = jwt_auth.ALGORITHM
+
+credentials_exception = HTTPException(
+    status_code = status.HTTP_401_UNAUTHORIZED,
+    detail = "유효하지 않은 인증 자격입니다.",
+    headers = {"WWW-Authenticate": "Bearer"}
+)
+
+# JWT 토큰 재발급
+async def refresh_access_token_services(conn: Connection, data: TokenRefreshRequest):
+    
+    try:
+        payload = jwt.decode(data.refresh_token, secret_key, algorithms = [algorithm])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+           raise credentials_exception
+
+        new_access = create_access_token(data = {"sub": str(user_id)})
+        
+        token_data = TokenResponse(
+            access_token = new_access,
+            refresh_token = data.refresh_token,
+            token_type = "bearer"
+        )
+
+        return CommonResponse(
+            message = "토큰이 성공적으로 재발급 되었습니다.",
+            data = token_data
+        )
+
+    # 토큰 만료 에러
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "만료된 토큰입니다. 다시 로그인해주세요."
+        )
+
+    # 다른 모든 JWT error
+    except JWTError:
+        raise credentials_exception
+
+# JWT Token 사용자 로그인
+async def token_login_services(conn: Connection, data: UserLogin):
+
+    user_num = await login(conn, data)
+
+    if user_num is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "로그인 정보를 다시 확인해주세요."
+        )
+
+    access_token = create_access_token(data = {"sub": str(user_num)})
+    refresh_token = create_refresh_token(data = {"sub": str(user_num)})
+
+
+    token_data = TokenResponse(
+        access_token = access_token,
+        refresh_token = refresh_token,
+        token_type = "bearer"
+    )
+
+    return CommonResponse(
+        message = "로그인에 성공하였습니다.",
+        data = token_data
+    )
+
 # 사용자 비밀번호 검사 
 async def user_pw_services(conn: Connection, data: UserLogin):
 

@@ -2,10 +2,21 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, Any
 
+# 응답 규격화
 class CommonResponse(BaseModel):
     success: bool = True
     message: str = "사용자의 요청이 성공적으로 수행되었습니다."
     data: Optional[Any] = None
+
+# CommonResponse JWT 토큰 인증 data 
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+
+# JWT 토큰 
+class TokenRefreshRequest(BaseModel):
+    refresh_token: str
 
 class UserLogin(BaseModel):
     id: str

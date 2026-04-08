@@ -6,6 +6,18 @@ from app.db.database import get_db
 
 router = APIRouter()
 
+# JWT 토큰 재발급
+@router.post("/refresh", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+async def refresh_access_token(data: TokenRefreshRequest, conn: Connection = Depends(get_db)):
+
+    return await refresh_access_token_services(conn, data)
+
+# JWT 사용자 로그인
+@router.post("/login", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+async def token_login(data: UserLogin, conn: Connection = Depends(get_db)):
+
+    return await token_login_services(conn, data)
+
 # 신규 회원가입 비밀번호를 입력했을 때, 해싱된 비밀번호 값을 DB에 저장
 @router.post("/uRegister", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def uregister(data: UserLogin, conn: Connection = Depends(get_db)):
