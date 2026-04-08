@@ -63,7 +63,6 @@ async def token_login_services(conn: Connection, data: UserLogin):
     access_token = create_access_token(data = {"sub": str(user_num)})
     refresh_token = create_refresh_token(data = {"sub": str(user_num)})
 
-
     token_data = TokenResponse(
         access_token = access_token,
         refresh_token = refresh_token,
@@ -114,19 +113,23 @@ async def user_name_services(conn: Connection, data: UserId):
     return CommonResponse(message = "사용 가능한 아이디입니다!")
 
 # 사용자 정보조회
-async def user_info_services(conn: Connection, data: UserLogin):
-
-    user_num = await login(conn, data)
+async def user_info_services(conn: Connection, current_user_num: str):
 
     # 로그인 실패
-    if user_num is None:
+    if current_user_num is None:
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "로그인 정보를 다시 확인해주세요."
         )
     
-    user_data = await pull_user_info(conn, data.id)
+    user_data = await pull_user_info(conn, int(current_user_num))
     # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
+
+    if user_data is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
+        )
 
     return CommonResponse(
         message = "사용자 정보를 출력합니다.",
@@ -135,37 +138,61 @@ async def user_info_services(conn: Connection, data: UserLogin):
     )
 
 # 시용자 회원탈퇴 (복구 기능 포함)
-async def user_withdraw_services(conn: Connection, data: UserLogin):
-
-    user_num = await login(conn, data)
+async def user_withdraw_services(data: UserPw, conn: Connection, current_user_num: str):
        
-    if user_num is None:
+    if current_user_num is None:
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "로그인 정보를 다시 확인해주세요."
         )
+    
+    user_info = await get_user_id_pw(conn, int(current_user_num))
+
+    if user_info is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
+        )
+
+    if not verify(data.password, user_info['password']):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "비밀번호가 일치하지 않습니다."
+        )
         
     async with conn.transaction():
         # soft delete
-        await soft_withdraw_user(conn, data.id)
-        await soft_withdraw_boards(conn, user_num)
-        await soft_withdraw_files(conn, user_num)
+        await soft_withdraw_user(conn, int(current_user_num))
+        await soft_withdraw_boards(conn, int(current_user_num))
+        await soft_withdraw_files(conn, int(current_user_num))
     
-    return CommonResponse(message = f"{data.id}님의 회원탈퇴가 성공적으로 처리되었습니다.")
+    return CommonResponse(message = f"{user_info['id']}님의 회원탈퇴가 성공적으로 처리되었습니다.")
 
 async def withdraw_user_perman(pool):
     async with pool.acquire() as conn:
         await withdraw_permanently(conn)
 
 # 사용자 아이디 변경
-async def userId_modify_services(conn: Connection, data: ModiId):
+async def userId_modify_services(data: ModiId, conn: Connection, current_user_num: str):
 
-    user_num = await login(conn, UserLogin(id = data.id, password = data.password))
-
-    if user_num is None:
+    if current_user_num is None:
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "로그인 정보를 다시 확인해주세요."
+        )
+    
+    user_info = await get_user_id_pw(conn, int(current_user_num))
+
+    if user_info is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
+        )
+    
+    if not verify(data.password, user_info['password']):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "비밀번호가 일치하지 않습니다."
         )
 
     # 아이디 공백 포함 빈 문자열 검사
@@ -183,21 +210,33 @@ async def userId_modify_services(conn: Connection, data: ModiId):
             detail = "중복되는 아이디가 존재합니다."
         )
     
-    await userId_modify(conn, data.new_id, data.id)
+    await userId_modify(conn, data.new_id, int(current_user_num))
 
     return CommonResponse(
-        message = f"{data.id}님의 아이디가 {data.new_id}로 수정되었습니다."
+        message = f"{user_info['id']}님의 아이디가 {data.new_id}로 수정되었습니다."
     )
 
 # 사용자 비밀번호 변경
-async def userPw_modify_services(conn: Connection, data: ModiPw):
+async def userPw_modify_services(data: ModiPw, conn: Connection, current_user_num: str):
 
-    user_num = await login(conn, UserLogin(id = data.id, password = data.password))
-
-    if user_num is None:
+    if current_user_num is None:
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "로그인 정보를 다시 확인해주세요."
+        )
+    
+    user_info = await get_user_id_pw(conn, int(current_user_num))
+
+    if user_info is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
+        )
+    
+    if not verify(data.password, user_info['password']):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "비밀번호가 일치하지 않습니다."
         )
 
      # 비밀번호 검사 (비밀번호 공백 포함 or 빈 문자열 여부)
@@ -211,9 +250,9 @@ async def userPw_modify_services(conn: Connection, data: ModiPw):
     data.new_password = hash_password(data.new_password)
 
     # DB 저장
-    await userPw_modify(conn, data.new_password, data.id)
+    await userPw_modify(conn, data.new_password, int(current_user_num))
 
-    return CommonResponse(message = f"{data.id}님의 비밀번호가 변경되었습니다.")
+    return CommonResponse(message = f"{user_info['id']}님의 비밀번호가 변경되었습니다.")
 
 # 사용자 회원탈퇴 복구
 async def restore_user_services(conn: Connection, data: UserLogin):

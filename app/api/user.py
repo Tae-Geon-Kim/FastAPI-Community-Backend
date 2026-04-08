@@ -3,6 +3,7 @@ from asyncpg import Connection
 from app.schemas.user import *
 from app.services.user import *
 from app.db.database import get_db
+from app.core.security import verify_token
 
 router = APIRouter()
 
@@ -32,29 +33,43 @@ async def ucheck(data: UserId, conn : Connection = Depends(get_db)):
 
 # 사용자 정보 조회
 @router.post("/uInfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)
-async def uinfo(data: UserLogin, conn: Connection = Depends(get_db)):
+async def uinfo(
+    conn: Connection = Depends(get_db),
+    current_user_num: str = Depends(verify_token)
+):
 
-    return await user_info_services(conn, data)
+    return await user_info_services(conn, current_user_num)
 
 # 사용자 회원탈퇴 
 @router.post("/withdraw", response_model = CommonResponse, status_code = status.HTTP_200_OK)
-async def withdraw(data: UserLogin, conn: Connection = Depends(get_db)):
-
-    return await user_withdraw_services(conn, data)
+async def withdraw(
+    data: UserPw,
+    conn: Connection = Depends(get_db),
+    current_user_num: str = Depends(verify_token)
+):
+    return await user_withdraw_services(data, conn, current_user_num)
 
 # 사용자 아이디 변경
 @router.post("/idModify", response_model = CommonResponse, status_code = status.HTTP_200_OK)
-async def idModify(data: ModiId, conn: Connection = Depends(get_db)):
-
-    return await userId_modify_services(conn, data)
+async def idModify(
+    data: ModiId,
+    conn: Connection = Depends(get_db),
+    current_user_num: str = Depends(verify_token)
+):
+    return await userId_modify_services(data, conn, current_user_num)
 
 # 사용자 비밀번호 변경
 @router.post("/pwModify", response_model = CommonResponse, status_code = status.HTTP_200_OK)
-async def pwModify(data: ModiPw, conn: Connection = Depends(get_db)):
+async def pwModify(
+    data: ModiPw,
+    conn: Connection = Depends(get_db),
+    current_user_num: str = Depends(verify_token)
+):
+    return await userPw_modify_services(data, conn, current_user_num)
 
-    return await userPw_modify_services(conn, data)
-
-# 사용자 회원탈퇴 복구
+# 사용자 회원탈퇴 복구 - JWT 기반 로그인 
+# JWT 기반 로그인 방식을 도입해도 여기서 로그인 부분은 기존의 아이디, 비밀번호 입력받는 방식을 사용해야한다.
+# why? : 이미 삭제 처리된 데이터이기 때문에 삭제 처리가 된 순간 발급 된 (되어있던) access / refresh은 삭제된다.
 @router.post("/restoreUser", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def restore_user(
     data: UserLogin,
