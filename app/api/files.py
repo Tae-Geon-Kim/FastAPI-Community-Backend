@@ -11,7 +11,7 @@ router = APIRouter()
 @router.post("/uploadFiles", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def upload_files(
     file: UploadFile = File(...),
-    board_index: int = Form(...)
+    board_index: int = Form(...),
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(verify_token)
 ):

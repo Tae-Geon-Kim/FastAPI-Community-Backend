@@ -30,3 +30,18 @@ class JWT_Auth(BaseSettings):
         env_file = ".env"
     
 jwt_auth = JWT_Auth()
+
+class Logging(BaseSettings):
+    LOGGING_DIR: str
+    FILE_NAME: str
+    WHEN: str
+    INTERVAL: int
+    BACKUP: int
+
+    FORMAT: str
+    DATEFMT: str
+
+    class Config:
+        env_file = ".env"
+
+log_setting = Logging()
