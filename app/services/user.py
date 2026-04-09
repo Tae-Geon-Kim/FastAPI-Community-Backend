@@ -79,13 +79,6 @@ async def user_pw_services(conn: Connection, data: UserLogin):
 
     await user_name_services(conn, UserId(id = data.id))
 
-    # 비밀번호 공백 포함 or 빈 문자열인 경우
-    if not data.password.strip() or " " in data.password:
-        raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQUEST,
-            detail = "비밀번호에는 공백을 사용할 수 없으며 빈 문자열은 비밀번호로 사용할 수 없습니다."
-        )
-
     # 비밀번호 해싱 처리 후 저장
     data.password = hash_password(data.password)
     await push_id_pw(conn, data.id, data.password)
@@ -95,13 +88,7 @@ async def user_pw_services(conn: Connection, data: UserLogin):
 # 신규 회원 아이디 중복, 빈 문자열 검사
 async def user_name_services(conn: Connection, data: UserId):
 
-    # 아이디가 공백 or 빈 문자열인 경우
     data.id = data.id.strip()
-    if not data.id or " " in data.id:
-        raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQUEST,
-            detail = "아이디에는 공백을 사용할 수 없으며 빈 문자열은 아이디로 사용할 수 없습니다."
-        )
 
     # 아이디가 중복되는 경우
     if await id_duplicate(conn, data.id):

@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+import re
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional, Any
 
@@ -18,16 +19,6 @@ class TokenResponse(BaseModel):
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
 
-class UserLogin(BaseModel):
-    id: str
-    password: str
-
-class UserId(BaseModel):
-    id: str
-
-class UserPw(BaseModel):
-    password: str
-
 class UserInfo(BaseModel):
     id: str
     reg_date: datetime
@@ -36,10 +27,71 @@ class UserInfo(BaseModel):
     class Config:
         from_attributes = True
 
+# 아이디 제약조건
+def validate_id_format(v: str)->str:
+
+    pattern = r'^[a-z0-9]{5,20}$'
+
+    if not re.match(pattern, v):
+        raise ValueError("아이디는 영문 소문자와 숫자로 구성된 5~20자만 사용 가능합니다.")
+    return v
+
+# 비밀번호 제약조건
+def validate_password_format(v: str)->str:
+
+    pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,16}$'
+
+    if not re.match(pattern, v):
+        raise ValueError("비밀번호는 최소 1개의 영문자, 숫자, 특수문자를 포함한 8~16자만 사용가능합니다.")
+    return v
+
+
+class UserLogin(BaseModel):
+    id: str = Field(..., min_length = 5, max_length = 20)
+    password: str = Field(..., min_length = 8, max_length = 16)
+
+    @field_validator('id')
+    @classmethod
+    def check_id(cls, v): return validate_id_format(v)
+
+    @field_validator('password')
+    @classmethod
+    def check_pw(cls, v): return validate_password_format(v)
+
+class UserId(BaseModel):
+    id: str = Field(..., min_length = 5, max_length = 20)
+
+    @field_validator('id')
+    @classmethod
+    def check_id(cls, v): return validate_id_format(v)
+
+class UserPw(BaseModel):
+    password: str = Field(..., min_length = 8, max_length = 16)
+
+    @field_validator('password')
+    @classmethod
+    def check_password(cls, v): return validate_password_format(v)
+
 class ModiId(BaseModel):
-    password: str
-    new_id: str
+    password: str = Field(..., min_length = 8, max_length = 16)
+    new_id: str = Field(..., min_length = 5, max_length =20)
+
+    @field_validator('password')
+    @classmethod
+    def check_id(cls, v): return validate_password_format(v)
+
+    @field_validator("new_id")
+    @classmethod
+    def check_new_id(cls, v): return validate_id_format(v)
 
 class ModiPw(BaseModel):
-    password: str
-    new_password: str
+    password: str = Field(..., min_length = 8, max_length = 16)
+    new_password: str = Field(..., min_length = 8, max_length = 16)
+
+    @field_validator('password')
+    @classmethod
+    def check_password(cls, v): return validate_password_format(v)
+
+    @field_validator('new_password')
+    @classmethod
+    def check_new_password(cls, v): return validate_password_format(v)
