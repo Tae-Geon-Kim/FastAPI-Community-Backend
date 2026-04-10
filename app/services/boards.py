@@ -27,20 +27,6 @@ async def create_boards_services(data: CreateBoard, conn: Connection, current_us
             detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
         )
 
-    # 게시판 제목이 빈 문자열인 경우
-    if not data.title.strip():
-        raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQUEST,
-            detail = "게시판 제목에는 빈 문자열을 사용할 수 없습니다."
-        )
-
-    # 게시판 내용이 빈 문자열인 경우
-    if not data.content.strip():
-        raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQUEST,
-            detail = "게시판 내용에는 빈 문자열을 사용할 수 없습니다."
-        )
-
     # 게시판을 저장할 때 user_num도 같이 저장
     await insert_boards_db(conn, data.title, data.content, int(current_user_num))
     
@@ -68,7 +54,7 @@ async def certain_boards_info_services(conn: Connection, current_user_num: str):
     if not rows:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
-            detail = f"{data.id}님의 등록된 게시글이 존재하지않습니다."
+            detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
     
     board_list = []
@@ -157,12 +143,6 @@ async def title_modify_services(data: ModiTitle, conn: Connection, current_user_
             detail = "본인의 게시글만 수정할 수 있습니다."
         )
 
-    if not data.new_title.strip():
-        raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQUEST,
-            detail = "게시판 제목에는 빈 문자열을 사용할 수 없습니다."
-        )
-
     await title_modify(conn, data.new_title, data.board_index)
 
     return CommonResponse(message = f"{user_info['id']}의 게시판 제목이 {data.new_title}로 변경되었습니다.")
@@ -202,12 +182,6 @@ async def content_modify_services(data: ModiContent, conn: Connection, current_u
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "본인의 게시글만 수정할 수 있습니다."
-        )
-    
-    if not data.new_content.strip():
-        raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQUEST,
-            detail = "게시판 내용에는 빈 문자열을 사용할 수 없습니다."
         )
     
     await content_modify(conn, data.new_content, data.board_index)
@@ -298,19 +272,16 @@ async def restore_board_services(data: RestoreBoards, conn: Connection, current_
             detail = f"요청하신 {data.board_index}번 게시판은 존재하지않거나, 복구 대상(삭제 상태)이 아닙니다."
         )
     
-    if restore_boards_owner != int(current_user_num):
+    if restore_boards_owner['user_index'] != int(current_user_num):
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail =  "권한이 없습니다. 본인의 게시글만 복구시킬 수 있습니다."
         )
     
     async with conn.transaction():
-        # 게시판 데이터 복구
-        # 게시판 내에 저장되어 있던 파일들이 있으면 파일들 일괄 복구
-        # 파일들이 복구됐으면 파일 용량 다시 계산 & 업로드
         await restore_board(conn, data.board_index) # 게시판 데이터 복구
-        await restore_all_files(conn, data.board_index)
-        new_total_fsize = await get_total_fsize(conn, data.board_index)
-        await update_total_fsize(conn, new_total_fsize, data.board_index)
+        await restore_all_files(conn, data.board_index) # 게시판 내에 저장되어 있던 파일들이 있으면 파일들 일괄 복구
+        new_total_fsize = await get_total_fsize(conn, data.board_index) # 파일들 복구되었으면 파일 용량 재계산
+        await update_total_fsize(conn, new_total_fsize, data.board_index) # 재계산된 용량 DB 업로드
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 게시판이 복구되었습니다.")
