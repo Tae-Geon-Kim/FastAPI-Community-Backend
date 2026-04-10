@@ -18,7 +18,7 @@ async def bregister(
     return await create_boards_services(data, conn, current_user_num)
 
 # 특정 유저의 게시판 조회
-@router.post("/certainBInfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+@router.get("/certainBInfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def certain_binfo(
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(verify_token)
