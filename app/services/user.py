@@ -88,8 +88,6 @@ async def user_pw_services(conn: Connection, data: UserLogin):
 # 신규 회원 아이디 중복, 빈 문자열 검사
 async def user_name_services(conn: Connection, data: UserId):
 
-    data.id = data.id.strip()
-
     # 아이디가 중복되는 경우
     if await id_duplicate(conn, data.id):
         raise HTTPException(
@@ -182,14 +180,6 @@ async def userId_modify_services(data: ModiId, conn: Connection, current_user_nu
             detail = "비밀번호가 일치하지 않습니다."
         )
 
-    # 아이디 공백 포함 빈 문자열 검사
-    data.new_id = data.new_id.strip() # 아이디 양쪽 공백 제거
-    if not data.new_id or " " in data.new_id:
-        raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQUEST,
-            detail = "아이디에는 공백을 사용할 수 없으며 빈 문자열은 아이디로 사용할 수 없습니다."
-        )
-
     # 아이디가 중복되는 경우
     if await id_duplicate(conn, data.new_id):
         raise HTTPException(
@@ -226,13 +216,6 @@ async def userPw_modify_services(data: ModiPw, conn: Connection, current_user_nu
             detail = "비밀번호가 일치하지 않습니다."
         )
 
-     # 비밀번호 검사 (비밀번호 공백 포함 or 빈 문자열 여부)
-    if not data.new_password or " " in data.new_password:
-        raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQUEST,
-            detail = "비밀번호에는 공백을 사용할 수 없으며 빈 문자열은 비밀번호로 사용할 수 없습니다."
-        )
-    
     # 새로운 비밀번호 해싱처리
     data.new_password = hash_password(data.new_password)
 

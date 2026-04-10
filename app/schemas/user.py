@@ -30,10 +30,12 @@ class UserInfo(BaseModel):
 # 아이디 제약조건
 def validate_id_format(v: str)->str:
 
+    v = v.strip()
+
     pattern = r'^[a-z0-9]{5,20}$'
 
     if not re.match(pattern, v):
-        raise ValueError("아이디는 영문 소문자와 숫자로 구성된 5~20자만 사용 가능합니다.")
+        raise ValueError("아이디 형식이 올바르지 않습니다. (영문 소문자, 숫자 포함한 5 ~ 20자)")
     return v
 
 # 비밀번호 제약조건
@@ -42,7 +44,7 @@ def validate_password_format(v: str)->str:
     pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,16}$'
 
     if not re.match(pattern, v):
-        raise ValueError("비밀번호는 최소 1개의 영문자, 숫자, 특수문자를 포함한 8~16자만 사용가능합니다.")
+        raise ValueError("비밀번호 형식이 올바르지 않습니다. (영문자, 숫자, 특수문자를 포함한 8 ~ 16자)")
     return v
 
 
@@ -80,7 +82,7 @@ class ModiId(BaseModel):
     @classmethod
     def check_id(cls, v): return validate_password_format(v)
 
-    @field_validator("new_id")
+    @field_validator('new_id')
     @classmethod
     def check_new_id(cls, v): return validate_id_format(v)
 
