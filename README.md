@@ -66,7 +66,18 @@
 ### 📦 의존성 관리
 본 프로젝트는 **requirement.txt** 방식을 사용합니다.
 ### 🧪 설치 및 실행
-#### 환경변수
+
+#### 가상환경 생성 및 활성화
+```text
+python -m venv venv
+source venv/bin/activate (Windows: venv\Scripts\activate)
+```
+#### 패키지 설치
+```text
+pip install -r requirement.txt
+```
+
+#### 환경변수 설정 (.env)
 실제 환경에서는 .env 파일을 생성하여 본인의 환경에 맞게 설정해야 합니다.
 ```text
 # .env.example
@@ -105,19 +116,32 @@ BACKUP=7
 FORMAT=%(asctime)s %(levelname)s %(message)s
 DATEFMT=%m/%d/%Y %I:%M:%S %p
 ```
+
+#### 서버 실행
+환경변수 설정이 끝난다면 아래 명령어를 통해 서버를 실행합니다.
+```text
+uvicorn app.main:app --reload
+```
+
 ---
 <a name="features"></a>
 ## ✨ 주요 기능
 ### 👤 회원 관리
-- 회원가입 / 로그인 / 로그아웃
+- 회원가입 및 JWT 토큰 기반 인증
 - 비밀번호 암호화 저장 (BCrypt)
 - 사용자 정보 조회, 수정, 삭제
+- 사용자 데이터 삭제 및 복구
 
 ---
 
 ### 📝 게시판 기능
 - 게시글 작성 / 조회 / 수정 / 삭제 (CRUD)
-- 게시글 목록 조회 (페이징 처리)
+- 게시글 목록 조회
+- 게시판 삭제 및 복구
+
+### 📤파일 기능
+- 파일 업로드 
+- 파일 삭제 및 복구
 
 ---
 <a name="system-architecture"></a>
@@ -198,7 +222,7 @@ DATEFMT=%m/%d/%Y %I:%M:%S %p
 | **update_date** | 최종 수정 일시 | DEFAULT NOW() |
 | **user_index** | 작성자 고유 번호 (user.index 참조) | FK (NOT NULL) |
 | **deleted_at** | 삭제된 시간 (삭제 처리) | |
-| **total_file_size | 해당 게시판에 있는 파일 전체 용량의 합 | DEFAULT 0 |
+| **total_file_size** | 해당 게시판에 있는 파일 전체 용량의 합 | DEFAULT 0 |
 
 #### - Files Table
 |Column|Description|Constraint|
@@ -216,7 +240,7 @@ DATEFMT=%m/%d/%Y %I:%M:%S %p
 <a name="api"></a>
 ## 📡 API
 ### 🔌 엔드포인트 요약
-
+서버 실행 후 URL을 통해서 접속 가능합니다.
 - [API 상세 명세서]( 여기에 링크 )
 
 - [Swagger UI]( 여기에 링크 )
@@ -224,30 +248,36 @@ DATEFMT=%m/%d/%Y %I:%M:%S %p
 #### - User API
 | Method | Endpoint | Description |
 | :--- | :---: | :--- | 
-| `POST` | `/ucheck` | ID 중복 확인 및 PW 유효성 검사 |
-| `POST` | `/uregister` | 신규 회원 등록 (Bcrypt 암호화) |
-| `POST` | `/blogin` | 사용자 인증 및 로그인 |
-| `POST` | `/bregister` | 신규 게시글 등록 (제목 공백 검증) |
-| `POST` | `/bupdate` | 게시글 수정 및 PW 재인증 후 삭제 |
+| `POST` | `/refresh` | 만료된 JWT Access Token 재발급 |
+| `POST` | `/login` | 사용자 인증 및 JWT (Access / Refresh) 토큰 발급 |
+| `POST` | `/uRegister`| 신규 회원가입 (비밀번호 Bcrypt 해싱 저장) | 
+| `POST` | `/uCheck` | 신규 회원가입 전 아이디 중복 및 유효성 검사 |
+| `POST` | `/uInfo` | 로그인한 사용자 본인의 정보 조회 |
+| `POST` | `/withdraw` | 회원 탈퇴 처리 (soft delete) |
+| `POST` | `/idModify` | 사용자 아이디 변경 |
+| `POST` | `/pwModify` | 사용자 비밀번호 변경 |
+| `POST` | `/restoreUser` | 삭제 처리된 사용자 계정 복구 |
 
 #### - Boards API
 | Method | Endpoint | Description |
 | :--- | :---: | :--- | 
-| `POST` | `/ucheck` | ID 중복 확인 및 PW 유효성 검사 |
-| `POST` | `/uregister` | 신규 회원 등록 (Bcrypt 암호화) |
-| `POST` | `/blogin` | 사용자 인증 및 로그인 |
-| `POST` | `/bregister` | 신규 게시글 등록 (제목 공백 검증) |
-| `POST` | `/bupdate` | 게시글 수정 및 PW 재인증 후 삭제 |
+| `POST` | `/bRegister` | 신규 게시글 작성 |
+| `GET` | `/certainBInfo` | 특정 사용자의 게시글 목록 조회 (로그인 x / 유저 이름으로) |
+| `GET` | `/allBInfo` | 모든 사용자의 게시글 목록 전체 조회 (로그인 x) |
+| `POST` | `/modiTitle` | 특정 게시글 제목 수정 |
+| `POST` | `/modiContent` | 특정 게시글 내용 수정 |
+| `POST` | `/deleteBoards` | 특정 게시글 삭제 (soft delete) |
+| `POST` | `/restoreBoards` | 삭제 처리된 특정 게시글 복구 |
 
 
 #### - Files API
 | Method | Endpoint | Description |
 | :--- | :---: | :--- | 
-| `POST` | `/ucheck` | ID 중복 확인 및 PW 유효성 검사 |
-| `POST` | `/uregister` | 신규 회원 등록 (Bcrypt 암호화) |
-| `POST` | `/blogin` | 사용자 인증 및 로그인 |
-| `POST` | `/bregister` | 신규 게시글 등록 (제목 공백 검증) |
-| `POST` | `/bupdate` | 게시글 수정 및 PW 재인증 후 삭제 |
+| `POST` | `/uploadFiles` | 특정 게시글에 파일 업로드 |
+| `POST` | `/deleteFiles` | 특정 게시글의 특정 파일 하나 삭제 (soft delete) |
+| `POST` | `/deleteAll` | 특정 게시글에 첨부된 모든 파일 일괄 삭제 (soft delete) |
+| `POST` | `/restoreFile` | 특정 게시글의 삭제 처리된 단일 파일 복구 |
+| `POST` | `/restoreAllFile` | 특정 게시글의 삭제 처리된 전체 파일 일괄 복구 |
 
 
 ### 🧾 Swagger 테스트 결과
@@ -256,11 +286,11 @@ DATEFMT=%m/%d/%Y %I:%M:%S %p
 - [User 등록 완료](./imgs/user_register_success)
 - [사용자 아이디 공백 검증 실패](./imgs/user_id_fail)
 - [사용자 비밀번호 공백 검증 실패](./imgs/user_pw_fail)
-- [사용자 정보 조회 성공]
-- [사용자 아이디 변경 성공]
-- [사용자 비밀번호 변경 성공]
-- [사용자 회원탈퇴 완료]
-- [사용자 회원탈퇴 복구 완료]
+- [사용자 정보 조회 성공](.imgs/user_info_success)
+- [사용자 아이디 변경 성공](.imgs/user_idModi_success)
+- [사용자 비밀번호 변경 성공](.imgs/user_pwModi_success)
+- [사용자 회원탈퇴 완료](.imgs/user_withdraw_success)
+- [사용자 회원탈퇴 복구 완료](.imgs/user_restore_success)
 
 #### - Boards API
 - [게시판 등록 완료](./imgs/boards_register_success)
@@ -272,14 +302,16 @@ DATEFMT=%m/%d/%Y %I:%M:%S %p
 - [게시판 복구 완료](./immgs/restore_boards_success)
 
 #### - Files API
--[파일 등록 완료]
--[단일 파일 삭제 완료]
+- [파일 등록 완료](.imgs/files_register_success)
+- [단일 파일 삭제 완료](.imgs/files_delete_success)
 
 ---
 <a name="develop-guide"></a>
 ## 👨‍💻 개발가이드
 ### 코드 스타일
-
+- **주석**: 모두 한글로 작성
+  
+- **로그**: 영어 메시지 사용
 ### 테스트
 
 ### 📝 커밋 컨벤션
