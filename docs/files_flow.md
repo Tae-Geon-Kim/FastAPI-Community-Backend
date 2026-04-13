@@ -78,4 +78,4 @@ sequenceDiagram
     end
     A->>D: DB에서 해당 파일 레코드 완전히 삭제 (Hard Delete)
     deactivate A
-    ```
+```

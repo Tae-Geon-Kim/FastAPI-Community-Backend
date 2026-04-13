@@ -69,4 +69,4 @@ sequenceDiagram
         A-->>U: 200 OK (삭제/복구 처리 성공)
     end
     deactivate A
-    ```
+```
