@@ -9,7 +9,7 @@ async def insert_boards_db(conn: Connection, title: str, content: str, user_inde
 	return await conn.execute(sql, title, content, user_index)
 
 # 특정 유저의 게시판 정보 조회 (INNER JOIN)
-async def certain_user_boards_info(conn: Connection, user_index: str):
+async def certain_user_boards_info(conn: Connection, user_id: str):
 
 	sql = """
 		SELECT
@@ -33,14 +33,14 @@ async def certain_user_boards_info(conn: Connection, user_index: str):
 				) AS files
 			FROM boards AS b
 			INNER JOIN "user" AS u ON b.user_index = u.index
-			WHERE u.index = $1
+			WHERE u.id = $1
 				AND b.deleted_at IS NULL
 				AND u.deleted_at IS NULL
 			ORDER BY b.index DESC	
 	"""
 	# ORDER BY b.index DESC : 가장 최근에 쓴 글 (가장 큰 번호)이 가장 위로 
 
-	return await conn.fetch(sql, user_index)
+	return await conn.fetch(sql, user_id)
 
 # 모든 유저의 게시판 정보 조회 (INNER JOIN)
 async def all_user_boards_info(conn: Connection):

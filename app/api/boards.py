@@ -20,10 +20,10 @@ async def bregister(
 # 특정 유저의 게시판 조회
 @router.get("/certainBInfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)
 async def certain_binfo(
-    conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(verify_token)
+    user_id: str
+    conn: Connection = Depends(get_db)
 ):
-    return await certain_boards_info_services(conn, current_user_num)
+    return await certain_boards_info_services(user_id, conn)
 
 # 모든 유저의 게시판 조회
 @router.get("/allBInfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)

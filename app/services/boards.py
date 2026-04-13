@@ -33,22 +33,21 @@ async def create_boards_services(data: CreateBoard, conn: Connection, current_us
     return CommonResponse(message = "게시판이 생성되었습니다.")
 
 # 특정 사용자의 게시판 목록을 출력 (사용자의 이름 입력 받아서 있음 출력 아님 에러 / 로그인 필요 없음)
-async def certain_boards_info_services(conn: Connection, current_user_num: str):
-
-    user_exist = await id_duplicate(conn, int(current_user_num))
-
-    # 해당 사용자가 존재 x
-    if not user_exist:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "해당 사용자가 존재하지않습니다."
-        )
+async def certain_boards_info_services(conn: Connection, user_id: str):
     
-    user_info = await get_user_id_pw(conn, int(current_user_num))
+    # 입력받은 아이디로 유저의 인덱스 번호를 찾음
+    target_user_index = await get_user_index_by_id(conn, user_id)
+
+    # 해당 사용자가 존재하지 않거나 탈퇴한 경우
+    if target_user_index is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"'{user_id}' 사용자가 존재하지 않거나 이미 탈퇴한 회원입니다."
+        )
 
     # 해당 사용자가 존재 / 해당 사용자의 전체 게시글 fetch
     # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
-    rows = await certain_user_boards_info(conn, int(current_user_num))
+    rows = await certain_user_boards_info(conn, user_id)
 
     # 해당 사용자가 쓴 게시글이 없는 경우
     if not rows:
@@ -67,7 +66,7 @@ async def certain_boards_info_services(conn: Connection, current_user_num: str):
         # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
         # DB에서 가져온 모든 Record 객체를 각각 dict로 변환하여 리스트 형태로 반환
 
-    return CommonResponse(message = f"{user_info['id']}님의 게시판을 출력합니다.", data = board_list)
+    return CommonResponse(message = f"{user_id}님의 게시판을 출력합니다.", data = board_list)
 
 # 전체 게시판을 출력 (사용자 별로 / 로그인 필요 없음)
 async def all_boards_info_services(conn: Connection):

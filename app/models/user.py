@@ -1,11 +1,18 @@
 from asyncpg import Connection
 
-# 특정 유저의 인덱스에 대응하는 유저의 아이디와 비밀번호를 불러온다.
+# 특정 유저의 인덱스에 대응하는 유저의 아이디와 비밀번호를 불러온다. (탈퇴하지 않은 회원의)
 async def get_user_id_pw(conn: Connection, user_index: int):
 
     sql = 'SELECT id, password FROM "user" WHERE index = $1 AND deleted_at IS NULL'
 
     return await conn.fetchrow(sql, user_index)
+
+# 특정 유저의 아이디를 통해서 해당 유저의 인덱스 값을 불러온다. (탈퇴하지 않은 회원의)
+async def get_user_index(conn: Connection, user_id: str)
+
+    sql = 'SELECT index FROM "user" WHERE id = $1 AND deleted_at IS NULL'
+
+    return await conn.fetchval(sql, user_id)
 
 # 아이디에 맞는 비밀번호 확인
 async def pull_pw_login(conn: Connection, user_id: str):
