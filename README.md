@@ -139,7 +139,7 @@ uvicorn app.main:app --reload
 - 게시글 목록 조회
 - 게시판 삭제 및 복구
 
-### 📤파일 기능
+### 📤 파일 기능
 - 파일 업로드 
 - 파일 삭제 및 복구
 
@@ -158,39 +158,39 @@ uvicorn app.main:app --reload
 .
 ├── README.md
 ├── 📁app
-│   ├── 📁api
+│   ├── 📁api                # 모든 Controller 경로 설정 (router)
 │   │   ├── boards.py
 │   │   ├── files.py
 │   │   └── user.py
-│   ├── 📁core
+│   ├── 📁core                # 프로젝트 전체 설정 (비밀번호, 환경변수)
 │   │   ├── config.py
 │   │   ├── logger.py
 │   │   └── security.py
-│   ├── 📁db
+│   ├── 📁db                    # DB 연결 및 커넥션 풀 설정
 │   │   └── database.py
 │   ├── main.py
-│   ├── 📁models
+│   ├── 📁models                # DB 쿼리 전용
 │   │   ├── boards.py
 │   │   ├── files.py
 │   │   └── user.py
-│   ├── 📁schemas
+│   ├── 📁schemas                # 데이터 규격
 │   │   ├── boards.py
 │   │   ├── files.py
 │   │   └── user.py
-│   └── 📁services
+│   └── 📁services                # 비지니스 로직
 │       ├── auth.py
 │       ├── boards.py
 │       ├── files.py
 │       └── user.py
-├── 📁docs
+├── 📁docs                        # 설계도
 │   ├── auth_flow.md
 │   ├── boards_flow.md
 │   ├── db_table.md
 │   ├── files_flow.md
 │   ├── user_flow.md
-│   └── 📁imgs
+│   └── 📁imgs                    # Swaager UI 테스트 결과 이미지 (디렉토리내 이미지 파일은 생략)
 ├── requirement.txt
-└── 📁tests
+└── 📁tests                       # test fie
     ├── conftest.py
     ├── test_user.py
     ├── test_boards.py
@@ -241,9 +241,9 @@ uvicorn app.main:app --reload
 ## 📡 API
 ### 🔌 엔드포인트 요약
 서버 실행 후 URL을 통해서 접속 가능합니다.
-- [API 상세 명세서]( 여기에 링크 )
+- [Swagger UI](http://localhost:8000/docs)
 
-- [Swagger UI]( 여기에 링크 )
+- [API 상세 명세서](https://www.notion.so/API-0769db8647b18277af2e813304fbddb0?source=copy_link)
 
 #### - User API
 | Method | Endpoint | Description |
