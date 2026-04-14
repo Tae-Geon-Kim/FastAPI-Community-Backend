@@ -4,12 +4,25 @@ from app.schemas.boards import CreateBoard
 from app.services.boards import *
 from app.schemas.user import UserId, UserLogin
 from app.db.database import get_db
+from app.core.security import verify_token
 
 router = APIRouter()
 # 파일별로 API를 나누기 위해 APIRouter를 사용
 
+
 # 특정 유저의 게시판 생성
-@router.post("/bRegister", response_model = CommonResponse, status_code = status.HTTP_201_CREATED)
+@router.post(
+    "/bRegister",
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[게시판] 새로운 게시판 생성",
+    description = """
+    새로운 게시판을 생성
+    - 사용자에게 글 제목, 글 내용을 입력받아 JWT 토큰 로그인한 유저의 게시판 목록에 새로운 글 생성
+    - 제목 제약조건: 2 ~ 50 자
+    - 내용 제약조건: 30 ~ 2000자
+    """
+)
 async def bregister(
     data: CreateBoard,
     conn: Connection = Depends(get_db),
@@ -17,22 +30,55 @@ async def bregister(
 ):
     return await create_boards_services(data, conn, current_user_num)
 
+
 # 특정 유저의 게시판 조회
-@router.get("/certainBInfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+@router.get(
+    "/certainBInfo",
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[게시판] 특정 유저의 게시판 목록을 출력",
+    description = """
+    특정 유저의 게시판 목록을 출력
+    - 사용자의 아이디를 입력받아 해당 유저의 게시판 정보를 출력
+    - 로그인 필요하지 않음.
+    """
+)
 async def certain_binfo(
-    user_id: str
+    user_id: str,
     conn: Connection = Depends(get_db)
 ):
     return await certain_boards_info_services(user_id, conn)
 
 # 모든 유저의 게시판 조회
-@router.get("/allBInfo", response_model = CommonResponse, status_code = status.HTTP_200_OK)
-async def all_binfo(conn: Connection = Depends(get_db)):
-
+@router.get(
+    "/allBInfo",
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[게시판] 전체 게시판 목록을 출력",
+    description = """
+    전체 게시판 목록을 출력
+    - 전체 게시판 목록을 사용자에 따라 분류하여 출력
+    - 로그인 필요하지 않음.
+    """
+)
+async def all_binfo(
+    conn: Connection = Depends(get_db)
+):
     return await all_boards_info_services(conn)
 
 # 게시판 제목 변경
-@router.post("/modiTitle", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+@router.post(
+    "/modiTitle",
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[게시판] 게시판 제목을 수정",
+    description = """
+    게시판 제목을 수정
+    - 특정 게시판의 게시판 제목을 수정
+    - 변경하는 제목도 제약조건 검증에 통과해야한다. (2 ~ 50자)
+    - 제목을 변경하기 위해서 비밀번호를 다시 입력해야한다.
+    """
+)
 async def modi_title(
     data: ModiTitle,
     conn: Connection = Depends(get_db),
@@ -40,8 +86,19 @@ async def modi_title(
 ):
     return await title_modify_services(data, conn, current_user_num)
 
-# 게시판 내용 변경 
-@router.post("/modiContent", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+# 게시판 내용 변경
+@router.post(
+    "/modiContent",
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[게시판] 게시판 내용을 수정",
+    description = """
+    게시판 내용을 수정
+    - 특정 게시판의 게시판 내용을 수정
+    - 변경하는 게시판의 내용도 제약조건 검증을 통과해야한다. (30 ~ 2000자)
+    - 게시판 내용을 변경하기 위해서 비밀번호를 다시 입력해야한다.
+    """
+)
 async def modi_content(
     data: ModiContent,
     conn: Connection = Depends(get_db),
@@ -50,20 +107,43 @@ async def modi_content(
     return await content_modify_services(data, conn, current_user_num)
 
 # 게시판 삭제
-@router.post("/deleteBoards", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+@router.post(
+    "/deleteBoards",
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[게시판] 게시판 삭제",
+    description = """
+    특정 게시판을 삭제 처리
+    - 삭제하려는 게시판의 board_index를 입력받아 해당 게시판을 삭제 처리 (soft delete)
+    - 특정 게시판을 삭제하면 해당 게시판에 존재하던 파일 데이터도 같이 삭제된다.
+    - 삭제하기 위해서는 비밀번호를 다시 입력해야한다. 
+    - 실제로 삭제처리되는 것은 스케줄링을 통해 자동으로 실행된다. (삭제처리 상태가 된지 3일이 지났으면 hard delete 된다.)
+    """
+)
 async def delete_boards(
-    data: DeleteBoards
+    data: DeleteBoards,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(verify_token)
 ):
     return await boards_delete_services(data, conn, current_user_num)
 
 # 게시판 복구
-@router.post("/restoreBoards", response_model = CommonResponse, status_code = status.HTTP_200_OK)
+@router.post(
+    "/restoreBoards",
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[게시판] 게시판 데이터 복구",
+    description = """
+    삭제 처리된 사용자 데이터를 복구
+    - 복구를 하기 위해서는 사용자 정보 비밀번호 재확인이 필요하다.
+    - 복구시 특정 게시판에 존재하던 파일 데이터들도 같이 복구된다.
+    - 복구는 soft delete된지 3일이내의 데이터만 가능하다.
+    """
+)
+
 async def restore_boards(
     data: RestoreBoards,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(verify_token)
 ):
-
-    return await restore_board_services(data, conn, current_user_num)
+    return await restore_board_services(data, conn, current_user_num)   
