@@ -9,43 +9,46 @@ TEST_USER_ID = "taegeon1111"
 TEST_USER_PW = "Kim1234!!"
 
 NEW_USER_ID = "newtaegeon11"
+NEW_USER_PW = "Kim3276!!!"
 
 # ==========================================
 # 정상 작동 통합 테스트
 # ==========================================
 async def test_user_integration_scenario(client: AsyncClient):
-    """
-    유저 생성부터 정보 변경, 탈퇴 및 복구까지의 전체 라이프사이클을 검증합니다.
-    """
-    # 1. 아이디 중복 확인 (/uCheck)
+
+    # 아이디 중복 확인 (/uCheck)
     check_res = await client.post("/uCheck", json={"id": TEST_USER_ID})
     assert check_res.status_code == 200
 
-    # 2. 회원가입 테스트 (/uRegister)
+    # 회원가입 테스트 (/uRegister)
     signup_res = await client.post("/uRegister", json={"id": TEST_USER_ID, "password": TEST_USER_PW})
     assert signup_res.status_code == 200
 
-    # 3. 로그인 및 토큰 발급 테스트 (/login)
+    # 로그인 및 토큰 발급 테스트 (/login)
     login_res = await client.post("/login", json={"id": TEST_USER_ID, "password": TEST_USER_PW})
     assert login_res.status_code == 200
     
     access_token = login_res.json()["data"]["access_token"]
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    # 4. 로그인한 사용자 정보 조회 (/uInfo)
+    # 로그인한 사용자 정보 조회 (/uInfo)
     info_res = await client.post("/uInfo", headers=headers)
     assert info_res.status_code == 200
     assert info_res.json()["data"]["id"] == TEST_USER_ID
 
-    # 5. 아이디 변경 테스트 (/idModify)
-    id_mod_res = await client.post("/idModify", headers=headers, json={"password": TEST_USER_PW, "new_id": NEW_USER_ID})
+    # 아이디 변경 테스트 (/idModify)
+    id_mod_res = await client.patch("/idModify", headers=headers, json={"password": TEST_USER_PW, "new_id": NEW_USER_ID})
     assert id_mod_res.status_code == 200
 
-    # 6. 회원 탈퇴 테스트 (/withdraw)
+    # 비밀번호 변경 테스트 (/pwModify)
+    pw_mod_res = await client.patch("/pwModify", headers=headers, json={"password": TEST_USER_PW, "new_password": NEW_USER_PW})
+    assert pw_mod_res.status_code == 200
+
+    # 회원 탈퇴 테스트 (/withdraw)
     withdraw_res = await client.post("/withdraw", headers=headers, json={"password": TEST_USER_PW})
     assert withdraw_res.status_code == 200
 
-    # 7. 회원 탈퇴 복구 테스트 (/restoreUser)
+    # 회원 탈퇴 복구 테스트 (/restoreUser)
     restore_res = await client.post("/restoreUser", json={"id": NEW_USER_ID, "password": TEST_USER_PW})
     assert restore_res.status_code == 200
     
@@ -56,10 +59,7 @@ async def test_user_integration_scenario(client: AsyncClient):
 # 예외 테스트: 중복 아이디 가입 방어
 # ==========================================
 async def test_duplicate_id_check(client: AsyncClient):
-    """
-    이미 가입된 아이디로 중복 확인 및 가입을 시도할 때 
-    409 Conflict 에러를 잘 반환하는지 검증합니다.
-    """
+
     DUP_ID = "duplicate123"
     DUP_PW = "Test1234!!"
 
@@ -83,10 +83,7 @@ async def test_duplicate_id_check(client: AsyncClient):
 # 예외 테스트: 잘못된 비밀번호 로그인 방어
 # ==========================================
 async def test_login_wrong_password(client: AsyncClient):
-    """
-    가입된 아이디에 대해 틀린 비밀번호로 로그인을 시도할 때 
-    401 Unauthorized 에러를 잘 반환하는지 검증합니다.
-    """
+
     LOGIN_ID = "wrongpwtest"
     REAL_PW = "RealPw123!!"
     WRONG_PW = "FakePw999!!"
@@ -106,10 +103,7 @@ async def test_login_wrong_password(client: AsyncClient):
 # 예외 테스트: 토큰 없이 보호된 API 접근
 # ==========================================
 async def test_access_without_token(client: AsyncClient):
-    """
-    토큰(Authorization 헤더) 없이 /uInfo에 접근할 때 
-    401 에러를 반환하는지 검증합니다.
-    """
+
     # 헤더 없이 바로 찌르기
     info_res = await client.post("/uInfo")
     
@@ -121,10 +115,7 @@ async def test_access_without_token(client: AsyncClient):
 # 예외 테스트: 존재하지 않는 아이디 로그인
 # ==========================================
 async def test_login_nonexistent_user(client: AsyncClient):
-    """
-    DB에 없는 아이디로 로그인을 시도할 때 
-    401 에러를 반환하는지 검증합니다.
-    """
+
     login_res = await client.post(
         "/login", 
         json={"id": "ghost_user123", "password": "Ghost1234!!"}
@@ -138,10 +129,7 @@ async def test_login_nonexistent_user(client: AsyncClient):
 # 예외 테스트: 남이 쓰는 아이디로 변경 시도
 # ==========================================
 async def test_id_modify_duplicate_conflict(client: AsyncClient):
-    """
-    아이디 변경 시, 이미 존재하는 다른 유저의 아이디로 
-    변경을 시도할 때 409 에러를 반환하는지 검증합니다.
-    """
+ 
     USER1_ID, USER1_PW = "firstuser11", "User1111!!"
     USER2_ID, USER2_PW = "seconduser22", "User2222!!"
 
@@ -154,7 +142,7 @@ async def test_id_modify_duplicate_conflict(client: AsyncClient):
     headers = {"Authorization": f"Bearer {login_res.json()['data']['access_token']}"}
 
     # 3. 유저 1이 본인의 아이디를 유저 2의 아이디(seconduser22)로 변경 시도! -> 409 에러 발생
-    mod_res = await client.post(
+    mod_res = await client.patch(
         "/idModify",
         headers=headers,
         json={"password": USER1_PW, "new_id": USER2_ID}
@@ -167,10 +155,7 @@ async def test_id_modify_duplicate_conflict(client: AsyncClient):
 # 예외 테스트: 회원탈퇴 시 비밀번호 불일치
 # ==========================================
 async def test_withdraw_wrong_password(client: AsyncClient):
-    """
-    회원 탈퇴 시, 현재 비밀번호를 틀리게 입력했을 때
-    401 에러를 반환하는지 검증합니다.
-    """
+
     TARGET_ID = "withdrawtest"
     REAL_PW = "RealPw123!!"
     WRONG_PW = "FakePw999!!"
