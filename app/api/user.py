@@ -106,6 +106,7 @@ async def uinfo(
     description = """
     사용자의 모든 회원정보 (사용자 정보, 게시판, 게시판에 업로드된 파일)를 삭제 처리 (soft delete)
     - 삭제 처리를 진행하기 위해서 사용자 비밀번호 재입력 필요.
+    - 실제로 삭제처리되는 것은 스케줄링을 통해 자동으로 실행된다. (삭제처리 상태가 된지 3일이 지났으면 hard delete 된다.)
     """
 )
 async def withdraw(
@@ -116,7 +117,7 @@ async def withdraw(
     return await user_withdraw_services(data, conn, current_user_num)
 
 # 사용자 아이디 변경
-@router.post(
+@router.patch(
     "/idModify",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
@@ -136,7 +137,7 @@ async def id_modify(
     return await userId_modify_services(data, conn, current_user_num)
 
 # 사용자 비밀번호 변경
-@router.post(
+@router.patch(
     "/pwModify",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
@@ -168,6 +169,7 @@ async def pw_modify(
     삭제 처리된 사용자 데이터를 복구
     - 복구를 하기 위해서 삭제 처리되었던 기존의 사용자 정보로 로그인 필요.
     - 복구시 삭제 처리된 모든 데이터 (사용자 정보, 게시판 정보, 해당 게시판에 업로드된 파일 정보)가 복구된다.
+    - 복구는 soft delete된지 3일이내의 데이터만 가능하다.
     """
 )
 async def restore_user(
