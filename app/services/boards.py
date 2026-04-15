@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from collections import defaultdict
 from app.schemas.boards import *
 from app.models.boards import *
-from app.models.user import id_duplicate
+from app.models.user import id_duplicate, get_user_id_pw, get_user_index
 from app.models.files import *
 from app.schemas.user import UserId, UserLogin
 from app.services.auth import login
@@ -18,14 +18,6 @@ async def create_boards_services(data: CreateBoard, conn: Connection, current_us
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "로그인 정보를 다시 확인해주세요."
         )
-    
-    user_info = await get_user_id_pw(conn, int(current_user_num))
-
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
 
     # 게시판을 저장할 때 user_num도 같이 저장
     await insert_boards_db(conn, data.title, data.content, int(current_user_num))
@@ -33,10 +25,10 @@ async def create_boards_services(data: CreateBoard, conn: Connection, current_us
     return CommonResponse(message = "게시판이 생성되었습니다.")
 
 # 특정 사용자의 게시판 목록을 출력 (사용자의 이름 입력 받아서 있음 출력 아님 에러 / 로그인 필요 없음)
-async def certain_boards_info_services(conn: Connection, user_id: str):
+async def certain_boards_info_services(user_id: str, conn: Connection):
     
     # 입력받은 아이디로 유저의 인덱스 번호를 찾음
-    target_user_index = await get_user_index_by_id(conn, user_id)
+    target_user_index = await get_user_index(conn, user_id)
 
     # 해당 사용자가 존재하지 않거나 탈퇴한 경우
     if target_user_index is None:
@@ -53,7 +45,7 @@ async def certain_boards_info_services(conn: Connection, user_id: str):
     if not rows:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
-            detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
+            detail = f"{user_id}님의 등록된 게시글이 존재하지않습니다."
         )
     
     board_list = []
@@ -113,12 +105,6 @@ async def title_modify_services(data: ModiTitle, conn: Connection, current_user_
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
-
     if not verify(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
@@ -157,12 +143,6 @@ async def content_modify_services(data: ModiContent, conn: Connection, current_u
 
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
-
     if not verify(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
@@ -197,12 +177,6 @@ async def boards_delete_services(data: DeleteBoards, conn: Connection, current_u
         )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
-
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -250,12 +224,6 @@ async def restore_board_services(data: RestoreBoards, conn: Connection, current_
         )
 
     user_info = await get_user_id_pw(conn, int(current_user_num))
-
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(

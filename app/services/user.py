@@ -110,12 +110,6 @@ async def user_info_services(conn: Connection, current_user_num: str):
     user_data = await pull_user_info(conn, int(current_user_num))
     # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
 
-    if user_data is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
-
     return CommonResponse(
         message = "사용자 정보를 출력합니다.",
         data = UserInfo.model_validate(dict(user_data))
@@ -132,12 +126,6 @@ async def user_withdraw_services(data: UserPw, conn: Connection, current_user_nu
         )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
-
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -167,12 +155,6 @@ async def userId_modify_services(data: ModiId, conn: Connection, current_user_nu
         )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
-
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
     
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -203,12 +185,6 @@ async def userPw_modify_services(data: ModiPw, conn: Connection, current_user_nu
         )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
-
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
     
     if not verify(data.password, user_info['password']):
         raise HTTPException(

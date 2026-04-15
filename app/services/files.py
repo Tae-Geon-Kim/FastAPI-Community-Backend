@@ -33,12 +33,6 @@ async def upload_files_services(file: UploadFile, board_index: int, conn: Connec
 
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
-
     boards_owner = await check_boards_owner(conn, board_index)
     
     # 해당 유저의 게시판이 존재하는지
@@ -121,12 +115,6 @@ async def delete_files_services(data: DeleteFile, conn: Connection, current_user
 
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
-
     if not verify(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
@@ -175,12 +163,6 @@ async def delete_all_services(data: DeleteAllFile, conn: Connection, current_use
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
-
     if not verify(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
@@ -218,12 +200,6 @@ async def restore_file_services(data: RestoreFile, conn: Connection, current_use
         )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
-
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -269,12 +245,6 @@ async def restore_all_file_services(data: RestoreAllFile, conn: Connection, curr
         )
 
     user_info = await get_user_id_pw(conn, int(current_user_num))
-
-    if user_info is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "찾을 수 없는 사용자입니다. 탈퇴한 회원자이거나 존재하지 않는 사용자입니다."
-        )
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
