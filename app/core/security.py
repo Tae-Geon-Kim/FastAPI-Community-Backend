@@ -1,18 +1,25 @@
 import bcrypt
+from asyncpg import Connection
+from datetime import timedelta, datetime, timezone
+from fastapi import HTTPException, status, Depends
+from jose import jwt, JWTError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.config import jwt_auth
+from app.db.database import get_db
+from app.models.user import get_user_index_deletedAt
+
+
 
 secret_key = jwt_auth.SECRET_KEY
 algorithm = jwt_auth.ALGORITHM
 access_token_expire_minutes = jwt_auth.ACCESS_TOKEN_EXPIRE_MINUTES
 refresh_token_expire_days = jwt_auth.REFRESH_TOKEN_EXPIRE_DAYS
 
-
 # Swagger에서 Authorize 버튼 생성
 security = HTTPBearer()
 
 # 비밀번호를 해싱해서 암호화 후 반환 (return 값: string)
-def hash_password(password: str):
+def hash_password(password: str):   
 
     password = bytes(password, 'utf-8') # 암호화는 bytes에서 가능 -> bytes 변환
     hashed_password = bcrypt.hashpw(password, bcrypt.gensalt()) # hashed에는 bytes가 
@@ -81,3 +88,24 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "유효하지 않은 인증 자격입니다."
         )
+
+async def get_current_user(
+    current_user_num: str = Depends(verify_token),
+    conn: Connection = Depends(get_db)
+):
+    user_info = await get_user_index_deletedAt(conn, int(current_user_num))
+
+    if not user_info:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "존재하지 않는 사용자입니다."
+        )
+    
+    if user_info['deleted_at'] is not None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "탈퇴 처리된 사용자입니다. 접근 할 수 없습니다."
+        )
+    
+    return current_user_num
+
