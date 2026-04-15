@@ -14,6 +14,7 @@
 - [주요 기능](#features)
 - [시스템 아키텍처](#system-architecture)
 - [API](#api)
+- [코드 테스트](#code_test)
 - [개발 가이드](#develop-guide)
 
 ---
@@ -280,31 +281,35 @@ uvicorn app.main:app --reload
 | `POST` | `/restoreAllFile` | 특정 게시글의 삭제 처리된 전체 파일 일괄 복구 |
 
 
-### 🧾 Swagger 테스트 결과
-#### - User API
+---
+<a name="code_test"></a>
+## 🧪 코드 테스트
+### ⚙️ 테스트 도구 
+- Swagger UI
+- Pytest
+- httpx
 
-- [User 등록 완료](./imgs/user_register_success)
-- [사용자 아이디 공백 검증 실패](./imgs/user_id_fail)
-- [사용자 비밀번호 공백 검증 실패](./imgs/user_pw_fail)
-- [사용자 정보 조회 성공](.imgs/user_info_success)
-- [사용자 아이디 변경 성공](.imgs/user_idModi_success)
-- [사용자 비밀번호 변경 성공](.imgs/user_pwModi_success)
-- [사용자 회원탈퇴 완료](.imgs/user_withdraw_success)
-- [사용자 회원탈퇴 복구 완료](.imgs/user_restore_success)
+### ✅ 테스트 항목
+- 👤 회원가입 / 로그인 기능 테스트
+- 🔐 JWT 토큰 발급 및 인증 테스트
+- 📝 게시글 CRUD 기능 테스트
+- 📂 파일 업로드 / 다운로드 테스트
+- ❌ 예외 처리 테스트
 
-#### - Boards API
-- [게시판 등록 완료](./imgs/boards_register_success)
-- [특정 유저의 게시판 조회 성공](./imgs/certain_boards_info_success)
-- [모든 게시판 조회 성공](./imgs/all_boardss_info_success)
-- [게시판 제목 변경 성공](./imgs/change_title_success)
-- [게시판 내용 변경 성공](./imgs/change_content_success)
-- [게시판 삭제 완료](./imgs/delete_boards_success)
-- [게시판 복구 완료](./immgs/restore_boards_success)
+### ▶️ 테스트 실행 방법
+이 프로젝트는 `pytest`를 기반으로 API 엔드포인트 및 비즈니스 로직 테스트를 수행합니다. 
 
-#### - Files API
-- [파일 등록 완료](.imgs/files_register_success)
-- [단일 파일 삭제 완료](.imgs/files_delete_success)
+테스트를 실행하기 전, 가상환경(`.venv`)이 활성화되어 있는지 확인해 주세요.
 
+- 테스트 라이브러리 설치
+```text
+pip install pytest pytest-asyncio httpx
+```
+
+- pytest 실행
+```text
+pytest
+```
 ---
 <a name="develop-guide"></a>
 ## 👨‍💻 개발가이드
@@ -312,7 +317,6 @@ uvicorn app.main:app --reload
 - **주석**: 모두 한글로 작성
   
 - **로그**: 영어 메시지 사용
-### 테스트
 
 ### 📝 커밋 컨벤션
 ```text
