@@ -53,7 +53,7 @@ async def pull_user_info(conn: Connection, user_index: int):
 # 사용자 정보 삭제 (실제 삭제 x, 상태값만 변경)
 async def soft_withdraw_user(conn: Connection, user_index: int):
     
-    sql = 'UPDATE "user" SET deleted_at = NOW() WHERE index = $1'
+    sql = 'UPDATE "user" SET deleted_at = NOW(), update_date = NOW() WHERE index = $1'
 
     return await conn.execute(sql, user_index)
 
@@ -85,7 +85,7 @@ async def userPw_modify(conn: Connection, new_password: str, user_index: int):
 # 사용자 회원탈퇴 복구 (user 정보)
 async def restore_user_data(conn: Connection, user_id: str):
 
-    sql = 'UPDATE "user" SET deleted_at = NULL WHERE id = $1 AND deleted_at IS NOT NULL'
+    sql = 'UPDATE "user" SET deleted_at = NULL, update_date = NOW() WHERE id = $1 AND deleted_at IS NOT NULL'
 
     return await conn.execute(sql, user_id)
 

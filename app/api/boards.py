@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from asyncpg import Connection
 from app.schemas.boards import CreateBoard
 from app.services.boards import *
@@ -46,7 +46,7 @@ async def bregister(
     """
 )
 async def certain_binfo(
-    user_id: str,
+    user_id: str = Query(..., min_length = 5, max_length = 30, description = "허용되는 id 형식: 영문자, 숫자가 무조건 포함한 5 ~ 30자 (특수문자 허용)"),
     conn: Connection = Depends(get_db)
 ):
     return await certain_boards_info_services(user_id, conn)

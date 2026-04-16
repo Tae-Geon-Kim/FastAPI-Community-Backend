@@ -1,5 +1,5 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     DB_USER: str
@@ -14,9 +14,8 @@ class Settings(BaseSettings):
 
     FILE_MAX_SIZE: int
     FILE_TOTAL_MAX_SIZE: int
-
-    class Config:
-        env_file = ".env"
+    
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
 
@@ -25,9 +24,8 @@ class JWT_Auth(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
-
-    class Config:
-        env_file = ".env"
+    
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     
 jwt_auth = JWT_Auth()
 
@@ -40,8 +38,7 @@ class Logging(BaseSettings):
 
     FORMAT: str
     DATEFMT: str
-
-    class Config:
-        env_file = ".env"
+    
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 log_setting = Logging()

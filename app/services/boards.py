@@ -10,21 +10,20 @@ from app.schemas.user import UserId, UserLogin
 from app.services.auth import login
 from app.core.security import verify
 
+def convert_mb(size_bytes: int) -> str:
+    if size_bytes is None or size_bytes <= 0:
+        return "0.00MB"
+    return f"{(size_bytes / (1024 * 1024)):.2f}MB"
+
 # 게시판 생성
 async def create_boards_services(data: CreateBoard, conn: Connection, current_user_num: str):
-
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
 
     # 게시판을 저장할 때 user_num도 같이 저장
     await insert_boards_db(conn, data.title, data.content, int(current_user_num))
     
     return CommonResponse(message = "게시판이 생성되었습니다.")
 
-# 특정 사용자의 게시판 목록을 출력 (사용자의 이름 입력 받아서 있음 출력 아님 에러 / 로그인 필요 없음)
+# 특정 사용자의 게시판 목록을 출력 (로그인 필요 없이 user의 id를 입력받아서)
 async def certain_boards_info_services(user_id: str, conn: Connection):
     
     # 입력받은 아이디로 유저의 인덱스 번호를 찾음
@@ -51,8 +50,15 @@ async def certain_boards_info_services(user_id: str, conn: Connection):
     board_list = []
     for row in rows:
         row_dict = dict(row)
+
+        row_dict['total_file_size'] = convert_mb(row_dict.get("total_file_size", 0))
+
         if isinstance(row_dict.get('files'), str):
             row_dict['files'] = json.loads(row_dict['files'])
+
+            for f in row_dict['files']:
+                if 'file_size' in f:
+                    f['file_size'] = convert_mb(f['file_size'])
 
         board_list.append(BoardInfo.model_validate(row_dict))
         # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
@@ -79,8 +85,16 @@ async def all_boards_info_services(conn: Connection):
     for row in rows:
         row_dict = dict(row)
         author_id = row_dict['author']
+
+        row_dict['total_file_size'] = convert_mb(row_dict.get('total_file_size', 0))
+
         if isinstance(row_dict.get('files'), str):
             row_dict['files'] = json.loads(row_dict['files'])
+
+            for f in row_dict['files']:
+                if 'file_size' in f:
+                    f['file_size'] = convert_mb(f['file_size'])
+
         validate_post = AllBoardInfo.model_validate(row_dict)
         grouped_dict[author_id].append(validate_post)
 
@@ -96,12 +110,6 @@ async def all_boards_info_services(conn: Connection):
 
 # 게시판 제목 수정
 async def title_modify_services(data: ModiTitle, conn: Connection, current_user_num: str):
-
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -135,12 +143,6 @@ async def title_modify_services(data: ModiTitle, conn: Connection, current_user_
 # 게시판 내용 수정
 async def content_modify_services(data: ModiContent, conn: Connection, current_user_num: str):
 
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
-
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
     if not verify(data.password, user_info['password']):
@@ -169,12 +171,6 @@ async def content_modify_services(data: ModiContent, conn: Connection, current_u
 
 # 게시판 삭제 (soft delete)
 async def boards_delete_services(data: DeleteBoards, conn: Connection, current_user_num: str):
-
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -217,12 +213,6 @@ async def delete_boards_perman(pool):
 # 게시판 삭제 데이터 복구 로직
 async def restore_board_services(data: RestoreBoards, conn: Connection, current_user_num: str):
 
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 확인해주세요."
-        )
-
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
     if not verify(data.password, user_info['password']):
@@ -239,7 +229,7 @@ async def restore_board_services(data: RestoreBoards, conn: Connection, current_
             detail = f"요청하신 {data.board_index}번 게시판은 존재하지않거나, 복구 대상(삭제 상태)이 아닙니다."
         )
     
-    if restore_boards_owner['user_index'] != int(current_user_num):
+    if restore_boards_owner != int(current_user_num):
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail =  "권한이 없습니다. 본인의 게시글만 복구시킬 수 있습니다."

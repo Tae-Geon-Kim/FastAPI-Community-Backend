@@ -18,6 +18,7 @@ async def certain_user_boards_info(conn: Connection, user_id: str):
 			b.content,
 			b.reg_date,
 			b.update_date,
+			b.total_file_size,
 			u.id,
 			COALESCE(
 			(SELECT json_agg(json_build_object (
@@ -52,6 +53,7 @@ async def all_user_boards_info(conn: Connection):
 			b.content,
 			b.reg_date,
 			b.update_date,
+			b.total_file_size,
 			u.id As author,
 			COALESCE(
 			(SELECT json_agg(json_build_object (
@@ -126,14 +128,14 @@ async def check_restore_boards_owner(conn: Connection, board_index: int):
 # soft delete된 게시판 하나의 데이터를 복구
 async def restore_board(conn: Connection, board_index: int):
 
-	sql = 'UPDATE boards SET deleted_at = NULL WHERE index =  $1'
+	sql = 'UPDATE boards SET deleted_at = NULL, update_date = NOW() WHERE index =  $1'
 
 	return await conn.execute(sql, board_index)
 
 # 사용자 회원탈퇴 복구 (해당 유저의 모든 게시판)
 async def restore_user_boards(conn: Connection, user_index: int):
 
-    sql = 'UPDATE boards SET deleted_at = NULL WHERE user_index = $1 AND deleted_at IS NOT NULL'
+    sql = 'UPDATE boards SET deleted_at = NULL, update_date = NOW() WHERE user_index = $1 AND deleted_at IS NOT NULL'
 
     return await conn.execute(sql, user_index)
 
@@ -142,4 +144,4 @@ async def soft_withdraw_boards(conn: Connection, user_index: int):
 
 	sql = 'UPDATE boards SET deleted_at = NOW() where user_index = $1 AND deleted_at IS NULL'
 
-	return conn.execute(sql, user_index)
+	return await conn.execute(sql, user_index)

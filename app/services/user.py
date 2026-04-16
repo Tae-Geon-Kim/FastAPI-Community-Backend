@@ -99,13 +99,6 @@ async def user_name_services(conn: Connection, data: UserId):
 
 # 사용자 정보조회
 async def user_info_services(conn: Connection, current_user_num: str):
-
-    # 로그인 실패
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
     
     user_data = await pull_user_info(conn, int(current_user_num))
     # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
@@ -118,12 +111,6 @@ async def user_info_services(conn: Connection, current_user_num: str):
 
 # 시용자 회원탈퇴 (복구 기능 포함)
 async def user_withdraw_services(data: UserPw, conn: Connection, current_user_num: str):
-       
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -147,12 +134,6 @@ async def withdraw_user_perman(pool):
 
 # 사용자 아이디 변경
 async def userId_modify_services(data: ModiId, conn: Connection, current_user_num: str):
-
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
     
@@ -178,12 +159,6 @@ async def userId_modify_services(data: ModiId, conn: Connection, current_user_nu
 # 사용자 비밀번호 변경
 async def userPw_modify_services(data: ModiPw, conn: Connection, current_user_num: str):
 
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
-    
     user_info = await get_user_id_pw(conn, int(current_user_num))
     
     if not verify(data.password, user_info['password']):

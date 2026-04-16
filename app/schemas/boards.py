@@ -14,7 +14,7 @@ class CommonResponse(BaseModel):
 class BoardFileResponse(BaseModel):
     index: int # 파일의 인덱스
     original_name: str
-    file_size: int
+    file_size: str
     reg_date: datetime
 
 # 게시판 정보 조회 (certain)
@@ -25,6 +25,7 @@ class BoardInfo(BaseModel):
     content: str
     reg_date: datetime
     update_date: Optional[datetime] = None
+    total_file_size: str = "0.00 MB"
     files: list[BoardFileResponse] = []
 
     class Config: 
@@ -38,6 +39,7 @@ class AllBoardInfo(BaseModel):
     content: str
     reg_date: datetime
     update_date: Optional[datetime] = None
+    total_file_size: str = "0.00 MB"
     files: list[BoardFileResponse] = []
 
     class Config:

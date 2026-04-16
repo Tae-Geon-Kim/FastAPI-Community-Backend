@@ -7,15 +7,24 @@ from app.schemas.files import *
 from app.models.files import *
 from app.schemas.user import UserLogin
 from app.models.boards import check_boards_owner
+from app.models.user import get_user_id_pw
 from app.core.config import settings
+from app.core.security import verify
 
 upload_dir = settings.UPLOAD_DIR
-# 허용되는 파일 확장자: jpg, jpeg, png, gif, webp, pdf, docx, xlsx, pptx, txt, hwp, zip, 7z
-ALLOWED_EXTENSIONS = {'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain',
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                        'application/x-hwp', 'application/zip', 'application/x-7z-compressed'}
+
+# 허용되는 파일 확장자: jpg, jpeg, png, gif, webp, pdf, docx, xlsx, pptx, txt, zip
+ALLOWED_EXTENSIONS = {
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+
+    'application/pdf', 'text/plain',
+
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+
+    'application/zip'
+}
 allow_max_fsize = settings.FILE_MAX_SIZE
 allow_max_total_fsize = settings.FILE_TOTAL_MAX_SIZE
 
@@ -25,12 +34,6 @@ os.makedirs(upload_dir, exist_ok = True)
 # 파일 업로드
 async def upload_files_services(file: UploadFile, board_index: int, conn: Connection, current_user_num: str):
 
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
-
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
     boards_owner = await check_boards_owner(conn, board_index)
@@ -39,7 +42,7 @@ async def upload_files_services(file: UploadFile, board_index: int, conn: Connec
     if boards_owner is None:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
-            detail = f"{user_info['id']}님의 등록된 게사글이 존재하지않습니다."
+            detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
     
     # 업로드하려고 하는 게시판의 작성자와 로그인한 작성자가 동일한 인물인지
@@ -107,12 +110,6 @@ async def upload_files_services(file: UploadFile, board_index: int, conn: Connec
 # 단일 파일 삭제
 async def delete_files_services(data: DeleteFile, conn: Connection, current_user_num: str):
 
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
-
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
     if not verify(data.password, user_info['password']):
@@ -147,19 +144,14 @@ async def delete_files_services(data: DeleteFile, conn: Connection, current_user
     async with conn.transaction():
         # soft delete
         await soft_delete_one_file(conn, data.files_index)
-        new_total_fsize = await get_total_fsize(conn, data.board_index)
+        new_total_fsize = await get_total_fsize(conn, data.board_index) # 용량 값이 bytes 단위로 저장
+        new_total_fsize = new_total_fsize or 0
         await update_total_fsize(conn, new_total_fsize, data.board_index)
 
-    return CommonResponse(message = f"{user_info['id']}님이 요청하신 삭제 요청이 성공적으로 처리되었습니다. 새로운 전체 용량: {new_total_fsize}")
+    return CommonResponse(message = f"{user_info['id']}님이 요청하신 삭제 요청이 성공적으로 처리되었습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 
 # 한 게시판에 존재하는 모든 파일을 삭제 (게시판은 삭제 x)
 async def delete_all_services(data: DeleteAllFile, conn: Connection, current_user_num: str):
-
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 확인해주세요."
-        )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -192,12 +184,6 @@ async def delete_all_services(data: DeleteAllFile, conn: Connection, current_use
 
 # 삭제된 단일 파일 복구 (용량 재계산) / 게시판은 삭제 상태 x
 async def restore_file_services(data: RestoreFile, conn: Connection, current_user_num:str):
-
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 확인해주세요."
-        )
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -224,25 +210,19 @@ async def restore_file_services(data: RestoreFile, conn: Connection, current_use
     if await restore_check_files_belong(conn, data.files_index, data.board_index) is None:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
-            detail = "삭제하려는 파일이 이미 삭제되었거나 해당 게시물에 등록되어 있지 않습니다."
+            detail = "요청하신 파일이 삭제 처리된 상태가 아니거나, 해당 게시글에 등록된 파일이 아닙니다."
             # files_index 와 board_index 매칭 되는 데이터가 존재하지않는다.
         )
-    
+        
     async with conn.transaction():
         await restore_files(conn, data.files_index, data.board_index)
         new_total_fsize = await get_total_fsize(conn, data.board_index)
         await update_total_fsize(conn, new_total_fsize, data.board_index)
     
-    return CommonResponse(message = f"{user_info['id']}님이 요청하신 파일이 복구되었습니다. 새로운 전체 용량: {new_total_fsize}")
+    return CommonResponse(message = f"{user_info['id']}님이 요청하신 파일이 복구되었습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 
 # 삭제된 파일 일괄 복구 (용량 재계산) / 게시판은 삭제 상태 x)
 async def restore_all_file_services(data: RestoreAllFile, conn: Connection, current_user_num: str):
-
-    if current_user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
 
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -278,9 +258,10 @@ async def restore_all_file_services(data: RestoreAllFile, conn: Connection, curr
         # 파일 복구 & 용량 계산 
         await restore_all_files(conn, data.board_index)
         new_total_fsize = await get_total_fsize(conn, data.board_index)
+        new_total_fsize = new_total_fsize or 0
         await update_total_fsize(conn, new_total_fsize, data.board_index)
 
-    return CommonResponse(message = f"{user_info['id']}님이 요청하신 해당 게시판의 모든 파일을 복구하였습니다.")
+    return CommonResponse(message = f"{user_info['id']}님이 요청하신 해당 게시판의 모든 파일을 복구하였습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 
 # DB에서 실제로 삭제된 파일을 컴퓨터 메모리상에서 삭제
 async def delete_files_perman(pool):
