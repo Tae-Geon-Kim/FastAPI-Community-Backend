@@ -1,0 +1,98 @@
+name: Cutshion Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  # --------------------------------------------------
+  # 1. TEST 단계 (CI)
+  # --------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_DB: test_communitybackend_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U ${{ secrets.DB_USER }}
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 파이썬 세팅 (3.12)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 의존성 패키지 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Pytest 실행
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: test_communitybackend_db
+          DB_MAX_SIZE: 10
+          DB_MIN_SIZE: 5
+
+          UPLOAD_DIR: upload
+          FILE_MAX_SIZE: 5242880
+          FILE_TOTAL_MAX_SIZE: 26214400
+
+          SECRET_KEY: ${{ secrets.TOKEN_SECRET_KEY }}
+          ALGORITHM: HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+          REFRESH_TOKEN_EXPIRE_DAYS: 30
+
+          LOGGING_DIR: logs
+          FILE_NAME: server.log
+          WHEN: midnight
+          INTERVAL: 1
+          BACKUP: 7
+
+          FORMAT: "%(asctime)s %(levelname)s %(message)s"
+          DATEFMT: "%m/%d/%Y %I:%M:%S %p"
+
+        run: |
+          pytest 
+
+  # --------------------------------------------------
+  # 2. DEPLOY 단계 (CD)
+  # --------------------------------------------------
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 서버 접속 및 도커 배포
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            set -e  # 에러 발생 시 즉시 중단
+            cd ~/community_backend
+            git fetch origin
+            git checkout main
+            git pull origin main
+            docker compose up -d --build

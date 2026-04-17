@@ -1,0 +1,17 @@
+.venv/
+venv/
+
+__pycache__/
+*.pyc
+
+logs/
+*.log
+
+postgres_data/
+
+.env
+
+.git/
+.gitignore
+
+upload/

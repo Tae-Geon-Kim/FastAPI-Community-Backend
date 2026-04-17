@@ -11,7 +11,7 @@ from app.main import app
 from app.db.database import get_db
 from app.core.config import settings
 
-# 💡 파일 서비스 모듈 임포트 (업로드 경로를 가로채기 위함)
+# 파일 서비스 모듈 임포트 (업로드 경로를 가로채기 위함)
 from app.services import files as files_service 
 
 # 테스트용 데이터베이스 이름

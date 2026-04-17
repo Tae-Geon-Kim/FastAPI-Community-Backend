@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: fastapi-app-container
+    ports:
+      - "18000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+  db:
+    image: postgres:16-alpine
+    container_name: postgres-db-container
+    environment:
+      POSTGRES_USER: cutshion
+      POSTGRES_PASSWORD: cutshion@
+      POSTGRES_DB: CommunityBackendDB
+    ports:
+      - "15432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
