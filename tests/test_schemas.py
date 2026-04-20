@@ -4,7 +4,7 @@ from pydantic import ValidationError
 
 from app.schemas.user import UserLogin, ModiId, ModiPw
 from app.schemas.boards import CreateBoard, ModiTitle, ModiContent, DeleteBoards
-from app.schemas.files import DeleteFile
+from app.schemas.files import DeleteFile, DeleteAllFile
 
 
 '''
@@ -17,61 +17,51 @@ from app.schemas.files import DeleteFile
 # 1. 유저(User) 스키마 테스트
 # ==========================================
 
-# 유저 아이디: 영문 소문자, 숫자 포함한 5 ~ 20자
-# 유저 비밀번호: 영문자, 숫자, 특수문자를 포함한 8 ~ 16자
+# 유저 아이디: 영문자, 숫자 포함한 5 ~ 30자 (특수문자는 선택사항)
+# 유저 비밀번호: 영문자, 숫자, 특수문자를 포함한 8 ~ 30자
 
 # 정상적인 아이디와 비밀번호 (성공)
 def test_user_login_valid():
-    data = UserLogin(id="taegeon1111", password="Kim1234!!")
-    assert data.id == "taegeon1111"
-    assert data.password == "Kim1234!!"
-
-# 아이디에 대문자가 포함된 경우
-def test_userId_upper_invalid():
-    with pytest.raises(ValidationError):
-        UserLogin(id = "TAeGeOn1111", password = "Kim1234!!")
+    data = UserLogin(id="Rlaxorjs20905!!", password="Kim9804!?")
+    assert data.id == "Rlaxorjs20905!!"
+    assert data.password == "Kim9804!?"
 
 # 아이디의 길이가 5보다 작은 경우
-def test_userId_short_lenght_invalid():
+def test_userId_short_length_invalid():
     with pytest.raises(ValidationError):
         UserLogin(id = "  tae1  ", password = "Kim1234!!") # strip 후 실제 입력 값은 tae1
 
-# 아이디의 길이가 20보다 큰 경우
+# 아이디의 길이가 30보다 큰 경우
 def test_userId_long_length_invalid():
     with pytest.raises(ValidationError):
-        UserLogin(id = "mynameiskimtaegeon001010", password = "Kim1234!!")
-
-# 아이디에 특수문자가 포함된 경우
-def test_userId_special_invalid():
-    with pytest.raises(ValidationError):
-        UserLogin(id = "kim001010!!", password = "Kim1234!!")
+        UserLogin(id = "MyKoreanNameIsKimTaeGeonNEnglishDanielKim1010!!", password = "Kim1234!!")
 
 # 비밀번호에 특수문자가 없는 경우
 def test_userPw_noSpecial_invalid():
     with pytest.raises(ValidationError):
-        UserLogin(id = "taegeon1111", password = "Kim20001010")
+        UserLogin(id = "taegeon_1111", password = "Kim20001010")
 
 # 비밀번호에 숫자가 없는 경우
 def test_userPw_noNum_invalid():
     with pytest.raises(ValidationError):
-        UserLogin(id = "taegeon1111", password = "Kimtaegeon!!")
+        UserLogin(id = "taegeon_1111", password = "Kimtaegeon!!")
 
 # 비빌번호의 길이가 8보다 작은 경우
 def test_userPw_short_length_invalid():
     with pytest.raises(ValidationError):
-        UserLogin(id = "taegeon1111", password = "Kim1!")
+        UserLogin(id = "taegeon_1111", password = "Kim1!")
 
 # 비밀번호 길이가 16보다 큰 경우
 def test_userPw_long_length_invalid():
     with pytest.raises(ValidationError):
-        UserLogin(id = "taegeon1111", password = "MynameisKimTaeGeon20001010!!!!!")
+        UserLogin(id = "taegeon1111!!", password = "MyKoreanNameIsKimTaeGeonNEnglishDanielKim1010!!")
 
-# 아이디 변경 실패 (새로운 아이디 형식이 잘못 됐을 때)
+# 아이디 변경 실패 (새로운 아이디 형식이 잘못 됐을 때) - ex) 아이디에 숫자가 없는 경우
 def test_modiId_invalid_newId():
     with pytest.raises(ValidationError):
-        ModiId(password = "Kim1234!!", new_id = "TaEgEoN11!?")
+        ModiId(password = "Kim3276!!", new_id = "Kimtaegeon")
 
-# 비밀번호 변경 실패 (새로운 비밀번호 형식이 잘못됐을 때)
+# 비밀번호 변경 실패 (새로운 비밀번호 형식이 잘못됐을 때) - ex) 비밀번호에 특수문자가 없는 경우
 def test_modiPw_invalid_new_pw():
     with pytest.raises(ValidationError):
         ModiPw(password = "Kim1234!!", new_password = "rlaxorjs12215536")

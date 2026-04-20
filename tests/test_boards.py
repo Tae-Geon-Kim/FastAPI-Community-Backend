@@ -4,8 +4,14 @@ from httpx import AsyncClient
 # 현재 파일의 모든 테스트 함수를 비동기(async)로 실행하도록 설정
 pytestmark = pytest.mark.asyncio
 
+"""
+    - 제목 제약 조건: 2 ~ 50자
+
+    - 내용 제약 조건: 30 ~ 2000자
+"""
+
 # 테스트 데이터
-TEST_USER_ID = "taegeon1111"
+TEST_USER_ID = "taegeon_1111"
 TEST_USER_PW = "Kim1234!!"
 TEST_BOARDS_TITLE = "아스날 우승 실패" * 3
 TEST_BOARDS_CONTENT = "아스날 우승 실패!!!" * 10
@@ -42,7 +48,7 @@ async def test_boards_valid_case(client: AsyncClient):
     all_res = await client.get("/allBInfo")
     assert all_res.status_code == 200
     
-    # 💡 그룹화된 데이터에서 글 번호 추출
+    # 그룹화된 데이터에서 글 번호 추출
     grouped_data = all_res.json().get("data", [])
     assert len(grouped_data) > 0
     first_author_posts = grouped_data[0]["posts"]
@@ -50,7 +56,6 @@ async def test_boards_valid_case(client: AsyncClient):
     print(f"[성공] 조회된 게시글 번호: {target_board_index}")
 
     # 3. 특정 유저(아이디 기반)의 게시판 상세 조회 (/certainBInfo)
-    # 💡 수정된 로직 반영: 헤더 없이 user_id만 쿼리로 전송
     certain_res = await client.get(f"/certainBInfo?user_id={TEST_USER_ID}")
     assert certain_res.status_code == 200
     print(f"[성공] {TEST_USER_ID}님의 게시글 목록 출력 완료")
@@ -90,10 +95,10 @@ async def test_boards_valid_case(client: AsyncClient):
 
 
 # ==========================================
-# 예외 처리: 특정 유저 조회 시 유저가 없을 때
+# 예외 처리: 특정 유저 조회 시 유저가 없을 때 - 404 ERROR
 # ==========================================
 async def test_certainInfo_noUser_conflict(client: AsyncClient):
-    """DB에 존재하지 않는 아이디로 조회를 시도하면 404를 반환해야 함"""
+#
     GHOST_ID = "ghost_user_9999"
     res = await client.get(f"/certainBInfo?user_id={GHOST_ID}")
     
@@ -102,23 +107,20 @@ async def test_certainInfo_noUser_conflict(client: AsyncClient):
 
 
 # ==========================================
-# 예외 처리: 모든 게시판 조회시 아무 글도 없을 때
+# 예외 처리: 모든 게시판 조회시 아무 글도 없을 때 - 404 ERROR
 # ==========================================
 async def test_allBInfo_noUser_conflict(client: AsyncClient):
-    """
-    이 테스트 함수가 시작될 때는 DB가 롤백되어 완전히 텅 빈 상태임.
-    따라서 전체 조회를 하면 404 에러가 나야 정상!
-    """
+
     res = await client.get("/allBInfo")
     assert res.status_code == 404
     assert "존재하지않습니다" in res.json()["detail"]
 
 
 # ==========================================
-# 예외 처리: 타인의 게시판 수정 및 삭제 시도
+# 예외 처리: 타인의 게시판 수정 및 삭제 시도 - 403 ERROR
 # ==========================================
 async def test_boards_unauthorized_access(client: AsyncClient):
-    """A가 쓴 글을 B가 삭제하려고 할 때 403 에러가 나야 함"""
+
     # 유저 A와 유저 B 가입 및 헤더 획득
     headers_A = await setup_test_user(client, "userA111", TEST_USER_PW)
     headers_B = await setup_test_user(client, "userB222", TEST_USER_PW)
@@ -130,7 +132,7 @@ async def test_boards_unauthorized_access(client: AsyncClient):
     all_res = await client.get("/allBInfo")
     target_index = all_res.json()["data"][0]["posts"][0]["board_index"]
 
-    # 🚨 B가 A의 글 삭제 시도 -> 403 Forbidden
+    # B가 A의 글 삭제 시도 -> 403 Forbidden
     del_res = await client.post(
         "/deleteBoards",
         headers=headers_B,  # B의 토큰 사용!
@@ -141,10 +143,10 @@ async def test_boards_unauthorized_access(client: AsyncClient):
 
 
 # ==========================================
-# 예외 처리: 존재하지 않는 게시판 접근 시도
+# 예외 처리: 존재하지 않는 게시판 접근 시도 - 404 ERROR
 # ==========================================
 async def test_boards_not_found(client: AsyncClient):
-    """없는 글 번호로 제목 수정을 시도하면 404 에러가 나야 함"""
+
     headers = await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
     GHOST_INDEX = 99999
 
@@ -158,10 +160,10 @@ async def test_boards_not_found(client: AsyncClient):
 
 
 # ==========================================
-# 예외 처리: 게시판 삭제 시 비밀번호가 불일치 할 때
+# 예외 처리: 게시판 삭제 시 비밀번호가 불일치 할 때 - 401 ERROR
 # ==========================================
 async def test_boards_wrong_password(client: AsyncClient):
-    """비밀번호를 틀리게 입력하여 삭제를 시도하면 401 에러가 나야 함"""
+
     headers = await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
     
     # 글 작성

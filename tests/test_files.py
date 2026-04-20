@@ -4,11 +4,27 @@ from httpx import AsyncClient
 # 현재 파일의 모든 테스트 함수를 비동기(async)로 실행하도록 설정
 pytestmark = pytest.mark.asyncio
 
+"""
+    - 아이디 제약 조건: 영문자, 숫자가 무조건 1개 이상은 포함된 5 ~ 30자 (특수문자는 선택사항)
+    		pattern = r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&._-]{5,30}$’
+
+	- 비밀번호 제약 조건: 영문자, 숫자, 특수문자가 무조건 1개 이상은 포함된 8 ~ 30자
+    		pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&._-])[A-Za-z\d@$!%*#?&._-]{8,30}$'
+
+    ( 허용되는 특수문자 :     @$!%*#?&._-     )
+
+    - 제목 제약 조건: 2 ~ 50자
+
+    - 내용 제약 조건: 30 ~ 2000자
+
+    - 허용되는 파일 확장자: jpg, jpeg, png, gif, webp, pdf, docx, xlsx, pptx, txt, zip
+"""
+
 # 테스트에 사용할 가짜 데이터
-TEST_USER_ID = "filetestuser"
-TEST_USER_PW = "File1234!!"
-TEST_TITLE = "파일 업로드 테스트 게시판"
-TEST_CONTENT = "파일이 잘 올라가는지 확인합니다."
+TEST_USER_ID = "rlaxorjs_20905"
+TEST_USER_PW = "Kimtaegeon1234!?"
+TEST_TITLE = "<게시판 파일 업로드, 파일 삭제, 파일 복구 테스트>"
+TEST_CONTENT = "게시판에 파일을 업로드, 파일을 삭제, 파일을 복구하는 로직이 정상적으로 작동하는지 확인하는 테스트입니다."
 
 # ==========================================
 # 유저 가입 / 로그인 및 테스트용 게시판 생성 헬퍼 함수
