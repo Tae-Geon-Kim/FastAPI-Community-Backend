@@ -15,9 +15,13 @@ from app.core.config import settings
 from app.services import files as files_service 
 
 # 테스트용 데이터베이스 이름
-TEST_DB_NAME = "Test_CommunityBackendDB" 
+TEST_DB_NAME = "Test_CommunityBackendDB"
 
-@pytest_asyncio.fixture(scope="session")
+# pytest를 진행할 때, db pool을 생성하는 부분에서는 scope = "session"을 사용하면 안된다.
+# pytest-asyncio는 테스트마다 별도의 event loop를 사용한다.
+# asyncpg의 connection pool은 생성된 event loop에 종속되기 때문에,
+# scope="session"으로 공유하면 서로 다른 loop에서 접근하게 되어 오류가 발생한다.
+@pytest_asyncio.fixture()
 async def db_pool():
 # 테스트용 DB 커넥션 풀 생성
 
@@ -25,7 +29,7 @@ async def db_pool():
         user=settings.DB_USER,
         password=settings.DB_PASSWORD,
         database=TEST_DB_NAME,
-        host=settings.DB_HOST,
+        host="127.0.0.1",
         port=settings.DB_PORT,
         max_size=5,
         min_size=1

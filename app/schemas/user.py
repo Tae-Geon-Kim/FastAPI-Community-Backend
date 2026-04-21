@@ -1,5 +1,5 @@
 import re
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
 from typing import Optional, Any
 
@@ -24,8 +24,7 @@ class UserInfo(BaseModel):
     reg_date: datetime
     update_date: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 # 아이디 제약조건
 def validate_id_format(v: str)->str:

@@ -1,5 +1,5 @@
 import re
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
 from typing import Optional, Any
 from app.schemas.user import validate_password_format
@@ -28,13 +28,12 @@ class BoardInfo(BaseModel):
     total_file_size: str = "0.00 MB"
     files: list[BoardFileResponse] = []
 
-    class Config: 
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 # 게시판 정보 조회(all)
 class AllBoardInfo(BaseModel):
     author: str
-    index: int
+    index: int # 게시판의 인덱스
     title: str
     content: str
     reg_date: datetime
@@ -42,8 +41,7 @@ class AllBoardInfo(BaseModel):
     total_file_size: str = "0.00 MB"
     files: list[BoardFileResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 # 게시판 정보 조회(all) 응답
 class AllBoardInfoResponse(BaseModel):
@@ -88,7 +86,7 @@ class CreateBoard(BaseModel):
 # 게시판 제목 변경
 class ModiTitle(BaseModel):
     board_index: int = Field(..., gt = 0, description = "게시판의 인덱스는 1이상이어야 합니다.")
-    password: str = Field(..., min_length = 8, max_length = 16)
+    password: str = Field(..., min_length = 8, max_length = 30)
     new_title: str = Field(..., min_length = 2, max_length = 50)
 
     @field_validator('password')
@@ -102,7 +100,7 @@ class ModiTitle(BaseModel):
 # 게시판 내용 변경
 class ModiContent(BaseModel):
     board_index: int = Field(..., gt = 0, description = "게시판의 인덱스는 1이상이어야 합니다.")
-    password: str = Field(..., min_length = 8, max_length = 16)
+    password: str = Field(..., min_length = 8, max_length = 30)
     new_content: str = Field(..., min_length = 30, max_length = 2000)
 
     @field_validator('password')
@@ -116,7 +114,7 @@ class ModiContent(BaseModel):
 # 게시판 삭제
 class DeleteBoards(BaseModel):
     board_index: int = Field(..., gt = 0, description = "게시판의 인덱스는 1이상이어야 합니다.")
-    password: str = Field(..., min_length = 8, max_length = 16)
+    password: str = Field(..., min_length = 8, max_length = 30)
 
     @field_validator('password')
     @classmethod
@@ -125,7 +123,7 @@ class DeleteBoards(BaseModel):
 # 게시판 복구
 class RestoreBoards(BaseModel):
     board_index: int = Field(..., gt = 0, description = "게시판의 인덱스는 1이상이어야 합니다.")
-    password: str = Field(..., min_length = 8, max_length = 16)
+    password: str = Field(..., min_length = 8, max_length = 30)
 
     @field_validator('password')
     @classmethod

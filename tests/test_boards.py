@@ -22,9 +22,9 @@ TEST_BOARDS_NEW_CONTENT = "토트넘 강등 위기!!!!!" * 100
 # 게시판 API 테스트를 위한 사용자 회원가입 헬퍼 함수
 # ==========================================
 async def setup_test_user(client: AsyncClient, test_userId, test_userPw):
-    await client.post("/uRegister", json={"id": test_userId, "password": test_userPw})
+    await client.post("/user/uRegister", json={"id": test_userId, "password": test_userPw})
 
-    login_res = await client.post("/login", json={"id": test_userId, "password": test_userPw})
+    login_res = await client.post("/user/login", json={"id": test_userId, "password": test_userPw})
     token = login_res.json()["data"]["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
@@ -37,7 +37,7 @@ async def test_boards_valid_case(client: AsyncClient):
 
     # 1. 특정 유저의 게시판 생성
     create_res = await client.post(
-        "/bRegister", 
+        "/boards/bRegister", 
         headers=headers,
         json={"title": TEST_BOARDS_TITLE, "content": TEST_BOARDS_CONTENT}
     )
@@ -45,24 +45,24 @@ async def test_boards_valid_case(client: AsyncClient):
     print("\n[성공] 게시판 생성 완료")
 
     # 2. 모든 게시판 조회 (/allBInfo)
-    all_res = await client.get("/allBInfo")
+    all_res = await client.get("/boards/allBInfo")
     assert all_res.status_code == 200
     
     # 그룹화된 데이터에서 글 번호 추출
     grouped_data = all_res.json().get("data", [])
     assert len(grouped_data) > 0
     first_author_posts = grouped_data[0]["posts"]
-    target_board_index = first_author_posts[0]["board_index"]
+    target_board_index = first_author_posts[0]["index"] # v
     print(f"[성공] 조회된 게시글 번호: {target_board_index}")
 
     # 3. 특정 유저(아이디 기반)의 게시판 상세 조회 (/certainBInfo)
-    certain_res = await client.get(f"/certainBInfo?user_id={TEST_USER_ID}")
+    certain_res = await client.get(f"/boards/certainBInfo?user_id={TEST_USER_ID}")
     assert certain_res.status_code == 200
     print(f"[성공] {TEST_USER_ID}님의 게시글 목록 출력 완료")
 
     # 4. 게시판 제목 변경
     modi_title_res = await client.post(
-        "/modiTitle",
+        "/boards/modiTitle",
         headers=headers,
         json={"board_index": target_board_index, "password": TEST_USER_PW, "new_title": TEST_BOARDS_NEW_TITLE}
     )
@@ -70,7 +70,7 @@ async def test_boards_valid_case(client: AsyncClient):
 
     # 5. 게시판 내용 변경
     modi_content_res = await client.post(
-        "/modiContent",
+        "/boards/modiContent",
         headers=headers,
         json={"board_index": target_board_index, "password": TEST_USER_PW, "new_content": TEST_BOARDS_NEW_CONTENT}
     )
@@ -78,7 +78,7 @@ async def test_boards_valid_case(client: AsyncClient):
 
     # 6. 게시판 삭제 (Soft Delete)
     del_res = await client.post(
-        "/deleteBoards",
+        "/boards/deleteBoards",
         headers=headers,
         json={"board_index": target_board_index, "password": TEST_USER_PW}
     )
@@ -86,7 +86,7 @@ async def test_boards_valid_case(client: AsyncClient):
 
     # 7. 게시판 복구
     restore_res = await client.post(
-        "/restoreBoards",
+        "boards/restoreBoards",
         headers=headers,
         json={"board_index": target_board_index, "password": TEST_USER_PW}
     )
@@ -100,7 +100,7 @@ async def test_boards_valid_case(client: AsyncClient):
 async def test_certainInfo_noUser_conflict(client: AsyncClient):
 #
     GHOST_ID = "ghost_user_9999"
-    res = await client.get(f"/certainBInfo?user_id={GHOST_ID}")
+    res = await client.get(f"/boards/certainBInfo?user_id={GHOST_ID}")
     
     assert res.status_code == 404
     assert "존재하지 않거나" in res.json()["detail"]
@@ -111,7 +111,7 @@ async def test_certainInfo_noUser_conflict(client: AsyncClient):
 # ==========================================
 async def test_allBInfo_noUser_conflict(client: AsyncClient):
 
-    res = await client.get("/allBInfo")
+    res = await client.get("/boards/allBInfo")
     assert res.status_code == 404
     assert "존재하지않습니다" in res.json()["detail"]
 
@@ -126,15 +126,22 @@ async def test_boards_unauthorized_access(client: AsyncClient):
     headers_B = await setup_test_user(client, "userB222", TEST_USER_PW)
 
     # A가 글 작성
-    await client.post("/bRegister", headers=headers_A, json={"title": "A title", "content": "A content"})
-    
+    await client.post(
+        "/boards/bRegister",
+        headers = headers_A,
+        json = {
+            "title": "A가 작성하는 글 제목입니다.",
+            "content": "이 글은 A가 작성하는 글의 내용입니다. 글의 최소 길이는 30자 입니다."
+        } 
+    )
+
     # 생성된 글 번호 가져오기
-    all_res = await client.get("/allBInfo")
-    target_index = all_res.json()["data"][0]["posts"][0]["board_index"]
+    all_res = await client.get("/boards/allBInfo")
+    target_index = all_res.json()["data"][0]["posts"][0]["index"] # v
 
     # B가 A의 글 삭제 시도 -> 403 Forbidden
     del_res = await client.post(
-        "/deleteBoards",
+        "/boards/deleteBoards",
         headers=headers_B,  # B의 토큰 사용!
         json={"board_index": target_index, "password": TEST_USER_PW}
     )
@@ -151,7 +158,7 @@ async def test_boards_not_found(client: AsyncClient):
     GHOST_INDEX = 99999
 
     modi_res = await client.post(
-        "/modiTitle",
+        "/boards/modiTitle",
         headers=headers,
         json={"board_index": GHOST_INDEX, "password": TEST_USER_PW, "new_title": "유령 제목"}
     )
@@ -167,13 +174,13 @@ async def test_boards_wrong_password(client: AsyncClient):
     headers = await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
     
     # 글 작성
-    await client.post("/bRegister", headers=headers, json={"title": TEST_BOARDS_TITLE, "content": TEST_BOARDS_CONTENT})
-    all_res = await client.get("/allBInfo")
-    target_index = all_res.json()["data"][0]["posts"][0]["board_index"]
+    await client.post("/boards/bRegister", headers=headers, json={"title": TEST_BOARDS_TITLE, "content": TEST_BOARDS_CONTENT})
+    all_res = await client.get("/boards/allBInfo")
+    target_index = all_res.json()["data"][0]["posts"][0]["index"] # v
 
     # 틀린 비밀번호로 삭제 시도
     del_res = await client.post(
-        "/deleteBoards",
+        "/boards/deleteBoards",
         headers=headers,
         json={"board_index": target_index, "password": "WrongPassword99!!"}
     )

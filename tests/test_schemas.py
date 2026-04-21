@@ -110,7 +110,7 @@ def test_board_title_short_invalid():
 def test_board_title_long_invalid():
     with pytest.raises(ValidationError):
         CreateBoard(
-            title = "아스날 우승 실패" * 3,
+            title = "아스날 우승 실패" * 10,
             content = "아스날 우승 실패!!!" * 10
         )
 
