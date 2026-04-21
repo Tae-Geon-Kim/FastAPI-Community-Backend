@@ -20,7 +20,7 @@ jobs:
         env:
           POSTGRES_USER: ${{ secrets.DB_USER }}
           POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          POSTGRES_DB: test_communitybackend_db
+          POSTGRES_DB: Test_CommunityBackendDB
         ports:
           - 5432:5432
         options: >-
@@ -49,7 +49,7 @@ jobs:
           DB_PORT: 5432
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: test_communitybackend_db
+          DB_NAME: CommunityBackendDB
           DB_MAX_SIZE: 10
           DB_MIN_SIZE: 5
 
