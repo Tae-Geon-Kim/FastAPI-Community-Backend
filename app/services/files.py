@@ -77,7 +77,7 @@ async def upload_files_services(file: UploadFile, board_index: int, conn: Connec
     if (cur_total_fsize + file.size) > allow_max_total_fsize:
         raise HTTPException(
             status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-             detail = f"허용하는 파일의 용량을 초과하였습니다. (최대: {(allow_max_total_fsize / (1024 * 1024)):.2f} 현재: {(cur_total_fsize / (1024 * 1024)):.2f} 업로드 파일: {(file.size / (1024 * 1024)):.2f})"
+             detail = f"업로드시, 한 게시판에 업로드 할 수 있는 총 파일 용량을 초과합니다. (최대: {(allow_max_total_fsize / (1024 * 1024)):.2f}MB 현재: {(cur_total_fsize / (1024 * 1024)):.2f}MB 업로드 파일: {(file.size / (1024 * 1024)):.2f}MB)"
         )
 
     # 업로드하는 파일의 크기가 허용되는 크기인지 확인
@@ -213,6 +213,16 @@ async def restore_file_services(data: RestoreFile, conn: Connection, current_use
             detail = "요청하신 파일이 삭제 처리된 상태가 아니거나, 해당 게시글에 등록된 파일이 아닙니다."
             # files_index 와 board_index 매칭 되는 데이터가 존재하지않는다.
         )
+
+    cur_total_fsize = await get_total_fsize(conn, data.board_index)
+    softDelete_fsize = await get_softDelete_fsize(conn, data.files_index)
+
+    if softDelete_fsize + cur_total_fsize > allow_max_total_fsize:
+        raise HTTPException(
+            status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail = f"해당 파일 복구시, 한 게시판에 업로드 할 수 있는 총 파일 용량을 초과합니다. (최대: {(allow_max_total_fsize / (1024 * 1024)):.2f}MB, 현재: {(cur_total_fsize / (1024 * 1024)):.2f}MB 복구: {(softDelete_fsize / (1024 * 1024)):.2f}MB)"
+        )
+
         
     async with conn.transaction():
         await restore_files(conn, data.files_index, data.board_index)
@@ -252,6 +262,17 @@ async def restore_all_file_services(data: RestoreAllFile, conn: Connection, curr
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
             detail = "해당 게시판에는 복구 가능한 파일이 존재하지 않습니다."
+        )
+
+    cur_total_fsize = await get_total_fsize(conn, data.board_index)
+    # 현재 특정 게시판에 업로드되어있는 파일들의 용량 총 합 (삭제처리되지 않은 - deleted_at == NULL)
+    cur_total_softDelete_fsize = await get_total_softDelete_fsize(conn, data.board_index)
+    # 현재 특정 게시판에 삭제 처리되어 있는 파일들의 용량 총 합 (deleted_at == NOT NULL)
+
+    if cur_total_fsize + cur_total_softDelete_fsize > allow_max_total_fsize:
+        raise HTTPException(
+            status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail = f"복구를 진행할 시, 한 게시판에 업로드 할 수 있는 총 파일 용량을 초과합니다. (최대: {(allow_max_total_fsize / (1024 * 1024)):.2f}MB 현재: {(cur_total_fsize / (1024 * 1024)):.2f}MB 복구: {(cur_total_softDelete_fsize / (1024 * 1024)):.2f}MB)"
         )
 
     async with conn.transaction():
