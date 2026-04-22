@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build: .
@@ -19,6 +17,7 @@ services:
       POSTGRES_USER: cutshion
       POSTGRES_PASSWORD: cutshion@
       POSTGRES_DB: CommunityBackendDB
+    command: -c timezone=Asia/Seoul
     ports:
       - "15432:5432"
     volumes:
