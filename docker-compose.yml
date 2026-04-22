@@ -4,6 +4,8 @@ services:
   app:
     build: .
     container_name: fastapi-app-container
+    environment:
+      TZ: Asia/Seoul
     env_file:
       - .env
     depends_on:
@@ -13,6 +15,7 @@ services:
     image: postgres:16-alpine
     container_name: postgres-db-container
     environment:
+      TZ: Asia/Seoul
       POSTGRES_USER: cutshion
       POSTGRES_PASSWORD: cutshion@
       POSTGRES_DB: CommunityBackendDB
