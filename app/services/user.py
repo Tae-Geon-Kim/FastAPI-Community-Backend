@@ -86,10 +86,10 @@ async def user_pw_services(conn: Connection, data: UserLogin):
     return CommonResponse(message = "회원가입이 성공적으로 완료되었습니다.")
 
 # 신규 회원 아이디 중복, 빈 문자열 검사
-async def user_name_services(conn: Connection, data: UserId):
+async def user_name_services(conn: Connection, user_id: str):
 
     # 아이디가 중복되는 경우
-    if await id_duplicate(conn, data.id):
+    if await id_duplicate(conn, user_id):
         raise HTTPException(
             status_code = status.HTTP_409_CONFLICT,
             detail = "이미 사용중인 아이디입니다."

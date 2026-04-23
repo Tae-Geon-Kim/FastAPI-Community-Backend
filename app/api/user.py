@@ -11,7 +11,7 @@ router = APIRouter()
 @router.post(
     "/refresh",
     response_model = CommonResponse,
-    status_code = status.HTTP_200_OK,
+    status_code = status.HTTP_201_CREATED,
     summary = "[인증] 만료된 JWT Access 토큰 재발급",
     description = """
     만료된 Access Token을 갱신하기 위해서 새로운 토큰을 발급받는다.
@@ -30,7 +30,7 @@ async def refresh_access_token(
 @router.post(
     "/login", 
     response_model = CommonResponse, 
-    status_code = status.HTTP_200_OK,
+    status_code = status.HTTP_201_CREATED,
     summary  = "[인증] 사용자 로그인", 
     description = """
     사용자의 아이디와 비밀번호를 검증하고 JWT Access, Refresh 토큰을 발급합니다.
@@ -48,9 +48,9 @@ async def token_login(
 
 # 신규 회원가입 비밀번호를 입력했을 때, 해싱된 비밀번호 값을 DB에 저장
 @router.post(
-    "/uRegister",
+    "",
     response_model = CommonResponse,
-    status_code = status.HTTP_200_OK,
+    status_code = status.HTTP_201_CREATED,
     summary = "[유저] 신규 회원가입",
     description = """
     사용자에게 아이디와 비밀번호를 입력받아 최종적으로 신규 User 가입을 시킨다.
@@ -59,15 +59,15 @@ async def token_login(
     - 허용되는 password 형식: 영문자, 숫자, 특수문자가 무조건 포함된 8 ~ 30자
     """
 )
-async def uregister(
+async def register_user(
     data: UserLogin,
     conn: Connection = Depends(get_db)
 ):
     return await user_pw_services(conn, data)
 
 # 신규 회원의 아이디 중복, not null 검사
-@router.post(
-    "/uCheck",
+@router.get(
+    "/check-id/{user_id}",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 신규 아이디 중복 확인",
@@ -78,15 +78,15 @@ async def uregister(
      - 허용되는 id 형식: 영문자, 숫자가 무조건 포함된 5 ~ 30자 (특수문자 허용) - 유효성 검증
     """
 )
-async def ucheck(
-    data: UserId,
+async def check_user_id(
+    user_id: str = Path(..., description = "중복 확인할 아이디"),
     conn: Connection = Depends(get_db)
 ):
-    return await user_name_services(conn, data)
+    return await user_name_services(conn, user_id)
 
 # 사용자 정보 조회
-@router.post(
-    "/uInfo",
+@router.get(
+    "/me",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 사용자 정보 조회",
@@ -96,15 +96,15 @@ async def ucheck(
     - 정보를 조회하기 위해서 로그인 필요
     """
 )
-async def uinfo(
+async def get_my_info(
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
     return await user_info_services(conn, current_user_num)
 
 # 사용자 회원탈퇴
-@router.post(
-    "/withdraw",
+@router.delete(
+    "/me",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 사용자 회원탈퇴",
@@ -115,7 +115,7 @@ async def uinfo(
     - 실제로 삭제처리되는 것은 스케줄링을 통해 자동으로 실행된다. (삭제처리 상태가 된지 3일이 지났으면 hard delete 된다.)
     """
 )
-async def withdraw(
+async def withdraw_user(
     data: UserPw,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
@@ -124,7 +124,7 @@ async def withdraw(
 
 # 사용자 아이디 변경
 @router.patch(
-    "/idModify",
+    "/me/id",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 사용자 아이디 변경",
@@ -136,7 +136,7 @@ async def withdraw(
     - 아이디를 변경하기 위해서 사용자 비밀번호 재입력 필요.
     """
 )
-async def id_modify(
+async def update_my_id(
     data: ModiId,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
@@ -145,7 +145,7 @@ async def id_modify(
 
 # 사용자 비밀번호 변경
 @router.patch(
-    "/pwModify",
+    "/me/password",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 사용자 비밀번호 변경",
@@ -157,7 +157,7 @@ async def id_modify(
     - 비밀번호를 변경하기 위헤서 사용자 비밀번호 재입력 필요.
     """
 )
-async def pw_modify(
+async def update_my_password(
     data: ModiPw,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
@@ -169,7 +169,7 @@ async def pw_modify(
 # JWT 기반 로그인 방식을 도입해도 여기서 로그인 부분은 기존의 아이디, 비밀번호 입력받는 방식을 사용해야한다.
 # why? : 이미 삭제 처리된 데이터이기 때문에 삭제 처리가 된 순간 발급 된 (되어있던) access / refresh은 삭제된다.
 @router.post(
-    "/restoreUser",
+    "/me/restore",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 사용자 데이터 복구",
@@ -181,7 +181,7 @@ async def pw_modify(
     - 복구는 soft delete된지 3일이내의 데이터만 가능하다.
     """
 )
-async def restore_user(
+async def restore_my_account(
     data: UserLogin,
     conn: Connection = Depends(get_db)
 ):

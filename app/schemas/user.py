@@ -61,13 +61,6 @@ class UserLogin(BaseModel):
     @classmethod
     def check_pw(cls, v): return validate_password_format(v)
 
-class UserId(BaseModel):
-    id: str = Field(..., min_length = 5, max_length = 30)
-
-    @field_validator('id')
-    @classmethod
-    def check_id(cls, v): return validate_id_format(v)
-
 class UserPw(BaseModel):
     password: str = Field(..., min_length = 8, max_length = 30)
 

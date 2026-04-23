@@ -27,7 +27,7 @@ async def log_request(request: Request, call_next):
         return Response(content = "Internal Server Error", status_code = 500)
 
 # user 테이블에 관련된 라우터 합치기
-app.include_router(user_router, prefix = "/user", tags = ["User"])
+app.include_router(user_router, prefix = "/users", tags = ["Users"])
 
 # boards 테이블에 관련된 라우터 합치기
 app.include_router(boards_router, prefix = "/boards", tags = ["Boards"])
