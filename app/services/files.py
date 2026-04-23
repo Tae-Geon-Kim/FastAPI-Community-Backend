@@ -108,7 +108,7 @@ async def upload_files_services(file: UploadFile, board_index: int, conn: Connec
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 {file.filename}파일의 업로드 작업이 완료되었습니다.")
 
 # 단일 파일 삭제
-async def delete_files_services(data: DeleteFile, conn: Connection, current_user_num: str):
+async def delete_files_services(board_index: int, file_index: int, data: DeleteFile, conn: Connection, current_user_num: str):
 
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -119,7 +119,7 @@ async def delete_files_services(data: DeleteFile, conn: Connection, current_user
         )
 
     # 해당 User의 게시판이 존재하는지
-    boards_owner = await check_boards_owner(conn, data.board_index)
+    boards_owner = await check_boards_owner(conn, board_index)
 
     if boards_owner is None:
         raise HTTPException(
@@ -134,24 +134,24 @@ async def delete_files_services(data: DeleteFile, conn: Connection, current_user
             detail = "권한이 없습니다. 본인 게시글의 파일만 삭제할 수 있습니다."
         )
     
-    if await check_files_belong(conn, data.files_index, data.board_index) is None:
+    if await check_files_belong(conn, file_index, board_index) is None:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
             detail = "삭제하려는 파일이 이미 삭제되었거나 해당 게시글에 등록되어 있지 않습니다"
-            # files_index 와 board_index 매칭 되는 데이터가 존재하지않는다.
+            # file_index 와 board_index 매칭 되는 데이터가 존재하지않는다.
         )
     
     async with conn.transaction():
         # soft delete
-        await soft_delete_one_file(conn, data.files_index)
-        new_total_fsize = await get_total_fsize(conn, data.board_index) # 용량 값이 bytes 단위로 저장
+        await soft_delete_one_file(conn, file_index)
+        new_total_fsize = await get_total_fsize(conn, board_index) # 용량 값이 bytes 단위로 저장
         new_total_fsize = new_total_fsize or 0
-        await update_total_fsize(conn, new_total_fsize, data.board_index)
+        await update_total_fsize(conn, new_total_fsize, board_index)
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 삭제 요청이 성공적으로 처리되었습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 
 # 한 게시판에 존재하는 모든 파일을 삭제 (게시판은 삭제 x)
-async def delete_all_services(data: DeleteAllFile, conn: Connection, current_user_num: str):
+async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Connection, current_user_num: str):
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -161,7 +161,7 @@ async def delete_all_services(data: DeleteAllFile, conn: Connection, current_use
             detail = "비밀번호가 일치하지 않습니다."
         )
 
-    board_owner = await check_boards_owner(conn, data.board_index)
+    board_owner = await check_boards_owner(conn, board_index)
 
     if board_owner is None:
         raise HTTPException(
@@ -177,13 +177,13 @@ async def delete_all_services(data: DeleteAllFile, conn: Connection, current_use
 
     async with conn.transaction():
         # soft delete
-        await soft_delete_all_file(conn, data.board_index)
-        await update_total_fsize(conn, 0, data.board_index)
+        await soft_delete_all_file(conn, board_index)
+        await update_total_fsize(conn, 0, board_index)
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 해당 게시물의 모든 파일이 삭제되었습니다.")
 
 # 삭제된 단일 파일 복구 (용량 재계산) / 게시판은 삭제 상태 x
-async def restore_file_services(data: RestoreFile, conn: Connection, current_user_num:str):
+async def restore_file_services(board_index: int, file_index: int, data: RestoreFile, conn: Connection, current_user_num:str):
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -193,7 +193,7 @@ async def restore_file_services(data: RestoreFile, conn: Connection, current_use
             detail = "비밀번호가 일치하지 않습니다."
         )
     
-    boards_owner = await check_boards_owner(conn, data.board_index)
+    boards_owner = await check_boards_owner(conn, board_index)
 
     if boards_owner is None:
         raise HTTPException(
@@ -207,15 +207,15 @@ async def restore_file_services(data: RestoreFile, conn: Connection, current_use
             detail = "권한이 없습니다. 본인의 게시글 파일만 복구할 수 있습니다."
         )
     
-    if await restore_check_files_belong(conn, data.files_index, data.board_index) is None:
+    if await restore_check_files_belong(conn, file_index, board_index) is None:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
             detail = "요청하신 파일이 삭제 처리된 상태가 아니거나, 해당 게시글에 등록된 파일이 아닙니다."
-            # files_index 와 board_index 매칭 되는 데이터가 존재하지않는다.
+            # file_index 와 board_index 매칭 되는 데이터가 존재하지않는다.
         )
 
-    cur_total_fsize = await get_total_fsize(conn, data.board_index)
-    softDelete_fsize = await get_softDelete_fsize(conn, data.files_index)
+    cur_total_fsize = await get_total_fsize(conn, board_index)
+    softDelete_fsize = await get_softDelete_fsize(conn, file_index)
 
     if softDelete_fsize + cur_total_fsize > allow_max_total_fsize:
         raise HTTPException(
@@ -225,14 +225,14 @@ async def restore_file_services(data: RestoreFile, conn: Connection, current_use
 
         
     async with conn.transaction():
-        await restore_files(conn, data.files_index, data.board_index)
-        new_total_fsize = await get_total_fsize(conn, data.board_index)
-        await update_total_fsize(conn, new_total_fsize, data.board_index)
+        await restore_files(conn, file_index, board_index)
+        new_total_fsize = await get_total_fsize(conn, board_index)
+        await update_total_fsize(conn, new_total_fsize, board_index)
     
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 파일이 복구되었습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 
 # 삭제된 파일 일괄 복구 (용량 재계산) / 게시판은 삭제 상태 x)
-async def restore_all_file_services(data: RestoreAllFile, conn: Connection, current_user_num: str):
+async def restore_all_file_services(board_index: int, data: RestoreAllFile, conn: Connection, current_user_num: str):
 
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -242,7 +242,7 @@ async def restore_all_file_services(data: RestoreAllFile, conn: Connection, curr
             detail = "비밀번호가 일치하지 않습니다."
         )
     
-    boards_owner = await check_boards_owner(conn, data.board_index)
+    boards_owner = await check_boards_owner(conn, board_index)
 
     if boards_owner is None:
         raise HTTPException(
@@ -256,7 +256,7 @@ async def restore_all_file_services(data: RestoreAllFile, conn: Connection, curr
             detail = "권한이 없습니다. 본인의 게시글 파일만 복구할 수 있습니다."
         )    
     
-    restore_files_belong = await restore_all_check_files_belong(conn, data.board_index)
+    restore_files_belong = await restore_all_check_files_belong(conn, board_index)
 
     if restore_files_belong is None:
         raise HTTPException(
@@ -264,9 +264,9 @@ async def restore_all_file_services(data: RestoreAllFile, conn: Connection, curr
             detail = "해당 게시판에는 복구 가능한 파일이 존재하지 않습니다."
         )
 
-    cur_total_fsize = await get_total_fsize(conn, data.board_index)
+    cur_total_fsize = await get_total_fsize(conn, board_index)
     # 현재 특정 게시판에 업로드되어있는 파일들의 용량 총 합 (삭제처리되지 않은 - deleted_at == NULL)
-    cur_total_softDelete_fsize = await get_total_softDelete_fsize(conn, data.board_index)
+    cur_total_softDelete_fsize = await get_total_softDelete_fsize(conn, board_index)
     # 현재 특정 게시판에 삭제 처리되어 있는 파일들의 용량 총 합 (deleted_at == NOT NULL)
 
     if cur_total_fsize + cur_total_softDelete_fsize > allow_max_total_fsize:
@@ -277,10 +277,10 @@ async def restore_all_file_services(data: RestoreAllFile, conn: Connection, curr
 
     async with conn.transaction():
         # 파일 복구 & 용량 계산 
-        await restore_all_files(conn, data.board_index)
-        new_total_fsize = await get_total_fsize(conn, data.board_index)
+        await restore_all_files(conn, board_index)
+        new_total_fsize = await get_total_fsize(conn, board_index)
         new_total_fsize = new_total_fsize or 0
-        await update_total_fsize(conn, new_total_fsize, data.board_index)
+        await update_total_fsize(conn, new_total_fsize, board_index)
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 해당 게시판의 모든 파일을 복구하였습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 

@@ -33,7 +33,7 @@ async def register_boards(
 
 # 특정 유저의 게시판 조회
 @router.get(
-    "/user/{user_id}",
+    "/users/{user_id}",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 특정 유저의 게시판 목록을 출력",

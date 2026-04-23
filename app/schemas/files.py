@@ -10,8 +10,6 @@ class CommonResponse(BaseModel):
 
 # 단일 파일 삭제
 class DeleteFile(BaseModel):
-    board_index: int = Field(..., gt = 0, description = "게시판 인덱스는 1이상이어야 합니다.")
-    files_index: int = Field(..., gt = 0, description = "파일 인덱스는 1이상이어야 합니다.")
     password: str = Field(..., min_length = 8, max_length = 30)
 
     @field_validator('password')
@@ -20,7 +18,6 @@ class DeleteFile(BaseModel):
 
 # 파일 전체 삭제
 class DeleteAllFile(BaseModel):
-    board_index: int = Field(..., gt = 0, description = "게시판 인덱스는 1이상이어야 합니다.")
     password: str = Field(..., min_length = 8, max_length = 30)
 
     @field_validator('password')
@@ -29,8 +26,6 @@ class DeleteAllFile(BaseModel):
 
 # 단일 파일 복구 
 class RestoreFile(BaseModel):
-    board_index: int = Field(..., gt = 0, description = "게시판 인덱스는 1이상이어야 합니다.")
-    files_index: int = Field(..., gt = 0, description = "파일 인덱스는 1이상이어야 합니다.")
     password: str = Field(..., min_length = 8, max_length = 30)
 
     @field_validator('password')
@@ -39,7 +34,6 @@ class RestoreFile(BaseModel):
 
 # 전체 파일 복구
 class RestoreAllFile(BaseModel):
-    board_index: int = Field(..., gt = 0, description = "게시판 인덱스는 1이상이어야 합니다.")
     password: str = Field(..., min_length = 8, max_length = 30)
 
     @field_validator('password')

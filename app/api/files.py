@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, status, UploadFile, File, Form, Path
 from typing import List
 from app.schemas.files import *
 from app.services.files import *
@@ -10,9 +10,9 @@ router = APIRouter()
 
 # 파일 업로드
 @router.post(
-    "/uploadFiles",
+    "/boards/{board_index}",
     response_model = CommonResponse,
-    status_code = status.HTTP_200_OK,
+    status_code = status.HTTP_201_CREATED,
     summary = "[파일] 파일 업로드",
     description = """
     게시판의 인덱스를 입력받아 해당 게시판에 파일을 업로드 (파일 확장자, 단일 파일 최대 용량 제한있음)
@@ -24,7 +24,7 @@ router = APIRouter()
 )
 async def upload_files(
     file: UploadFile = File(...),
-    board_index: int = Form(..., gt = 0, description = "게시판 인덱스는 1 이상이어야 합니다."),
+    board_index: int = Path(..., gt = 0, description = "파일을 업로드할 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
@@ -32,8 +32,8 @@ async def upload_files(
 
 
 # 단일 파일 삭제
-@router.post(
-    "/deleteFiles",
+@router.delete(
+    "/boards/{board_index}/{file_index}",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[파일] 단일 파일 삭제",
@@ -44,16 +44,18 @@ async def upload_files(
     - 실제로 삭제처리되는 것은 스케줄링을 통해 자동으로 실행된다. (삭제처리 상태가 된지 3일이 지났으면 hard delete 된다.)
     """
 )
-async def delete_files(
+async def delete_single_file(
+    board_index: int = Path(..., gt = 0, description = "삭제할 파일이 속한 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"), 
+    file_index: int = Path(..., gt = 0, description = "삭제할 파일의 인덱스 (파일의 인덱스는 1이상이어야 합니다.)"),
     data: DeleteFile,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
-    return await delete_files_services(data, conn, current_user_num)
+    return await delete_files_services(board_index, file_index, data, conn, current_user_num)
 
 # 파일 전체를 삭제 (게시판은 x)
-@router.post(
-    "/deleteAll",
+@router.delete(
+    "/boards/{board_index}",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[파일] 파일 전체 삭제",
@@ -63,17 +65,18 @@ async def delete_files(
     - 삭제 처리를 진행하기 위헤서는 사용자 비밀번호 재입력 필요
     """
 )
-async def delete_all(
+async def delete_all_files(
+    board_index: int = Path(..., gt = 0, description = "파일을 전체 삭제할 게시판의 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"),
     data: DeleteAllFile,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
-    return await delete_all_services(data, conn, current_user_num)
+    return await delete_all_services(board_index, data, conn, current_user_num)
 
 
 # 특정 게시판 DB에 있는 soft delete 삭제된 단일 파일 복구 (게시판 전체 용량 재계산 로직 필요)
 @router.post(
-    "/restoreFile",
+    "/boards/{board_index}/{file_index}/restore",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[파일] 단일 파일 하나 복구",
@@ -87,15 +90,17 @@ async def delete_all(
     """
 )
 async def restore_file(
+    board_index: int = Path(..., gt = 0, description = "복구할 파일이 속한 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"), 
+    file_index: int = Path(..., gt = 0, description = "복구할 파일의 인덱스 (파일의 인덱스는 1이상이어야 합니다.)"),
     data: RestoreFile,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
-    return await restore_file_services(data, conn, current_user_num)
+    return await restore_file_services(board_index, file_index, data, conn, current_user_num)
 
 # 특정 게시판 DB에 있는 soft delete 삭제된 파일들 일괄 복구 (게시판 전체 용량 재게산 로직 필요)
 @router.post(
-    "/restoreAllFile",
+    "/boards/{board_index}/restore",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[파일] 전체 파일 복구",
@@ -109,8 +114,9 @@ async def restore_file(
     """
 )
 async def restore_all_file(
+    board_index: int = Path(..., gt = 0, description = "전체 파일을 복구할 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"),
     data: RestoreAllFile,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
-    return await restore_all_file_services(data, conn, current_user_num)
+    return await restore_all_file_services(board_index, data, conn, current_user_num)
