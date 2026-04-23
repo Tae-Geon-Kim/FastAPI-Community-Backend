@@ -288,41 +288,38 @@ Swagger UI는 서버 실행 후 URL을 통해서 접속 가능합니다.
 
 - [API 상세 명세서](https://www.notion.so/API-0769db8647b18277af2e813304fbddb0?source=copy_link)
 
-#### - User API
+#### - User API (Base URL: `/users`)
 | Method | Endpoint | Description |
-| :--- | :---: | :--- | 
-| `POST` | `/refresh` | 만료된 JWT Access Token 재발급 |
-| `POST` | `/login` | 사용자 인증 및 JWT (Access / Refresh) 토큰 발급 |
-| `POST` | `/uRegister`| 신규 회원가입 (비밀번호 Bcrypt 해싱 저장) | 
-| `POST` | `/uCheck` | 신규 회원가입 전 아이디 중복 및 유효성 검사 |
-| `POST` | `/uInfo` | 로그인한 사용자 본인의 정보 조회 |
-| `POST` | `/withdraw` | 회원 탈퇴 처리 (soft delete) |
-| `POST` | `/idModify` | 사용자 아이디 변경 |
-| `POST` | `/pwModify` | 사용자 비밀번호 변경 |
-| `POST` | `/restoreUser` | 삭제 처리된 사용자 계정 복구 |
+| :--- | :--- | :--- | 
+| POST | /refresh | 만료된 JWT Access Token 재발급 |
+| POST | /login | 사용자 인증 및 JWT (Access / Refresh) 토큰 발급 |
+| POST | / | 신규 회원가입 (비밀번호 Bcrypt 해싱 저장) | 
+| GET | /check-id/{user_id} | 신규 회원가입 전 아이디 중복 및 유효성 검사 |
+| GET | /me | 로그인한 사용자 본인의 정보 조회 |
+| DELETE | /me | 회원 탈퇴 처리 (soft delete) |
+| PATCH | /me/id | 사용자 아이디 변경 |
+| PATCH | /me/password | 사용자 비밀번호 변경 |
+| POST | /me/restore | 삭제 처리된 사용자 계정 복구 |
 
-#### - Boards API
+#### - Boards API (Base URL: `/boards`)
 | Method | Endpoint | Description |
-| :--- | :---: | :--- | 
-| `POST` | `/bRegister` | 신규 게시글 작성 |
-| `GET` | `/certainBInfo` | 특정 사용자의 게시글 목록 조회 (로그인 x / 유저 이름으로) |
-| `GET` | `/allBInfo` | 모든 사용자의 게시글 목록 전체 조회 (로그인 x) |
-| `POST` | `/modiTitle` | 특정 게시글 제목 수정 |
-| `POST` | `/modiContent` | 특정 게시글 내용 수정 |
-| `POST` | `/deleteBoards` | 특정 게시글 삭제 (soft delete) |
-| `POST` | `/restoreBoards` | 삭제 처리된 특정 게시글 복구 |
+| :--- | :--- | :--- | 
+| POST | / | 신규 게시글 작성 |
+| GET | /users/{user_id} | 특정 사용자의 게시글 목록 조회 (로그인 x / 유저 아이디 기준) |
+| GET | / | 모든 사용자의 게시글 목록 전체 조회 (로그인 x) |
+| PATCH | /{board_index}/title | 특정 게시글 제목 수정 |
+| PATCH | /{board_index}/content | 특정 게시글 내용 수정 |
+| DELETE | /{board_index} | 특정 게시글 삭제 (soft delete) |
+| POST | /{board_index}/restore | 삭제 처리된 특정 게시글 복구 |
 
-
-#### - Files API
+#### - Files API (Base URL: `/files`)
 | Method | Endpoint | Description |
-| :--- | :---: | :--- | 
-| `POST` | `/uploadFiles` | 특정 게시글에 파일 업로드 |
-| `POST` | `/deleteFiles` | 특정 게시글의 특정 파일 하나 삭제 (soft delete) |
-| `POST` | `/deleteAll` | 특정 게시글에 첨부된 모든 파일 일괄 삭제 (soft delete) |
-| `POST` | `/restoreFile` | 특정 게시글의 삭제 처리된 단일 파일 복구 |
-| `POST` | `/restoreAllFile` | 특정 게시글의 삭제 처리된 전체 파일 일괄 복구 |
-
-
+| :--- | :--- | :--- | 
+| POST | /boards/{board_index} | 특정 게시글에 파일 업로드 |
+| DELETE | /boards/{board_index}/{file_index} | 특정 게시글의 단일 파일 삭제 (soft delete) |
+| DELETE | /boards/{board_index} | 특정 게시글에 첨부된 모든 파일 일괄 삭제 (soft delete) |
+| POST | /boards/{board_index}/{file_index}/restore| 특정 게시글의 삭제 처리된 단일 파일 복구 |
+| POST | /boards/{board_index}/restore | 특정 게시글의 삭제 처리된 전체 파일 일괄 복구 |
 ---
 <a name="code_test"></a>
 ## 🧪 코드 테스트
@@ -343,8 +340,9 @@ pip install pytest pytest-asyncio httpx
 
 - pytest 실행
 ```text
-pytest
+pytest tests
 ```
+
 ---
 <a name="develop-guide"></a>
 ## 📘 개발가이드
