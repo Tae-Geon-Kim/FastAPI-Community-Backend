@@ -77,7 +77,7 @@ async def token_login_services(conn: Connection, data: UserLogin):
 # 사용자 비밀번호 검사 
 async def user_pw_services(conn: Connection, data: UserLogin):
 
-    await user_name_services(conn, UserId(id = data.id))
+    await user_name_services(conn, data.id)
 
     # 비밀번호 해싱 처리 후 저장
     data.password = hash_password(data.password)

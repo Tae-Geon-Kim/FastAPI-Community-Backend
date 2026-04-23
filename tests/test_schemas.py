@@ -130,38 +130,18 @@ def test_board_content_long_invalid():
             content = "아스날 우승 실패" * 1000
         )
 
-# 게시판 제목 변경 실패 (잘못된 board_index 형식)
-def test_modi_title_invalid_bindex():
-    with pytest.raises(ValidationError):
-        ModiTitle(
-            board_index = -1,
-            password = "Kim1234!!",
-            new_title = "아스날 우승 실패"
-        )
-
 # 게시판 제목 변경 실패 (잘못된 new_title 형식)
 def test_modi_title_invalid_new_title():
     with pytest.raises(ValidationError):
         ModiTitle(
-            board_index = 1,
             password = "Kim1234!!",
             new_title = " "
-        )
-
-# 게시판 내용 변경 실패 (잘못된 board_index 형태)
-def test_modi_content_invalid_bindex():
-    with pytest.raises(ValidationError):
-        ModiContent(
-            board_index = 0,
-            password = "Kim1234!!",
-            new_content = "아스날 우승 실패 실패" * 20
         )
 
 # 게시판 내용 변경 실패 (잘못된 new_content 형태)
 def test_modi_content_invalid_new_content():
     with pytest.raises(ValidationError):
         ModiContent(
-            board_index = 1,
             password = "Kim1234!!",
             new_content = "아스날 우승 실패 실패" * 1000
         )
@@ -169,7 +149,6 @@ def test_modi_content_invalid_new_content():
 # 게시판 제목 변경 성공
 def test_modi_title_valid():
     data = ModiTitle(
-        board_index = 1,
         password = "Kim1234!!",
         new_title = "아스날 우승 실패 실패 실패" * 2
     )
@@ -177,7 +156,6 @@ def test_modi_title_valid():
 # 게시판 내용 변경 성공
 def test_modi_content_valid():
     data = ModiContent(
-        board_index = 3,
         password = "Kim1234!!",
         new_content = "아스날 우승 실패 실패 실패" * 10
     )
@@ -194,28 +172,15 @@ def test_modi_content_valid():
 
 # 정상적인 단일 파일 삭제/복구 요청
 def test_delete_file_valid():
-    data = DeleteFile(board_index=5, files_index=10, password="Kim1234!!")
-    assert data.board_index == 5
-    assert data.files_index == 10
-
-# 단일 파일 삭제/복구 실패 (board_index가 0 이하일 때)
-def test_delete_file_invalid_board_index():
-    with pytest.raises(ValidationError):
-        DeleteFile(board_index=0, files_index=10, password="Kim1234!!")
-
-# 단일 파일 삭제/복구 실패 (files_index가 음수일 때)
-def test_delete_file_invalid_files_index():
-    with pytest.raises(ValidationError):
-        DeleteFile(board_index=5, files_index=-1, password="Kim1234!!")
+    data = DeleteFile(password = "Kim1234!!")
+    assert data.password == "Kim1234!!"
 
 # 정상적인 전체 파일 삭제/복구 요청
 def test_delete_all_file_valid():
-    data = DeleteAllFile(board_index=5, password="Kim1234!!")
-    assert data.board_index == 5
-    # DeleteAllFile에는 files_index 속성이 없어야 정상
-    assert not hasattr(data, 'files_index') 
+    data = DeleteAllFile(password = "Kim1234!!")
+    assert data.password == "Kim1234!!"
 
-# 전체 파일 삭제/복구 실패 (board_index가 0 이하일 때)
-def test_delete_all_file_invalid_board_index():
+# 단일 파일 삭제 실패 (비밀번호 형식 오류)
+def test_delete_file_invalid_password():
     with pytest.raises(ValidationError):
-        DeleteAllFile(board_index=-3, password="Kim1234!!")
+        DeleteFile(password="InvalidPassword123")

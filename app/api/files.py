@@ -45,9 +45,9 @@ async def upload_files(
     """
 )
 async def delete_single_file(
+    data: DeleteFile,
     board_index: int = Path(..., gt = 0, description = "삭제할 파일이 속한 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"), 
     file_index: int = Path(..., gt = 0, description = "삭제할 파일의 인덱스 (파일의 인덱스는 1이상이어야 합니다.)"),
-    data: DeleteFile,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
@@ -66,8 +66,8 @@ async def delete_single_file(
     """
 )
 async def delete_all_files(
-    board_index: int = Path(..., gt = 0, description = "파일을 전체 삭제할 게시판의 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"),
     data: DeleteAllFile,
+    board_index: int = Path(..., gt = 0, description = "파일을 전체 삭제할 게시판의 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
@@ -90,9 +90,9 @@ async def delete_all_files(
     """
 )
 async def restore_file(
+    data: RestoreFile,
     board_index: int = Path(..., gt = 0, description = "복구할 파일이 속한 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"), 
     file_index: int = Path(..., gt = 0, description = "복구할 파일의 인덱스 (파일의 인덱스는 1이상이어야 합니다.)"),
-    data: RestoreFile,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
@@ -114,8 +114,8 @@ async def restore_file(
     """
 )
 async def restore_all_file(
-    board_index: int = Path(..., gt = 0, description = "전체 파일을 복구할 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"),
     data: RestoreAllFile,
+    board_index: int = Path(..., gt = 0, description = "전체 파일을 복구할 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):

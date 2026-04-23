@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status, Path
 from asyncpg import Connection
 from app.schemas.boards import CreateBoard
 from app.services.boards import *
-from app.schemas.user import UserId, UserLogin
+from app.schemas.user import UserLogin
 from app.db.database import get_db
 from app.core.security import get_current_user
 
@@ -84,8 +84,8 @@ async def get_all_boards(
     """
 )
 async def update_board_title(
-    board_index: int = Path(..., gt = 0, description = "수정할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     data: ModiTitle,
+    board_index: int = Path(..., gt = 0, description = "수정할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
@@ -106,8 +106,8 @@ async def update_board_title(
     """
 )
 async def update_content(
-    board_index: int = Path(..., gt = 0, description = "수정할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     data: ModiContent,
+    board_index: int = Path(..., gt = 0, description = "수정할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
@@ -129,8 +129,8 @@ async def update_content(
     """
 )
 async def delete_boards(
-    board_index: int = Path(..., gt = 0, description = "삭제할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     data: DeleteBoards,
+    board_index: int = Path(..., gt = 0, description = "삭제할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
@@ -152,8 +152,8 @@ async def delete_boards(
 )
 
 async def restore_boards(
-    board_index: int = Path(..., gt = 0, description = "복구할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     data: RestoreBoards,
+    board_index: int = Path(..., gt = 0, description = "복구할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):

@@ -6,7 +6,7 @@ from app.schemas.boards import *
 from app.models.boards import *
 from app.models.user import id_duplicate, get_user_id_pw, get_user_index
 from app.models.files import *
-from app.schemas.user import UserId, UserLogin
+from app.schemas.user import UserLogin
 from app.services.auth import login
 from app.core.security import verify
 

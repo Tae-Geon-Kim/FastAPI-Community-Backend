@@ -61,16 +61,20 @@ async def test_404_not_found(client: AsyncClient):
 # ==========================================
 async def test_router_prefixes_connected(client: AsyncClient):
     """
-    main.py에서 설정한 prefix(/user, /boards, /files)들이
+    main.py에서 설정한 prefix(/users, /boards, /files)들이
     정상적으로 연결되었는지 기초적인 엔드포인트를 찔러 확인합니다.
     (Method Not Allowed 등 404가 아닌 에러가 뜬다면 주소는 잘 맵핑된 것입니다)
     """
     # /user/login 은 POST 방식이므로 GET으로 찌르면 405 Method Not Allowed가 떠야 함.
-    user_res = await client.get("/user/login")
+    user_res = await client.get("/users/login")
     assert user_res.status_code == 405
 
     # /boards/allBInfo 는 GET 방식이므로 정상적으로 200 또는 404(게시물없음)가 떠야 함.
-    boards_res = await client.get("/boards/allBInfo")
+    boards_res = await client.get("/boards")
     assert boards_res.status_code in [200, 404]
+
+    # /files/boards/{board_index} 는 파일 업로드(POST) 방식이므로 GET으로 찌르면 405가 떠야 함.
+    files_res = await client.get("/files/boards/1")
+    assert files_res.status_code == 405
 
     print("[성공] 도메인별 Prefix 라우터 정상 맵핑 확인")
