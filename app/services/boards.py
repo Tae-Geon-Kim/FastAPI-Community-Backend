@@ -109,7 +109,7 @@ async def all_boards_info_services(conn: Connection):
     )
 
 # 게시판 제목 수정
-async def title_modify_services(data: ModiTitle, conn: Connection, current_user_num: str):
+async def title_modify_services(board_index: int, data: ModiTitle, conn: Connection, current_user_num: str):
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -119,7 +119,7 @@ async def title_modify_services(data: ModiTitle, conn: Connection, current_user_
             detail = "비밀번호가 일치하지 않습니다."
         )
 
-    boards_owner = await check_boards_owner(conn, data.board_index)
+    boards_owner = await check_boards_owner(conn, board_index)
     # check_boards_owner()는 fetchrow() --> fetchrow()는 Record 객체 반환
 
     if not boards_owner:
@@ -136,12 +136,12 @@ async def title_modify_services(data: ModiTitle, conn: Connection, current_user_
             detail = "본인의 게시글만 수정할 수 있습니다."
         )
 
-    await title_modify(conn, data.new_title, data.board_index)
+    await title_modify(conn, data.new_title, board_index)
 
     return CommonResponse(message = f"{user_info['id']}의 게시판 제목이 {data.new_title}로 변경되었습니다.")
 
 # 게시판 내용 수정
-async def content_modify_services(data: ModiContent, conn: Connection, current_user_num: str):
+async def content_modify_services(board_index: int, data: ModiContent, conn: Connection, current_user_num: str):
 
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -151,7 +151,7 @@ async def content_modify_services(data: ModiContent, conn: Connection, current_u
             detail = "비밀번호가 일치하지 않습니다."
         )
 
-    boards_owner = await check_boards_owner(conn, data.board_index)
+    boards_owner = await check_boards_owner(conn, board_index)
 
     if boards_owner is None:
         raise HTTPException(
@@ -165,12 +165,12 @@ async def content_modify_services(data: ModiContent, conn: Connection, current_u
             detail = "본인의 게시글만 수정할 수 있습니다."
         )
     
-    await content_modify(conn, data.new_content, data.board_index)
+    await content_modify(conn, data.new_content, board_index)
 
     return CommonResponse(message = f"{user_info['id']}님의 게시판 내용이 변경되었습니다.")
 
 # 게시판 삭제 (soft delete)
-async def boards_delete_services(data: DeleteBoards, conn: Connection, current_user_num: str):
+async def boards_delete_services(board_index: int, data: DeleteBoards, conn: Connection, current_user_num: str):
     
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -180,7 +180,7 @@ async def boards_delete_services(data: DeleteBoards, conn: Connection, current_u
             detail = "비밀번호가 일치하지 않습니다."
         )
     
-    boards_owner = await check_boards_owner(conn, data.board_index)
+    boards_owner = await check_boards_owner(conn, board_index)
 
     # 해당 User가 작성한 글이 존재하는지 확인
     if boards_owner is None:
@@ -198,8 +198,8 @@ async def boards_delete_services(data: DeleteBoards, conn: Connection, current_u
 
     async with conn.transaction():
         #  soft delete
-        await soft_delete_boards(conn, data.board_index)
-        await soft_delete_all_file(conn, data.board_index)
+        await soft_delete_boards(conn, board_index)
+        await soft_delete_all_file(conn, board_index)
 
     return CommonResponse(message = f"{user_info['id']}님의 요청하신 삭제 요청이 성공적으로 처리되었습니다.")
 
@@ -211,7 +211,7 @@ async def delete_boards_perman(pool):
         await delete_files(conn)
 
 # 게시판 삭제 데이터 복구 로직
-async def restore_board_services(data: RestoreBoards, conn: Connection, current_user_num: str):
+async def restore_board_services(board_index: int, data: RestoreBoards, conn: Connection, current_user_num: str):
 
     user_info = await get_user_id_pw(conn, int(current_user_num))
 
@@ -221,12 +221,12 @@ async def restore_board_services(data: RestoreBoards, conn: Connection, current_
             detail = "비밀번호가 일치하지 않습니다."
         )
     
-    restore_boards_owner = await check_restore_boards_owner(conn, data.board_index)
+    restore_boards_owner = await check_restore_boards_owner(conn, board_index)
 
     if restore_boards_owner is None:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
-            detail = f"요청하신 {data.board_index}번 게시판은 존재하지않거나, 복구 대상(삭제 상태)이 아닙니다."
+            detail = f"요청하신 {board_index}번 게시판은 존재하지않거나, 복구 대상(삭제 상태)이 아닙니다."
         )
     
     if restore_boards_owner != int(current_user_num):
@@ -236,9 +236,9 @@ async def restore_board_services(data: RestoreBoards, conn: Connection, current_
         )
     
     async with conn.transaction():
-        await restore_board(conn, data.board_index) # 게시판 데이터 복구
-        await restore_all_files(conn, data.board_index) # 게시판 내에 저장되어 있던 파일들이 있으면 파일들 일괄 복구
-        new_total_fsize = await get_total_fsize(conn, data.board_index) # 파일들 복구되었으면 파일 용량 재계산
-        await update_total_fsize(conn, new_total_fsize, data.board_index) # 재계산된 용량 DB 업로드
+        await restore_board(conn, board_index) # 게시판 데이터 복구
+        await restore_all_files(conn, board_index) # 게시판 내에 저장되어 있던 파일들이 있으면 파일들 일괄 복구
+        new_total_fsize = await get_total_fsize(conn, board_index) # 파일들 복구되었으면 파일 용량 재계산
+        await update_total_fsize(conn, new_total_fsize, board_index) # 재계산된 용량 DB 업로드
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 게시판이 복구되었습니다.")

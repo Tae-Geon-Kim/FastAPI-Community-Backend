@@ -85,7 +85,6 @@ class CreateBoard(BaseModel):
 
 # 게시판 제목 변경
 class ModiTitle(BaseModel):
-    board_index: int = Field(..., gt = 0, description = "게시판의 인덱스는 1이상이어야 합니다.")
     password: str = Field(..., min_length = 8, max_length = 30)
     new_title: str = Field(..., min_length = 2, max_length = 50)
 
@@ -99,7 +98,6 @@ class ModiTitle(BaseModel):
 
 # 게시판 내용 변경
 class ModiContent(BaseModel):
-    board_index: int = Field(..., gt = 0, description = "게시판의 인덱스는 1이상이어야 합니다.")
     password: str = Field(..., min_length = 8, max_length = 30)
     new_content: str = Field(..., min_length = 30, max_length = 2000)
 
@@ -113,7 +111,6 @@ class ModiContent(BaseModel):
 
 # 게시판 삭제
 class DeleteBoards(BaseModel):
-    board_index: int = Field(..., gt = 0, description = "게시판의 인덱스는 1이상이어야 합니다.")
     password: str = Field(..., min_length = 8, max_length = 30)
 
     @field_validator('password')
@@ -122,7 +119,6 @@ class DeleteBoards(BaseModel):
 
 # 게시판 복구
 class RestoreBoards(BaseModel):
-    board_index: int = Field(..., gt = 0, description = "게시판의 인덱스는 1이상이어야 합니다.")
     password: str = Field(..., min_length = 8, max_length = 30)
 
     @field_validator('password')

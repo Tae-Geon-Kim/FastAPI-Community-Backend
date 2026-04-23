@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Path
 from asyncpg import Connection
 from app.schemas.boards import CreateBoard
 from app.services.boards import *
@@ -9,12 +9,11 @@ from app.core.security import get_current_user
 router = APIRouter()
 # 파일별로 API를 나누기 위해 APIRouter를 사용
 
-
 # 특정 유저의 게시판 생성
 @router.post(
-    "/bRegister",
+    "",
     response_model = CommonResponse,
-    status_code = status.HTTP_200_OK,
+    status_code = status.HTTP_201_CREATED,
     summary = "[게시판] 새로운 게시판 생성",
     description = """
     새로운 게시판을 생성
@@ -24,7 +23,7 @@ router = APIRouter()
     - 내용 제약조건: 30 ~ 2000자
     """
 )
-async def bregister(
+async def register_boards(
     data: CreateBoard,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
@@ -34,7 +33,7 @@ async def bregister(
 
 # 특정 유저의 게시판 조회
 @router.get(
-    "/certainBInfo",
+    "/user/{user_id}",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 특정 유저의 게시판 목록을 출력",
@@ -42,18 +41,19 @@ async def bregister(
     특정 유저의 게시판 목록을 출력
 
     - 사용자의 아이디를 입력받아 해당 유저의 게시판 정보를 출력
+    - 허용되는 id 형식: 영문자, 숫자가 무조건 포함된 5 ~ 30자 (특수문자 허용)
     - 로그인 필요하지 않음.
     """
 )
-async def certain_binfo(
-    user_id: str = Query(..., min_length = 5, max_length = 30, description = "허용되는 id 형식: 영문자, 숫자가 무조건 포함한 5 ~ 30자 (특수문자 허용)"),
+async def get_user_boards(
+    user_id: str = Path(..., min_length = 5, max_length = 30, description = "조회할 유저의 아이디"),
     conn: Connection = Depends(get_db)
 ):
     return await certain_boards_info_services(user_id, conn)
 
 # 모든 유저의 게시판 조회
 @router.get(
-    "/allBInfo",
+    "",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 전체 게시판 목록을 출력",
@@ -64,14 +64,14 @@ async def certain_binfo(
     - 로그인 필요하지 않음.
     """
 )
-async def all_binfo(
+async def get_all_boards(
     conn: Connection = Depends(get_db)
 ):
     return await all_boards_info_services(conn)
 
 # 게시판 제목 변경
-@router.post(
-    "/modiTitle",
+@router.patch(
+    "/{board_index}/title",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 게시판 제목을 수정",
@@ -83,16 +83,17 @@ async def all_binfo(
     - 제목을 변경하기 위해서 비밀번호를 다시 입력해야한다.
     """
 )
-async def modi_title(
+async def update_board_title(
+    board_index: int = Path(..., gt = 0, description = "수정할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     data: ModiTitle,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
-    return await title_modify_services(data, conn, current_user_num)
+    return await title_modify_services(board_index, data, conn, current_user_num)
 
 # 게시판 내용 변경
-@router.post(
-    "/modiContent",
+@router.patch(
+    "/{board_index}/content",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 게시판 내용을 수정",
@@ -104,16 +105,17 @@ async def modi_title(
     - 게시판 내용을 변경하기 위해서 비밀번호를 다시 입력해야한다.
     """
 )
-async def modi_content(
+async def update_content(
+    board_index: int = Path(..., gt = 0, description = "수정할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     data: ModiContent,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
-    return await content_modify_services(data, conn, current_user_num)
+    return await content_modify_services(board_index, data, conn, current_user_num)
 
 # 게시판 삭제
-@router.post(
-    "/deleteBoards",
+@router.delete(
+    "/{board_index}",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 게시판 삭제",
@@ -127,15 +129,16 @@ async def modi_content(
     """
 )
 async def delete_boards(
+    board_index: int = Path(..., gt = 0, description = "삭제할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     data: DeleteBoards,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
-    return await boards_delete_services(data, conn, current_user_num)
+    return await boards_delete_services(board_index, data, conn, current_user_num)
 
 # 게시판 복구
 @router.post(
-    "/restoreBoards",
+    "/{board_index}/restore",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 게시판 데이터 복구",
@@ -149,8 +152,9 @@ async def delete_boards(
 )
 
 async def restore_boards(
+    board_index: int = Path(..., gt = 0, description = "복구할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     data: RestoreBoards,
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
-    return await restore_board_services(data, conn, current_user_num)   
+    return await restore_board_services(board_index, data, conn, current_user_num)

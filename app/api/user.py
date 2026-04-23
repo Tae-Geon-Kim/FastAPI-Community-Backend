@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Path
 from asyncpg import Connection
 from app.schemas.user import *
 from app.services.user import *
