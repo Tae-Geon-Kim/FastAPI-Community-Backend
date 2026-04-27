@@ -1,7 +1,7 @@
 import bcrypt
 from asyncpg import Connection
 from datetime import timedelta, datetime, timezone
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, Response, Request
 from jose import jwt, JWTError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.config import jwt_auth
@@ -9,14 +9,16 @@ from app.db.database import get_db
 from app.models.user import get_user_index_deletedAt
 
 
-
 secret_key = jwt_auth.SECRET_KEY
 algorithm = jwt_auth.ALGORITHM
 access_token_expire_minutes = jwt_auth.ACCESS_TOKEN_EXPIRE_MINUTES
 refresh_token_expire_days = jwt_auth.REFRESH_TOKEN_EXPIRE_DAYS
 
-# Swagger에서 Authorize 버튼 생성
-security = HTTPBearer()
+credentials_exception = HTTPException(
+    status_code = status.HTTP_401_UNAUTHORIZED,
+    detail = "유효하지 않은 인증 자격입니다.",
+    headers = {"WWW-Authenticate": "Bearer"}
+)
 
 # 비밀번호를 해싱해서 암호화 후 반환 (return 값: string)
 def hash_password(password: str):   
@@ -71,18 +73,27 @@ def create_refresh_token(data:dict, expires_delta: timedelta | None = None):
     return encode_jwt
 
 # 토큰 확인
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-# Swagger에서 Authorize에 토큰을 넣으면 알아서 Credentials 변수에 토큰을 담아온다.
+def verify_token(request: Request):
+
+    token = request.cookies.get("access_token")
+
+    if token is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "Access token이 존재하지 않습니다."
+        )
+    
+    actual_token = token.split(" ")[1] if token.startswith("Bearer ") else token
 
     try:
-        payload = jwt.decode(credentials.credentials, secret_key, algorithms = [algorithm]) # 토큰 디코딩
-        username: str = payload.get("sub") # 토큰 안의 유저 식별자 꺼내기
+        payload = jwt.decode(actual_token, secret_key, algorithms = [algorithm])
+        username: str = payload.get("sub")
         if username is None:
             raise HTTPException(
                 status_code = status.HTTP_401_UNAUTHORIZED,
                 detail = "유효하지 않은 인증 자격입니다."
             )
-        return username # 정상적인 토큰일시 반환
+        return username
     except JWTError:
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
@@ -108,4 +119,3 @@ async def get_current_user(
         )
     
     return current_user_num
-

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Path
+from fastapi import APIRouter, Depends, status, Path, Response, Cookie, HTTPException
 from asyncpg import Connection
 from app.schemas.user import *
 from app.services.user import *
@@ -21,10 +21,22 @@ router = APIRouter()
 
 )
 async def refresh_access_token(
-    data: TokenRefreshRequest,
+    response: Response,
+    refresh_token: str | None = Cookie(default = None),
     conn: Connection = Depends(get_db)
 ):
-    return await refresh_access_token_services(conn, data)
+
+    if not refresh_token:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "Refresh Token이 존재하지 않습니다."
+        )
+    
+    new_access = await refresh_access_token_services(conn, refresh_token)
+
+    response.set_cookie(key = "access_token", value = f"Bearer {new_access}", httponly = True, samesite = "lax")
+
+    return CommonResponse(message = "토큰이 성공적으로 재발급 되었습니다.")
 
 # JWT 사용자 로그인
 @router.post(
@@ -41,9 +53,15 @@ async def refresh_access_token(
 )
 async def token_login(
     data: UserLogin,
+    response: Response,
     conn: Connection = Depends(get_db)
 ):
-    return await token_login_services(conn, data)
+    access_token, refresh_token = await token_login_services(conn, data)
+
+    response.set_cookie(key = "access_token", value = f"Bearer {access_token}", httponly = True, samesite = "lax")
+    response.set_cookie(key = "refresh_token", value = f"Bearer {refresh_token}", httponly = True, samesite = "lax")
+
+    return CommonResponse(message = "로그인에 성공하였습니다.")
 
 
 # 신규 회원가입 비밀번호를 입력했을 때, 해싱된 비밀번호 값을 DB에 저장

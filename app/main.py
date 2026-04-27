@@ -2,6 +2,7 @@ import uvicorn
 import traceback
 import time
 from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from app.db.database import lifespan
 from app.api.boards import router as boards_router
 from app.api.user import router as user_router
@@ -9,6 +10,17 @@ from app.api.files import router as files_router
 from app.core.logger import logger
 
 app = FastAPI(lifespan = lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # React 기본 포트
+        "http://localhost:5173",  # Vite 기본 포트
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.middleware("http")
 async def log_request(request: Request, call_next):

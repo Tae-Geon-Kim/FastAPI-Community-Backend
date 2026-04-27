@@ -3,40 +3,25 @@ from fastapi import HTTPException, status
 from app.schemas.user import *
 from app.models.user import *
 from app.models.boards import *
-from app.core.security import *
+from app.core.security import hash_password, verify, create_refresh_token, create_access_token, credentials_exception
 from app.services.auth import *
 from app.models.files import *
 
 secret_key = jwt_auth.SECRET_KEY
 algorithm = jwt_auth.ALGORITHM
 
-credentials_exception = HTTPException(
-    status_code = status.HTTP_401_UNAUTHORIZED,
-    detail = "유효하지 않은 인증 자격입니다.",
-    headers = {"WWW-Authenticate": "Bearer"}
-)
-
 # JWT 토큰 재발급
-async def refresh_access_token_services(conn: Connection, data: TokenRefreshRequest):
-    
+async def refresh_access_token_services(conn: Connection, refresh_token: str):
+
     try:
-        payload = jwt.decode(data.refresh_token, secret_key, algorithms = [algorithm])
+        payload = jwt.decode(refresh_token, secret_key, algorithms = [algorithm])
         user_id: str = payload.get("sub")
         if user_id is None:
            raise credentials_exception
 
         new_access = create_access_token(data = {"sub": str(user_id)})
         
-        token_data = TokenResponse(
-            access_token = new_access,
-            refresh_token = data.refresh_token,
-            token_type = "bearer"
-        )
-
-        return CommonResponse(
-            message = "토큰이 성공적으로 재발급 되었습니다.",
-            data = token_data
-        )
+        return new_access
 
     # 토큰 만료 에러
     except ExpiredSignatureError:
@@ -63,16 +48,7 @@ async def token_login_services(conn: Connection, data: UserLogin):
     access_token = create_access_token(data = {"sub": str(user_num)})
     refresh_token = create_refresh_token(data = {"sub": str(user_num)})
 
-    token_data = TokenResponse(
-        access_token = access_token,
-        refresh_token = refresh_token,
-        token_type = "bearer"
-    )
-
-    return CommonResponse(
-        message = "로그인에 성공하였습니다.",
-        data = token_data
-    )
+    return access_token, refresh_token
 
 # 사용자 비밀번호 검사 
 async def user_pw_services(conn: Connection, data: UserLogin):
