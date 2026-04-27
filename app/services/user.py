@@ -171,4 +171,4 @@ async def restore_user_services(conn: Connection, data: UserLogin):
         await restore_user_boards(conn, user_num)
         await restore_user_file(conn, user_num)
 
-    return CommonResponse(message = f"{data.id}님의 아이디가 복구되었습니다.")
+    return CommonResponse(message = f"{data.id}님의 아이디가 복구되었습니다.") 

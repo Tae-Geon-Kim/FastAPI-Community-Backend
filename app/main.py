@@ -48,4 +48,4 @@ app.include_router(boards_router, prefix = "/boards", tags = ["Boards"])
 app.include_router(files_router, prefix = "/files", tags = ["Files"])
 
 if __name__ == "__main__":
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        uvicorn.run(app, host="0.0.0.0", port=8000) 
