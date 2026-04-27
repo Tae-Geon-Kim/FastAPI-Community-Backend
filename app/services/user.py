@@ -1,8 +1,10 @@
 from asyncpg import Connection
 from fastapi import HTTPException, status
+from jose import jwt, JWTError, ExpiredSignatureError
 from app.schemas.user import *
 from app.models.user import *
 from app.models.boards import *
+from app.core.config import jwt_auth
 from app.core.security import hash_password, verify, create_refresh_token, create_access_token, credentials_exception
 from app.services.auth import *
 from app.models.files import *
