@@ -78,10 +78,7 @@ def verify_token(request: Request):
     token = request.cookies.get("access_token")
 
     if token is None:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "Access token이 존재하지 않습니다."
-        )
+        raise credentials_exception
     
     actual_token = token.split(" ")[1] if token.startswith("Bearer ") else token
 
@@ -89,16 +86,10 @@ def verify_token(request: Request):
         payload = jwt.decode(actual_token, secret_key, algorithms = [algorithm])
         username: str = payload.get("sub")
         if username is None:
-            raise HTTPException(
-                status_code = status.HTTP_401_UNAUTHORIZED,
-                detail = "유효하지 않은 인증 자격입니다."
-            )
+            raise credentials_exception
         return username
     except JWTError:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "유효하지 않은 인증 자격입니다."
-        )
+        raise credentials_exception
 
 async def get_current_user(
     current_user_num: str = Depends(verify_token),

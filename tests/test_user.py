@@ -34,25 +34,23 @@ async def test_user_integration_scenario(client: AsyncClient):
     # 3. 로그인 및 토큰 발급 테스트 (POST /users/login)
     login_res = await client.post("/users/login", json={"id": TEST_USER_ID, "password": TEST_USER_PW})
     assert login_res.status_code == 201
-    
-    access_token = login_res.json()["data"]["access_token"]
-    headers = {"Authorization": f"Bearer {access_token}"}
+    assert "access_token" in login_res.cookies
 
     # 4. 로그인한 사용자 정보 조회 (GET /users/me)
-    info_res = await client.get("/users/me", headers=headers)
+    info_res = await client.get("/users/me")
     assert info_res.status_code == 200
     assert info_res.json()["data"]["id"] == TEST_USER_ID
 
     # 5. 아이디 변경 테스트 (PATCH /users/me/id)
-    id_mod_res = await client.patch("/users/me/id", headers=headers, json={"password": TEST_USER_PW, "new_id": NEW_USER_ID})
+    id_mod_res = await client.patch("/users/me/id", json={"password": TEST_USER_PW, "new_id": NEW_USER_ID})
     assert id_mod_res.status_code == 200
 
     # 6. 비밀번호 변경 테스트 (PATCH /users/me/password)
-    pw_mod_res = await client.patch("/users/me/password", headers=headers, json={"password": TEST_USER_PW, "new_password": NEW_USER_PW})
+    pw_mod_res = await client.patch("/users/me/password", json={"password": TEST_USER_PW, "new_password": NEW_USER_PW})
     assert pw_mod_res.status_code == 200
 
     # 7. 회원 탈퇴 테스트 (DELETE /users/me)
-    withdraw_res = await client.request("DELETE", "/users/me", headers=headers, json={"password": NEW_USER_PW})
+    withdraw_res = await client.request("DELETE", "/users/me", json={"password": NEW_USER_PW})
     
     assert withdraw_res.status_code == 200
 
@@ -115,7 +113,7 @@ async def test_access_without_token(client: AsyncClient):
     info_res = await client.get("/users/me")
     
     assert info_res.status_code == 401
-    assert "Not authenticated" in info_res.json()["detail"]
+    assert "유효하지 않은 인증 자격입니다." in info_res.json()["detail"]
 
 
 # ==========================================
@@ -146,12 +144,10 @@ async def test_id_modify_duplicate_conflict(client: AsyncClient):
 
     # 유저 1로 로그인하여 토큰 획득
     login_res = await client.post("/users/login", json={"id": USER1_ID, "password": USER1_PW})
-    headers = {"Authorization": f"Bearer {login_res.json()['data']['access_token']}"}
 
     # 유저 1이 본인의 아이디를 유저 2의 아이디(second_user22!!)로 변경
     mod_res = await client.patch(
         "/users/me/id",
-        headers=headers,
         json={"password": USER1_PW, "new_id": USER2_ID}
     )
     
@@ -170,13 +166,11 @@ async def test_withdraw_wrong_password(client: AsyncClient):
     # 가입 및 로그인
     await client.post("/users", json={"id": TARGET_ID, "password": REAL_PW})
     login_res = await client.post("/users/login", json={"id": TARGET_ID, "password": REAL_PW})
-    headers = {"Authorization": f"Bearer {login_res.json()['data']['access_token']}"}
 
     # 틀린 비밀번호로 회원탈퇴 시도
     withdraw_res = await client.request(
         "DELETE",
         "/users/me",
-        headers=headers,
         json={"password": WRONG_PW}
     )
     

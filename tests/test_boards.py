@@ -24,21 +24,18 @@ async def setup_test_user(client: AsyncClient, test_userId, test_userPw):
 
     await client.post("/users", json={"id": test_userId, "password": test_userPw})
 
-    login_res = await client.post("/users/login", json={"id": test_userId, "password": test_userPw})
-    token = login_res.json()["data"]["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+    await client.post("/users/login", json={"id": test_userId, "password": test_userPw})
 
 # ==========================================
 # 정상 작동 통합 테스트
 # ==========================================
 async def test_boards_valid_case(client: AsyncClient):
 
-    headers = await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
+    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
 
     # 1. 특정 유저의 게시판 생성 (POST /boards)
     create_res = await client.post(
         "/boards", 
-        headers=headers,
         json={"title": TEST_BOARDS_TITLE, "content": TEST_BOARDS_CONTENT}
     )
     assert create_res.status_code == 201 
@@ -63,7 +60,6 @@ async def test_boards_valid_case(client: AsyncClient):
     # 4. 게시판 제목 변경 (PATCH /boards/{board_index}/title)
     modi_title_res = await client.patch(
         f"/boards/{target_board_index}/title",
-        headers=headers,
         json={"password": TEST_USER_PW, "new_title": TEST_BOARDS_NEW_TITLE}
     )
     assert modi_title_res.status_code == 200
@@ -71,7 +67,6 @@ async def test_boards_valid_case(client: AsyncClient):
     # 5. 게시판 내용 변경 (PATCH /boards/{board_index}/content)
     modi_content_res = await client.patch(
         f"/boards/{target_board_index}/content",
-        headers=headers,
         json={"password": TEST_USER_PW, "new_content": TEST_BOARDS_NEW_CONTENT}
     )
     assert modi_content_res.status_code == 200
@@ -80,7 +75,6 @@ async def test_boards_valid_case(client: AsyncClient):
     del_res = await client.request(
         "DELETE",
         f"/boards/{target_board_index}",
-        headers=headers,
         json={"password": TEST_USER_PW}
     )
     assert del_res.status_code == 200
@@ -88,7 +82,6 @@ async def test_boards_valid_case(client: AsyncClient):
     # 7. 게시판 복구 (POST /boards/{board_index}/restore)
     restore_res = await client.post(
         f"/boards/{target_board_index}/restore",
-        headers=headers,
         json={"password": TEST_USER_PW}
     )
     assert restore_res.status_code == 200
@@ -114,9 +107,6 @@ async def test_certainInfo_noUser_conflict(client: AsyncClient):
 async def test_allBInfo_noUser_conflict(client: AsyncClient):
 
     res = await client.get("/boards")
-    
-    # ⚠️ 주의: 전체 테스트를 순차적으로 돌리면 위에서 이미 글을 생성했기 때문에 404가 안 뜰 수 있습니다!
-    # 만약 여기서 테스트 실패(에러)가 난다면 이 함수는 주석 처리하거나 DB 초기화 로직을 넣어야 합니다.
     assert res.status_code in [200, 404] 
 
 
@@ -125,29 +115,28 @@ async def test_allBInfo_noUser_conflict(client: AsyncClient):
 # ==========================================
 async def test_boards_unauthorized_access(client: AsyncClient):
 
-    # 유저 A와 유저 B 가입 및 헤더 획득
-    headers_A = await setup_test_user(client, "userA111", TEST_USER_PW)
-    headers_B = await setup_test_user(client, "userB222", TEST_USER_PW)
+    # A로 가입 & 로그인
+    await setup_test_user(client, "userA111", TEST_USER_PW)
 
-    # A가 글 작성
+    # A 글 작성
     await client.post(
         "/boards",
-        headers = headers_A,
         json = {
             "title": "A가 작성하는 글 제목입니다.",
             "content": "이 글은 A가 작성하는 글의 내용입니다. 글의 최소 길이는 30자 입니다."
         } 
     )
 
-    # 생성된 글 번호 가져오기
     all_res = await client.get("/boards")
     target_index = all_res.json()["data"][-1]["posts"][-1]["index"] # 맨 마지막에 생성된 글 인덱스
+
+    # B로 가입 & 로그인
+    await setup_test_user(client, "userB222", TEST_USER_PW)
 
     # B가 A의 글 삭제 시도 -> 403 Forbidden
     del_res = await client.request(
         "DELETE",
         f"/boards/{target_index}",
-        headers=headers_B,  # B의 토큰 사용!
         json={"password": TEST_USER_PW}
     )
     assert del_res.status_code == 403
@@ -159,13 +148,11 @@ async def test_boards_unauthorized_access(client: AsyncClient):
 # ==========================================
 async def test_boards_not_found(client: AsyncClient):
 
-    headers = await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
+    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
     GHOST_INDEX = 99999
 
-    # PATCH 메서드, 주소로 인덱스 이동
     modi_res = await client.patch(
         f"/boards/{GHOST_INDEX}/title",
-        headers=headers,
         json={"password": TEST_USER_PW, "new_title": "유령 제목 길게 적어야 통과함"}
     )
     assert modi_res.status_code == 404
@@ -177,10 +164,10 @@ async def test_boards_not_found(client: AsyncClient):
 # ==========================================
 async def test_boards_wrong_password(client: AsyncClient):
 
-    headers = await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
+    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
     
     # 글 작성
-    await client.post("/boards", headers=headers, json={"title": TEST_BOARDS_TITLE, "content": TEST_BOARDS_CONTENT})
+    await client.post("/boards", json={"title": TEST_BOARDS_TITLE, "content": TEST_BOARDS_CONTENT})
     all_res = await client.get("/boards")
     target_index = all_res.json()["data"][-1]["posts"][-1]["index"] # 맨 마지막 글
 
@@ -188,7 +175,6 @@ async def test_boards_wrong_password(client: AsyncClient):
     del_res = await client.request(
         "DELETE",
         f"/boards/{target_index}",
-        headers=headers,
         json={"password": "WrongPassword99!!"}
     )
     assert del_res.status_code == 401
