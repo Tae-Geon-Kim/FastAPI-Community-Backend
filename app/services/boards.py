@@ -22,7 +22,7 @@ async def create_boards_services(data: CreateBoard, conn: Connection, current_us
 
     return CommonResponse(
         message = "게시판이 생성되었습니다.",
-        data = {"board_index: " new_board_index}
+        data = {"board_index": new_board_index}
     )
 
 # 특정 게시글 1개 상세 조회 
