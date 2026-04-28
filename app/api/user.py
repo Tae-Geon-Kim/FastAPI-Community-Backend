@@ -63,6 +63,24 @@ async def token_login(
 
     return CommonResponse(message = "로그인에 성공하였습니다.")
 
+# JWT 사용자 로그아웃
+@router.post(
+    "/logout",
+    reponse_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[인증] 사용자 로그아웃",
+    description = """
+    사용자의 로그아웃을 처리하고 브라우저에 저장된 JWT 쿠키를 삭제합니다.
+
+    """
+)
+async def token_logout(
+    response: Response
+):
+    response.delete_cookie(key = "access_token", httponly = True, samesite = "lax")
+    response.delete_cookie(key = "refresh_token", httponly = True, samesite = "lax")
+
+    return CommonResponse(message = "성공적으로 로그아웃 되었습니다.")
 
 # 신규 회원가입 비밀번호를 입력했을 때, 해싱된 비밀번호 값을 DB에 저장
 @router.post(
