@@ -15,13 +15,15 @@ def convert_mb(size_bytes: int) -> str:
         return "0.00MB"
     return f"{(size_bytes / (1024 * 1024)):.2f}MB"
 
-# 게시판 생성
+# 게시판 생성 - DB에 저장을 하고 게시판의 인덱스를 다시 받아온다.
 async def create_boards_services(data: CreateBoard, conn: Connection, current_user_num: str):
 
-    # 게시판을 저장할 때 user_num도 같이 저장
-    await insert_boards_db(conn, data.title, data.content, int(current_user_num))
-    
-    return CommonResponse(message = "게시판이 생성되었습니다.")
+    new_board_index = await insert_boards_db(conn, data.title, data.content, int(current_user_num))
+
+    return CommonResponse(
+        message = "게시판이 생성되었습니다.",
+        data = {"board_index: " new_board_index}
+    )
 
 # 특정 게시글 1개 상세 조회 
 async def single_board_info_services(board_index: int, conn: Connection):
