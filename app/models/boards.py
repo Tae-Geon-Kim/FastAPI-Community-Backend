@@ -145,3 +145,10 @@ async def soft_withdraw_boards(conn: Connection, user_index: int):
 	sql = 'UPDATE boards SET deleted_at = NOW() where user_index = $1 AND deleted_at IS NULL'
 
 	return await conn.execute(sql, user_index)
+
+# 특정 게시글 1개 상세 조회
+async def pull_board_info_by_index(conn: Connection, board_index: int):
+
+	sql = 'SELECT * FROM "boards" WHERE index = $1 AND deleted_at IS NULL'
+
+	return await conn.fetchrow(sql, board_index)

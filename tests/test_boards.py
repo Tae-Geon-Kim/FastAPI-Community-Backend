@@ -49,29 +49,34 @@ async def test_boards_valid_case(client: AsyncClient):
     grouped_data = all_res.json().get("data", [])
     assert len(grouped_data) > 0
     first_author_posts = grouped_data[0]["posts"]
-    target_board_index = first_author_posts[0]["index"] # v
+    target_board_index = first_author_posts[0]["index"]
     print(f"[성공] 조회된 게시글 번호: {target_board_index}")
 
-    # 3. 특정 유저의 게시판 상세 조회 (GET /boards/users/{user_id})
+    # 3. 특정 게시글 단건 조회 (GET /boards/{board_index})
+    detail_res = await client.get(f"/boards/{target_board_index}")
+    assert detail_res.status_code == 200
+    print(f"[성공] 단건 게시글 상세 조회 완료: {detail_res.json()['data']['title']}")
+
+    # 4. 특정 유저의 게시판 리스트 조회 (GET /boards/users/{user_id})
     certain_res = await client.get(f"/boards/users/{TEST_USER_ID}")
     assert certain_res.status_code == 200
     print(f"[성공] {TEST_USER_ID}님의 게시글 목록 출력 완료")
 
-    # 4. 게시판 제목 변경 (PATCH /boards/{board_index}/title)
+    # 5. 게시판 제목 변경 (PATCH /boards/{board_index}/title)
     modi_title_res = await client.patch(
         f"/boards/{target_board_index}/title",
         json={"password": TEST_USER_PW, "new_title": TEST_BOARDS_NEW_TITLE}
     )
     assert modi_title_res.status_code == 200
 
-    # 5. 게시판 내용 변경 (PATCH /boards/{board_index}/content)
+    # 6. 게시판 내용 변경 (PATCH /boards/{board_index}/content)
     modi_content_res = await client.patch(
         f"/boards/{target_board_index}/content",
         json={"password": TEST_USER_PW, "new_content": TEST_BOARDS_NEW_CONTENT}
     )
     assert modi_content_res.status_code == 200
 
-    # 6. 게시판 삭제 (DELETE /boards/{board_index})
+    # 7. 게시판 삭제 (DELETE /boards/{board_index})
     del_res = await client.request(
         "DELETE",
         f"/boards/{target_board_index}",
@@ -79,7 +84,7 @@ async def test_boards_valid_case(client: AsyncClient):
     )
     assert del_res.status_code == 200
 
-    # 7. 게시판 복구 (POST /boards/{board_index}/restore)
+    # 8. 게시판 복구 (POST /boards/{board_index}/restore)
     restore_res = await client.post(
         f"/boards/{target_board_index}/restore",
         json={"password": TEST_USER_PW}
@@ -150,6 +155,10 @@ async def test_boards_not_found(client: AsyncClient):
 
     await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
     GHOST_INDEX = 99999
+
+    detail_res = await client.get(f"/boards/{GHOST_INDEX}")
+    assert detail_res.status_code == 404
+    assert "존재하지 않거나 삭제된" in detail_res.json()["detail"]
 
     modi_res = await client.patch(
         f"/boards/{GHOST_INDEX}/title",

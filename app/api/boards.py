@@ -30,6 +30,24 @@ async def register_boards(
 ):
     return await create_boards_services(data, conn, current_user_num)
 
+ # 단건 게시글 조회
+@router.get(
+    "/{board_index}",
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[게시판] 특정 게시글 상세 조회",
+    description = """
+    특정 게시글 하나만 상세하게 조회합니다.
+
+    - 게시글의 인덱스(board_index)를 입력받아 해당 글만 출력합니다.
+    - 로그인 필요하지 않음.
+    """
+ )
+async def get_board_detail(
+    board_index: int = Path(..., gt = 0, description = "조회할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
+    conn: Connection = Depends(get_db)
+):
+    return await single_board_info_services(board_index, conn)
 
 # 특정 유저의 게시판 조회
 @router.get(

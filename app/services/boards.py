@@ -23,6 +23,22 @@ async def create_boards_services(data: CreateBoard, conn: Connection, current_us
     
     return CommonResponse(message = "게시판이 생성되었습니다.")
 
+# 특정 게시글 1개 상세 조회 
+async def single_board_info_services(board_index: int, conn: Connection):
+
+    board_data = await pull_board_info_by_index(conn, board_index)
+
+    if not board_data:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "존재하지 않거나 삭제된 게시글입니다."
+        )
+
+    return CommonResponse(
+        message = "게시글 상세 조회에 성공하였습니다.",
+        data = dict(board_data)
+    )
+
 # 특정 사용자의 게시판 목록을 출력 (로그인 필요 없이 user의 id를 입력받아서)
 async def certain_boards_info_services(user_id: str, conn: Connection):
     
