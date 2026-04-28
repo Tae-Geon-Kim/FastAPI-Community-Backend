@@ -66,7 +66,7 @@ async def token_login(
 # JWT 사용자 로그아웃
 @router.post(
     "/logout",
-    reponse_model = CommonResponse,
+    response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[인증] 사용자 로그아웃",
     description = """
