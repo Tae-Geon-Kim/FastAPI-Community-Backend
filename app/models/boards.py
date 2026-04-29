@@ -148,7 +148,31 @@ async def soft_withdraw_boards(conn: Connection, user_index: int):
 
 # 특정 게시글 1개 상세 조회
 async def pull_board_info_by_index(conn: Connection, board_index: int):
-
-	sql = 'SELECT * FROM "boards" WHERE index = $1 AND deleted_at IS NULL'
-
-	return await conn.fetchrow(sql, board_index)
+    sql = """
+        SELECT
+            b.index,
+            b.title,
+            b.content,
+            b.reg_date,
+            b.update_date,
+            b.total_file_size,
+            u.id AS author,
+            COALESCE(
+                (SELECT json_agg(json_build_object (
+                    'index', f.index,
+                    'original_name', f.original_name,
+                    'file_size', f.file_size,
+                    'reg_date', f.reg_date
+                ))
+                FROM files as f
+                WHERE f.board_index = b.index
+                AND f.deleted_at IS NULL),
+                '[]'::json
+            ) AS files
+        FROM boards AS b
+        INNER JOIN "user" AS u ON b.user_index = u.index
+        WHERE b.index = $1 
+            AND b.deleted_at IS NULL 
+            AND u.deleted_at IS NULL
+    """
+    return await conn.fetchrow(sql, board_index)

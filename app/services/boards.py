@@ -27,7 +27,6 @@ async def create_boards_services(data: CreateBoard, conn: Connection, current_us
 
 # 특정 게시글 1개 상세 조회 
 async def single_board_info_services(board_index: int, conn: Connection):
-
     board_data = await pull_board_info_by_index(conn, board_index)
 
     if not board_data:
@@ -36,9 +35,19 @@ async def single_board_info_services(board_index: int, conn: Connection):
             detail = "존재하지 않거나 삭제된 게시글입니다."
         )
 
+    board_dict = dict(board_data)
+    
+    board_dict['total_file_size'] = convert_mb(board_dict.get("total_file_size", 0))
+
+    if isinstance(board_dict.get('files'), str):
+        board_dict['files'] = json.loads(board_dict['files'])
+        for f in board_dict['files']:
+            if 'file_size' in f:
+                f['file_size'] = convert_mb(f['file_size'])
+
     return CommonResponse(
         message = "게시글 상세 조회에 성공하였습니다.",
-        data = dict(board_data)
+        data = board_dict
     )
 
 # 특정 사용자의 게시판 목록을 출력 (로그인 필요 없이 user의 id를 입력받아서)
