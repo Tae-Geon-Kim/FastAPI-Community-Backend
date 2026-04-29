@@ -16,6 +16,7 @@ class BoardFileResponse(BaseModel):
     original_name: str
     file_size: str
     reg_date: datetime
+    deleted_at: Optional[datetime] = None
 
 # 게시판 정보 조회 (certain)
 class BoardInfo(BaseModel):

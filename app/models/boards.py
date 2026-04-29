@@ -162,11 +162,11 @@ async def pull_board_info_by_index(conn: Connection, board_index: int):
                     'index', f.index,
                     'original_name', f.original_name,
                     'file_size', f.file_size,
-                    'reg_date', f.reg_date
+                    'reg_date', f.reg_date,
+                    'deleted_at', f.deleted_at
                 ))
                 FROM files as f
-                WHERE f.board_index = b.index
-                AND f.deleted_at IS NULL),
+                WHERE f.board_index = b.index),
                 '[]'::json
             ) AS files
         FROM boards AS b
