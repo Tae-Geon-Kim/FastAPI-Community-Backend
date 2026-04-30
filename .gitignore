@@ -14,3 +14,6 @@ upload/
 
 # 도커 데이터베이스 데이터 폴더
 postgres_data/
+
+# Redis data
+redis_data/

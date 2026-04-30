@@ -30,8 +30,6 @@ jobs:
           --health-retries 5
       redis:
         image: redis:alpine
-        env:
-          REDIS_PASSWORD: ""
         ports:
           - 6379:6379
         options: >-
@@ -76,7 +74,7 @@ jobs:
 
           REDIS_HOST: localhost
           REDIS_PORT: 6379
-          REDIS_PASSWORD: ${{secrets.REDIS_PASSWORD}}
+          REDIS_PASSWORD: "trash_value"
 
           SECRET_KEY: ${{ secrets.TOKEN_SECRET_KEY }}
           ALGORITHM: HS256
