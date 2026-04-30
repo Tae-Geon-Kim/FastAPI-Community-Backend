@@ -74,7 +74,6 @@ jobs:
 
           REDIS_HOST: localhost
           REDIS_PORT: 6379
-          REDIS_PASSWORD: "trash_value"
 
           SECRET_KEY: ${{ secrets.TOKEN_SECRET_KEY }}
           ALGORITHM: HS256
