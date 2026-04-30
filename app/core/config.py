@@ -46,8 +46,8 @@ log_setting = Logging()
 class RedisSettings(BaseSettings):
     REDIS_HOST: str
     REDIS_PORT: int
-    REDIS_PASSWORD: str
-
+    REDIS_PASSWORD: str | None = None
+    
     model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
 
 redis_settings = RedisSettings()
