@@ -30,6 +30,8 @@ jobs:
           --health-retries 5
       redis:
         image: redis:alpine
+        env:
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         ports:
           - 6379:6379
         options: >-
