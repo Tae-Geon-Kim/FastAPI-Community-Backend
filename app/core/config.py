@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     FILE_MAX_SIZE: int
     FILE_TOTAL_MAX_SIZE: int
     
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
 
 settings = Settings()
 
@@ -25,7 +25,7 @@ class JWT_Auth(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
     
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
     
 jwt_auth = JWT_Auth()
 
@@ -39,6 +39,15 @@ class Logging(BaseSettings):
     FORMAT: str
     DATEFMT: str
     
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
 
 log_setting = Logging()
+
+class RedisSettings(BaseSettings):
+    REDIS_HOST: str
+    REDIS_PORT: int
+    REDIS_PASSWORD: str
+
+    model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
+
+redis_settings = RedisSettings()

@@ -63,6 +63,10 @@ jobs:
           FILE_MAX_SIZE: 5242880
           FILE_TOTAL_MAX_SIZE: 26214400
 
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ${{secrets.REDIS_PASSWORD}}
+
           SECRET_KEY: ${{ secrets.TOKEN_SECRET_KEY }}
           ALGORITHM: HS256
           ACCESS_TOKEN_EXPIRE_MINUTES: 30

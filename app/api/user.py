@@ -75,8 +75,11 @@ async def token_login(
     """
 )
 async def token_logout(
-    response: Response
+    response: Response,
+    current_user_num: str = Depends(get_current_user)
 ):
+    await redis_db.delete(f"Refresh:user: {current_user_num}")
+    
     response.delete_cookie(key = "access_token", httponly = True, samesite = "lax")
     response.delete_cookie(key = "refresh_token", httponly = True, samesite = "lax")
 
@@ -156,6 +159,8 @@ async def withdraw_user(
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
+    await redis_db.delete(f"Refresh:user: {current_user_num}")
+
     return await user_withdraw_services(data, conn, current_user_num)
 
 # 사용자 아이디 변경
@@ -198,6 +203,8 @@ async def update_my_password(
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
+    await redis_db.delete(f"Refresh:user: {current_user_num}")
+
     return await userPw_modify_services(data, conn, current_user_num)
 
 
