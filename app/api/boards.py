@@ -1,10 +1,20 @@
 from fastapi import APIRouter, Depends, status, Path
 from asyncpg import Connection
-from app.schemas.boards import CreateBoard
-from app.services.boards import *
+from app.schemas.boards import CreateBoard, ModiTitle, ModiContent, DeleteBoards, RestoreBoards
 from app.schemas.user import UserLogin
 from app.db.database import get_db
 from app.core.security import get_current_user
+from app.schemas.common import CommonResponse
+from app.services.boards import (
+    create_boards_services,
+    certain_boards_info_services,
+    single_board_info_services,
+    all_boards_info_services,
+    title_modify_services,
+    content_modify_services,
+    boards_delete_services,
+    restore_board_services
+)
 
 router = APIRouter()
 # 파일별로 API를 나누기 위해 APIRouter를 사용

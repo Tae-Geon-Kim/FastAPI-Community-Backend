@@ -4,12 +4,6 @@ from datetime import datetime
 from typing import Optional, Any
 from app.schemas.user import validate_password_format
 
-# 응답 규격화
-class CommonResponse(BaseModel):
-    success: bool = True
-    message: str = "사용자의 요청이 성공적으로 수행되었습니다."
-    data: Optional[Any] = None
-
 # 특정 유저 게시판 조회 / 전체 게시판 조회 모두에서 사용
 class BoardFileResponse(BaseModel):
     index: int # 파일의 인덱스

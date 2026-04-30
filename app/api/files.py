@@ -1,10 +1,17 @@
-from fastapi import APIRouter, Depends, status, UploadFile, File, Form, Path
-from typing import List
-from app.schemas.files import *
-from app.services.files import *
+from fastapi import APIRouter, Depends, status, UploadFile, File, Path
+from asyncpg import Connection
+from app.schemas.common import CommonResponse
+from app.schemas.files import DeleteFile, DeleteAllFile, RestoreFile, RestoreAllFile
 from app.db.database import get_db
 from app.core.security import get_current_user
-from asyncpg import Connection
+from app.schemas.common import CommonResponse
+from app.services.files import (
+    upload_files_services,
+    delete_files_services,
+    delete_all_services,
+    restore_file_services,
+    restore_all_file_services
+)
 
 router = APIRouter()
 

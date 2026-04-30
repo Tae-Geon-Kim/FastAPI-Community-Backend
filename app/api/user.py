@@ -1,8 +1,22 @@
-from fastapi import APIRouter, Depends, status, Path, Response, Cookie, HTTPException
+from fastapi import (
+    APIRouter, Depends, status, Path, Response,
+    Cookie, HTTPException
+)
 from asyncpg import Connection
-from app.schemas.user import *
-from app.services.user import *
+from app.schemas.user import UserLogin, UserPw, ModiId, ModiPw
+from app.schemas.common import CommonResponse
+from app.services.user import (
+    user_pw_services,
+    user_name_services,
+    user_info_services,
+    user_withdraw_services,
+    userId_modify_services,
+    userPw_modify_services,
+    restore_user_services
+)
+from app.services.auth import refresh_access_token_services, token_login_services
 from app.db.database import get_db
+from app.db.redis_config import redis_db
 from app.core.security import get_current_user
 
 router = APIRouter()
@@ -78,7 +92,8 @@ async def token_logout(
     response: Response,
     current_user_num: str = Depends(get_current_user)
 ):
-    await redis_db.delete(f"Refresh:user: {current_user_num}")
+
+    await redis_db.delete(f"refresh:user:{current_user_num}")
     
     response.delete_cookie(key = "access_token", httponly = True, samesite = "lax")
     response.delete_cookie(key = "refresh_token", httponly = True, samesite = "lax")
@@ -159,7 +174,7 @@ async def withdraw_user(
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
-    await redis_db.delete(f"Refresh:user: {current_user_num}")
+    await redis_db.delete(f"refresh:user:{current_user_num}")
 
     return await user_withdraw_services(data, conn, current_user_num)
 
@@ -203,7 +218,7 @@ async def update_my_password(
     conn: Connection = Depends(get_db),
     current_user_num: str = Depends(get_current_user)
 ):
-    await redis_db.delete(f"Refresh:user: {current_user_num}")
+    await redis_db.delete(f"refresh:user:{current_user_num}")
 
     return await userPw_modify_services(data, conn, current_user_num)
 

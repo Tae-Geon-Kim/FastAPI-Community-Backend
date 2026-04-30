@@ -2,12 +2,6 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Any
 from app.schemas.user import validate_password_format
 
-# 응답 규격화
-class CommonResponse(BaseModel):
-    success: bool = True
-    message: str = "사용자의 요청이 성공적으로 수행되었습니다."
-    data: Optional[Any] = None
-
 # 단일 파일 삭제
 class DeleteFile(BaseModel):
     password: str = Field(..., min_length = 8, max_length = 30)

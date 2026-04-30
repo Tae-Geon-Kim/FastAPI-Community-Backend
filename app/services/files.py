@@ -3,9 +3,16 @@ import uuid
 import aiofiles
 from asyncpg import Connection
 from fastapi import HTTPException, status, UploadFile
-from app.schemas.files import *
-from app.models.files import *
+from app.schemas.files import DeleteFile, DeleteAllFile, RestoreFile, RestoreAllFile
 from app.schemas.user import UserLogin
+from app.schemas.common import CommonResponse
+from app.models.files import (
+    get_total_fsize, upload_files_db, update_total_fsize, check_files_belong,
+    soft_delete_one_file, soft_delete_all_file, restore_check_files_belong,
+    get_softDelete_fsize, restore_files, restore_all_check_files_belong,
+    get_total_softDelete_fsize, restore_all_files, get_delete_file_path,
+    delete_files
+)
 from app.models.boards import check_boards_owner
 from app.models.user import get_user_id_pw
 from app.core.config import settings
@@ -66,6 +73,7 @@ async def upload_files_services(file: UploadFile, board_index: int, conn: Connec
     # bytes 단위로 먼저 비교하고 출력할 때만 MB로 
 
     cur_total_fsize = await get_total_fsize(conn, board_index) # 현재 게시판에 올라가 있는 파일 용량의 총합 (bytes)
+    cur_total_fsize = cur_total_fsize or 0
 
     # bytes 를 MB 로 바꿀라면 ((1024) * (1024)) 를 나누기
 
@@ -215,7 +223,10 @@ async def restore_file_services(board_index: int, file_index: int, data: Restore
         )
 
     cur_total_fsize = await get_total_fsize(conn, board_index)
+    cur_total_fsize = cur_total_fsize or 0
+
     softDelete_fsize = await get_softDelete_fsize(conn, file_index)
+    softDelete_fsize = softDelete_fsize or 0
 
     if softDelete_fsize + cur_total_fsize > allow_max_total_fsize:
         raise HTTPException(
@@ -265,8 +276,11 @@ async def restore_all_file_services(board_index: int, data: RestoreAllFile, conn
         )
 
     cur_total_fsize = await get_total_fsize(conn, board_index)
+    cur_total_fsize = cur_total_fsize or 0
     # 현재 특정 게시판에 업로드되어있는 파일들의 용량 총 합 (삭제처리되지 않은 - deleted_at == NULL)
+
     cur_total_softDelete_fsize = await get_total_softDelete_fsize(conn, board_index)
+    cur_total_softDelete_fsize = cur_total_softDelete_fsize or 0
     # 현재 특정 게시판에 삭제 처리되어 있는 파일들의 용량 총 합 (deleted_at == NOT NULL)
 
     if cur_total_fsize + cur_total_softDelete_fsize > allow_max_total_fsize:

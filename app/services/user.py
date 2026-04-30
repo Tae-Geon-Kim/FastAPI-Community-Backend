@@ -1,81 +1,16 @@
-import hashlib
 from asyncpg import Connection
 from fastapi import HTTPException, status
-from jose import jwt, JWTError, ExpiredSignatureError
-from app.schemas.user import *
-from app.models.user import *
-from app.models.boards import *
-from app.core.config import jwt_auth
-from app.core.security import hash_password, verify, create_refresh_token, create_access_token, credentials_exception
-from app.services.auth import *
-from app.models.files import *
-from app.db.redis_config import redis_db
-
-secret_key = jwt_auth.SECRET_KEY
-algorithm = jwt_auth.ALGORITHM
-
-# JWT 토큰 재발급
-async def refresh_access_token_services(conn: Connection, refresh_token: str):
-
-    try:
-        payload = jwt.decode(refresh_token, secret_key, algorithms = [algorithm])
-        user_id: str = payload.get("sub")
-
-        if user_id is None:
-            raise credentials_exception
-        
-        # Redis DB에 저장된 해싱된 토큰 값이 stored_token에
-        stored_token = await redis_db.get(f"refresh:user: {user_index}")
-
-        # front에 받은 refresh_token을 해싱한 값
-        received_token = hashlib.sha256(refresh_token.encode()).hexdigest()
-
-        if not stored_token or stored_token != received_token:
-            raise HTTPException(
-                status_code = status.HTTP_401_UNAUTHORIZED,
-                detail = "인증이 만료되었거나 유효하지 않은 토큰입니다. 다시 로그인해주세요."
-            )
-        
-        new_access = create_access_token(data = {"sub": str(user_id)})
-
-        return new_acess
-    
-    # 토큰 만료 에러
-    except ExpiredSignatureError:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "만료된 토큰입니다. 다시 로그인해주세요."
-        )
-
-    # 다른 모든 JWT error
-    except JWTError:
-        raise credentials_exception
-
-# JWT Token 사용자 로그인
-async def token_login_services(conn: Connection, data: UserLogin):
-
-    user_num = await login(conn, data)
-
-    if user_num is None:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "로그인 정보를 다시 확인해주세요."
-        )
-
-    access_token = create_access_token(data = {"sub": str(user_num)})
-    refresh_token = create_refresh_token(data = {"sub": str(user_num)})
-
-    hashed_refresh_token = hashlib.sha256(refresh_token.encode()).hexdigest()
-
-    expire_seconds = jwt_auth.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
-    
-    await redis_db.set(
-        f"refresh:user:{user_num}", 
-        hashed_refresh_token,
-        ex = expire_seconds
-    )
-
-    return access_token, refresh_token
+from app.schemas.user import UserLogin, UserPw, ModiId, ModiPw, UserInfo
+from app.schemas.common import CommonResponse 
+from app.models.user import (
+    push_id_pw, id_duplicate, pull_user_info, get_user_id_pw, 
+    soft_withdraw_user, withdraw_permanently, userId_modify, 
+    userPw_modify, restore_user_data
+)
+from app.models.boards import soft_withdraw_boards, restore_user_boards
+from app.models.files import soft_withdraw_files, restore_user_file
+from app.core.security import hash_password, verify
+from app.services.auth import restore_login
 
 # 사용자 비밀번호 검사 
 async def user_pw_services(conn: Connection, data: UserLogin):
