@@ -9,6 +9,7 @@ from app.core.config import jwt_auth
 from app.core.security import hash_password, verify, create_refresh_token, create_access_token, credentials_exception
 from app.services.auth import *
 from app.models.files import *
+from app.db.redis_config import redis_db
 
 secret_key = jwt_auth.SECRET_KEY
 algorithm = jwt_auth.ALGORITHM

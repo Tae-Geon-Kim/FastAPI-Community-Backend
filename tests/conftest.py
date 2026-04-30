@@ -6,9 +6,13 @@ import asyncpg
 from httpx import AsyncClient, ASGITransport
 from fastapi import Request
 
-# 프로젝트 파일 임포트
-from app.main import app 
+# 프로젝트의 다른 모듈(app...)을 임포트하기 '전'에 무조건 실행
+# Pydantic이 .env를 읽기 전에 시스템 환경변수를 강제로 127.0.0.1로 덮어씌운다
+os.environ["REDIS_HOST"] = "127.0.0.1"
+
+from app.main import app
 from app.db.database import get_db
+from app.db.redis_config import redis_db
 from app.core.config import settings
 
 # 파일 서비스 모듈 임포트 (업로드 경로를 가로채기 위함)
@@ -92,3 +96,19 @@ def setup_test_upload_dir():
         
     # 다음 실행을 위해 원래 경로로 얌전히 되돌려 놓음
     files_service.upload_dir = original_upload_dir
+
+@pytest_asyncio.fixture(autouse = True)
+async def flush_redis():
+    """
+    각 테스트 실행하기 전, 후 Redis 데이터 flush
+    autouse = True 설정하면 모든 테스트 함수에 자동 적용
+    """
+
+    # 테스트 전 flush
+    await redis_db.flushdb()
+
+    yield # 테스트 코드 실행
+
+    # 테스트 끝난 후 flush
+    await redis_db.flushdb()
+    await redis_db.connection_pool.disconnect()
