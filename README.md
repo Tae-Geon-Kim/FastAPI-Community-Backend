@@ -284,7 +284,13 @@ Login → Access Token 발급 → API 요청 시 Header 포함 → 인증 검증
 ## 📡 API
 ### 🔌 엔드포인트 요약
 아래의 링크를 통해서 API 상세 명세서를 확인하고 직접 테스트 할 수 있습니다.
-- [Swagger UI](https://maverick-wages-sustainer.ngrok-free.dev/docs)
+
+Swagger UI는 프로젝트를 클론하고 docker 컨테이너를 실행한 후 (`docker compose up -d`) 링크를 통해 접속 가능합니다.
+
+실행 환경의 포트 설정에 따라 아래 주소 중 하나로 Swagger UI에 접속 가능합니다.
+- [Swagger UI (Nginx 80번 포트)](http://localhost/docs)
+
+- [Swagger UI (FastAPI 8000번 포트)](http://localhost:8000/docs)
 
 - [API 상세 명세서](https://www.notion.so/API-0769db8647b18277af2e813304fbddb0?source=copy_link)
 
