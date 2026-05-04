@@ -188,3 +188,40 @@ async def test_boards_wrong_password(client: AsyncClient):
     )
     assert del_res.status_code == 401
     assert "비밀번호가 일치하지 않습니다" in del_res.json()["detail"]
+
+# ==========================================
+# 게시판 검색 API 통합 테스트 (GET /boards/search)
+# ==========================================
+async def test_search_boards_cases(client: AsyncClient):
+    
+    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
+    
+    # 검색할 키워드 포함된 글 작성
+    unique_keyword = "이걸검색"
+    await client.post(
+        "/boards", 
+        json={
+            "title": f"이건 {unique_keyword} 입니다", 
+            "content": "게시판 제목 + 게시판 내용 통합 검색 API를 테스트 하기 위한 content 입니다. 최소 30자는 넘겨야합니다."
+        }
+    )
+
+    # 검색 결과가 존재하는 경우
+    search_res = await client.get(f"/boards/search?search_keyword={unique_keyword}")
+    assert search_res.status_code == 200
+    
+    response_data = search_res.json()["data"]
+    assert len(response_data) > 0  # 리스트에 1개 이상의 결과가 있어야 함
+    assert unique_keyword in response_data[0]["title"] # 찾은 결과의 제목에 검색어가 있어야 함
+    print("\n[성공] 검색 결과 존재 케이스 통과")
+
+    # 검색 결과가 존재하지 않는 경우 (에러 x / 빈 리스트 반환)
+    empty_res = await client.get("/boards/search?search_keyword=검색되면안된다검색되면안된다")
+    assert empty_res.status_code == 200
+    assert empty_res.json()["data"] == []  # 빈 리스트 반환 확인
+    print("[성공] 검색 결과 없음(빈 리스트) 케이스 통과")
+
+    # 검색어가 2글자 미만인 경우
+    short_res = await client.get("/boards/search?search_keyword=가")
+    assert short_res.status_code == 422
+    print("[성공] 검색어 길이 제한(최소 2글자) 예외 처리 통과")

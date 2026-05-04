@@ -13,7 +13,7 @@ from app.models.boards import (
     insert_boards_db, pull_board_info_by_index, certain_user_boards_info,
     all_user_boards_info, check_boards_owner, title_modify, content_modify,
     soft_delete_boards, delete_boards, check_restore_boards_owner,
-    restore_board, serach_in_title_content
+    restore_board, search_in_title_content
 )
 from app.models.files import (
     soft_delete_all_file, delete_files, restore_all_files,

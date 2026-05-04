@@ -181,7 +181,7 @@ async def search_in_title_content(conn: Connection, search_keyword: str):
 
 	sql = """
 		SELECT * FROM boards
-		WHERE (title ILIKE '%' || $1 || '%' OR content ILIKE '%' || $2 || '%')
+		WHERE (title ILIKE '%' || $1 || '%' OR content ILIKE '%' || $1 || '%')
 		AND deleted_at IS NULL
 		ORDER BY reg_date DESC;
 	"""
