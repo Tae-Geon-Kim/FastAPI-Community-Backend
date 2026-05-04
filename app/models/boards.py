@@ -176,3 +176,14 @@ async def pull_board_info_by_index(conn: Connection, board_index: int):
             AND u.deleted_at IS NULL
     """
     return await conn.fetchrow(sql, board_index)
+
+async def search_in_title_content(conn: Connection, search_keyword: str):
+
+	sql = """
+		SELECT * FROM boards
+		WHERE (title ILIKE '%' || $1 || '%' OR content ILIKE '%' || $2 || '%')
+		AND deleted_at IS NULL
+		ORDER BY reg_date DESC;
+	"""
+
+	return await conn.fetch(sql, search_keyword)

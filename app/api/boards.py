@@ -13,7 +13,8 @@ from app.services.boards import (
     title_modify_services,
     content_modify_services,
     boards_delete_services,
-    restore_board_services
+    restore_board_services,
+    search_in_title_content_services
 )
 
 router = APIRouter()
@@ -45,7 +46,7 @@ async def register_boards(
     "/users/{user_id}",
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
-    summary = "[게시판] 특정 유저의 게시판 목록을 출력",
+    summary = "[게시판] 게시판 검색 (유저 ID)",
     description = """
     특정 유저의 게시판 목록을 출력
 
@@ -186,3 +187,23 @@ async def restore_boards(
     current_user_num: str = Depends(get_current_user)
 ):
     return await restore_board_services(board_index, data, conn, current_user_num)
+
+# 게시판 제목 + 게시판 내용으로 게시판 검색
+@router.get(
+    "/search",
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[게시판] 게시판 검색 (제목 + 내용)",
+    description = """
+    전체 게시판에서 하나의 검색어로 제목, 내용을 동시에 검색
+
+    - 특정 문자열을 입력받아 특정 게시판의 제목 혹은 내용에 일치하는 내용이 있으면 해당 게시판을 출력
+    - 로그인이 필요하지 않음.
+    """
+)
+
+async def search_boards(
+    search_keyword: str = Query(..., min_length = 2, description = "검색어 (최소 2글자 이상 입력)"),
+    conn: Connection = Depends(get_db)
+):
+    return await search_in_title_content_services(search_keyword, conn)

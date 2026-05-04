@@ -13,7 +13,7 @@ from app.models.boards import (
     insert_boards_db, pull_board_info_by_index, certain_user_boards_info,
     all_user_boards_info, check_boards_owner, title_modify, content_modify,
     soft_delete_boards, delete_boards, check_restore_boards_owner,
-    restore_board
+    restore_board, serach_in_title_content
 )
 from app.models.files import (
     soft_delete_all_file, delete_files, restore_all_files,
@@ -279,3 +279,22 @@ async def restore_board_services(board_index: int, data: RestoreBoards, conn: Co
         await update_total_fsize(conn, new_total_fsize, board_index) # 재계산된 용량 DB 업로드
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 게시판이 복구되었습니다.")
+
+
+# 게시판 검색 (제목 + 내용)
+async def search_in_title_content_services(search_keyword: str, conn: Connection):
+
+    search_result = await search_in_title_content(conn, search_keyword)
+
+    if not search_result:
+        return CommonResponse(
+            message = f"{search_keyword}에 대한 검색결과가 존재하지않습니다.",
+            data = []
+        )
+
+    formatted_result = [dict(row) for row in search_result]
+    
+    return CommonResponse(
+        message = f"{search_keyword}에 대한 검색이 성공적으로 조회되었습니다.",
+        data = formatted_result
+    )
