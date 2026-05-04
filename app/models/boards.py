@@ -190,13 +190,13 @@ async def search_in_title_content(conn: Connection, search_keyword: str, limit: 
 		LIMIT $2 OFFSET $3;
 	"""
 
-	return await conn.fetch(sql, search_keyword)
+	return await conn.fetch(sql, search_keyword, limit, offset)
 
 # 게시판 제목 + 내용 통합 검색으로 조회된 총 게시물 개수
 async def total_search_in_title_content(conn: Connection, search_keyword: str):
 
 	sql = """
-		SELECT COUNT(*)
+		SELECT COUNT(*) from boards
 		WHERE (title ILIKE '%' || $1 || '%' OR content ILIKE '%' || $1 || '%')
 		AND deleted_at IS NULL
 	"""
@@ -221,11 +221,6 @@ async def total_certain_user_boards_info(conn: Connection, user_id: str):
 # 전체 게시판 숫자
 async def total_all_boards_info(conn: Connection):
 
-	sql = """
-		SELECT COUNT(*)
-		INNER JOIN "user" AS u ON b.user_index = u.index
-		WHERE b.deleted_at IS NULL
-			AND u.deleted_at IS NULL
-	"""
+	sql = 'SELECT COUNT(*) from boards WHERE deleted_at IS NULL'
 	
 	return await conn.fetchval(sql)

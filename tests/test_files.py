@@ -36,7 +36,7 @@ async def setup_user_and_board(client: AsyncClient, user_id, user_pw):
     
     # 방금 만든 게시판 번호 가져오기 
     board_res = await client.get(f"/boards/users/{user_id}")
-    board_index = board_res.json()["data"][-1]["index"] # 항상 가장 마지막에 만든 게시판 인덱스 가져오기
+    board_index = board_res.json()["data"]["result"][-1]["index"] # 항상 가장 마지막에 만든 게시판 인덱스 가져오기
     
     return board_index
 
@@ -46,7 +46,7 @@ async def setup_user_and_board(client: AsyncClient, user_id, user_pw):
 async def get_latest_file_index(client: AsyncClient, user_id):
 
     board_res = await client.get(f"/boards/users/{user_id}")
-    files_list = board_res.json()["data"][-1].get("files", [])
+    files_list = board_res.json()["data"]["result"][-1].get("files", [])
     if files_list:
         return files_list[-1]["index"] # 가장 마지막에 업로드된 파일 인덱스
     return None

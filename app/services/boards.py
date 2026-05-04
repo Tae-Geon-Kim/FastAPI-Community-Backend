@@ -77,7 +77,7 @@ async def certain_boards_info_services(user_id: str, page: int, limit: int, conn
             detail = f"'{user_id}' 사용자가 존재하지 않거나 이미 탈퇴한 회원입니다."
         )
     
-    total_boards = total_certain_user_boards_info(conn, user_id)
+    total_boards = await total_certain_user_boards_info(conn, user_id)
     total_pages = math.ceil(total_boards / limit) if total_boards > 0 else 0
 
     # 해당 사용자가 존재 / 해당 사용자의 전체 게시글 fetch
@@ -325,7 +325,15 @@ async def search_in_title_content_services(search_keyword: str, page: int, limit
     if not search_result:
         return CommonResponse(
             message = f"{search_keyword}에 대한 검색결과가 존재하지않습니다.",
-            data = []
+            data = {
+                "result": [],
+                "meta": {
+                    "total_boards": 0,
+                    "total_pages": 0,
+                    "current_page": page,
+                    "limit": limit
+                }
+            }
         )
 
     formatted_search_result = [dict(row) for row in search_result]

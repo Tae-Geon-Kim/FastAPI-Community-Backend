@@ -46,7 +46,7 @@ async def test_boards_valid_case(client: AsyncClient):
     assert all_res.status_code == 200
     
     # 그룹화된 데이터에서 글 번호 추출
-    grouped_data = all_res.json().get("data", [])
+    grouped_data = all_res.json()["data"]["result"]
     assert len(grouped_data) > 0
     first_author_posts = grouped_data[0]["posts"]
     target_board_index = first_author_posts[0]["index"]
@@ -114,7 +114,6 @@ async def test_allBInfo_noUser_conflict(client: AsyncClient):
     res = await client.get("/boards")
     assert res.status_code in [200, 404] 
 
-
 # ==========================================
 # 예외 처리: 타인의 게시판 수정 및 삭제 시도 - 403 ERROR
 # ==========================================
@@ -133,7 +132,8 @@ async def test_boards_unauthorized_access(client: AsyncClient):
     )
 
     all_res = await client.get("/boards")
-    target_index = all_res.json()["data"][-1]["posts"][-1]["index"] # 맨 마지막에 생성된 글 인덱스
+    # 맨 마지막에 생성된 글의 인덱스
+    target_index = all_res.json()["data"]["result"][-1]["posts"][-1]["index"]
 
     # B로 가입 & 로그인
     await setup_test_user(client, "userB222", TEST_USER_PW)
@@ -178,7 +178,9 @@ async def test_boards_wrong_password(client: AsyncClient):
     # 글 작성
     await client.post("/boards", json={"title": TEST_BOARDS_TITLE, "content": TEST_BOARDS_CONTENT})
     all_res = await client.get("/boards")
-    target_index = all_res.json()["data"][-1]["posts"][-1]["index"] # 맨 마지막 글
+  
+    # 가장 마지막 글
+    target_index = all_res.json()["data"]["result"][-1]["posts"][-1]["index"]
 
     # 틀린 비밀번호로 삭제 시도
     del_res = await client.request(
@@ -210,18 +212,29 @@ async def test_search_boards_cases(client: AsyncClient):
     search_res = await client.get(f"/boards/search?search_keyword={unique_keyword}")
     assert search_res.status_code == 200
     
-    response_data = search_res.json()["data"]
-    assert len(response_data) > 0  # 리스트에 1개 이상의 결과가 있어야 함
-    assert unique_keyword in response_data[0]["title"] # 찾은 결과의 제목에 검색어가 있어야 함
+    response_data = search_res.json()["data"]["result"]
+    assert len(response_data) > 0
+    assert unique_keyword in response_data[0]["title"]
     print("\n[성공] 검색 결과 존재 케이스 통과")
 
     # 검색 결과가 존재하지 않는 경우 (에러 x / 빈 리스트 반환)
     empty_res = await client.get("/boards/search?search_keyword=검색되면안된다검색되면안된다")
     assert empty_res.status_code == 200
-    assert empty_res.json()["data"] == []  # 빈 리스트 반환 확인
+    assert empty_res.json()["data"]["result"] == []
     print("[성공] 검색 결과 없음(빈 리스트) 케이스 통과")
 
     # 검색어가 2글자 미만인 경우
     short_res = await client.get("/boards/search?search_keyword=가")
     assert short_res.status_code == 422
     print("[성공] 검색어 길이 제한(최소 2글자) 예외 처리 통과")
+
+# ==========================================
+# 페이지네이션 limit 테스트
+# ==========================================
+    paging_res = await client.get("/boards?page=1&limit=2")
+    assert paging_res.status_code == 200
+    
+    # 메타 데이터(전체 개수 등)가 잘 오는지 확인
+    meta_data = paging_res.json()["data"]["meta"]
+    assert "total_boards" in meta_data
+    assert meta_data["limit"] == 2
