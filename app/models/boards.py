@@ -9,7 +9,7 @@ async def insert_boards_db(conn: Connection, title: str, content: str, user_inde
 	return new_index
 
 # 특정 유저의 게시판 정보 조회 (INNER JOIN)
-async def certain_user_boards_info(conn: Connection, user_id: str):
+async def certain_user_boards_info(conn: Connection, user_id: str, limit: int, offset: int):
 
 	sql = """
 		SELECT
@@ -37,14 +37,15 @@ async def certain_user_boards_info(conn: Connection, user_id: str):
 			WHERE u.id = $1
 				AND b.deleted_at IS NULL
 				AND u.deleted_at IS NULL
-			ORDER BY b.index DESC	
+			ORDER BY b.index DESC
+			LIMIT $2 OFFSET $3
 	"""
 	# ORDER BY b.index DESC : 가장 최근에 쓴 글 (가장 큰 번호)이 가장 위로 
 
-	return await conn.fetch(sql, user_id)
+	return await conn.fetch(sql, user_id, limit, offset)
 
 # 모든 유저의 게시판 정보 조회 (INNER JOIN)
-async def all_user_boards_info(conn: Connection):
+async def all_user_boards_info(conn: Connection, limit: int, offset: int):
 
 	sql = """
 		SELECT
@@ -72,13 +73,14 @@ async def all_user_boards_info(conn: Connection):
 			WHERE b.deleted_at IS NULL
 				AND u.deleted_at IS NULL
 			ORDER BY u.id ASC, b.index DESC
+			LIMIT $1 OFFSET $2
 	""" 
 	# ORDER BY u.id ASC : 사용자 아이디를 가나나 / ABC 순으로
 	# ORDER BY b.index DESC : 게시글 중 가장 번호가 큰 글 (최신) 위로 정렬
 	# ASC: 오름차순
 	# DESC: 내림차순
 
-	return await conn.fetch(sql)
+	return await conn.fetch(sql, limit, offset)
 
 # 해당 User가 쓴 글인지 확인 (글 번호를 <-> 작성자 번호)
 async def check_boards_owner(conn: Connection, boards_index: int):
@@ -177,13 +179,53 @@ async def pull_board_info_by_index(conn: Connection, board_index: int):
     """
     return await conn.fetchrow(sql, board_index)
 
-async def search_in_title_content(conn: Connection, search_keyword: str):
+# 게시판 제목 + 게시판 내용 통합 검색 조회
+async def search_in_title_content(conn: Connection, search_keyword: str, limit: int, offset: int):
 
 	sql = """
 		SELECT * FROM boards
 		WHERE (title ILIKE '%' || $1 || '%' OR content ILIKE '%' || $1 || '%')
 		AND deleted_at IS NULL
-		ORDER BY reg_date DESC;
+		ORDER BY reg_date DESC
+		LIMIT $2 OFFSET $3;
 	"""
 
 	return await conn.fetch(sql, search_keyword)
+
+# 게시판 제목 + 내용 통합 검색으로 조회된 총 게시물 개수
+async def total_search_in_title_content(conn: Connection, search_keyword: str):
+
+	sql = """
+		SELECT COUNT(*)
+		WHERE (title ILIKE '%' || $1 || '%' OR content ILIKE '%' || $1 || '%')
+		AND deleted_at IS NULL
+	"""
+
+	return await conn.fetchval(sql, search_keyword)
+
+
+# 특정 유저의 게시판 조회로 조회된 총 게시물 개수
+async def total_certain_user_boards_info(conn: Connection, user_id: str):
+
+	sql = """
+		SELECT COUNT(*)
+		FROM boards AS b
+		INNER JOIN "user" AS u ON b.user_index = u.index
+		WHERE u.id = $1
+			AND b.deleted_at IS NULL
+			AND u.deleted_at IS NULL
+	"""
+
+	return await conn.fetchval(sql, user_id)
+
+# 전체 게시판 숫자
+async def total_all_boards_info(conn: Connection):
+
+	sql = """
+		SELECT COUNT(*)
+		INNER JOIN "user" AS u ON b.user_index = u.index
+		WHERE b.deleted_at IS NULL
+			AND u.deleted_at IS NULL
+	"""
+	
+	return await conn.fetchval(sql)

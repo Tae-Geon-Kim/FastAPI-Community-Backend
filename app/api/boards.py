@@ -57,10 +57,11 @@ async def register_boards(
 
 async def search_boards(
     search_keyword: str = Query(..., min_length = 2, description = "검색어 (최소 2글자 이상 입력)"),
+    page: int = Query(1, ge = 1, description = "페이지 번호 (최소 1)"),
+    limit: int = Query(10, ge = 1, description = "한 페이지당 게시글 수 (최소 1)"),
     conn: Connection = Depends(get_db)
 ):
-    return await search_in_title_content_services(search_keyword, conn)
-
+    return await search_in_title_content_services(search_keyword, page, limit, conn)
 
 # 특정 유저의 게시판 조회
 @router.get(
@@ -78,9 +79,11 @@ async def search_boards(
 )
 async def get_user_boards(
     user_id: str = Path(..., min_length = 5, max_length = 30, description = "조회할 유저의 아이디"),
+    page: int = Query(1, ge = 1, description = "페이지 번호 (최소 1)"),
+    limit: int = Query(10, ge = 1, description = "한 페이지당 게시글 수 (최소 1)"),
     conn: Connection = Depends(get_db)
 ):
-    return await certain_boards_info_services(user_id, conn)
+    return await certain_boards_info_services(user_id, page, limit, conn)
 
  # 단건 게시글 조회
 @router.get(
@@ -115,9 +118,11 @@ async def get_board_detail(
     """
 )
 async def get_all_boards(
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    page: int = Query(1, ge = 1, description = "페이지 번호 (최소 1)"),
+    limit: int = Query(10, ge = 1, description = "한 페이지당 게시글 수 (최소 1)")
 ):
-    return await all_boards_info_services(conn)
+    return await all_boards_info_services(conn, page, limit)
 
 # 게시판 제목 변경
 @router.patch(

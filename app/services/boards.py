@@ -1,4 +1,5 @@
 import json
+import math
 from collections import defaultdict
 from asyncpg import Connection
 from fastapi import HTTPException, status
@@ -13,7 +14,8 @@ from app.models.boards import (
     insert_boards_db, pull_board_info_by_index, certain_user_boards_info,
     all_user_boards_info, check_boards_owner, title_modify, content_modify,
     soft_delete_boards, delete_boards, check_restore_boards_owner,
-    restore_board, search_in_title_content
+    restore_board, search_in_title_content, total_search_in_title_content,
+    total_certain_user_boards_info, total_all_boards_info
 )
 from app.models.files import (
     soft_delete_all_file, delete_files, restore_all_files,
@@ -61,8 +63,10 @@ async def single_board_info_services(board_index: int, conn: Connection):
     )
 
 # 특정 사용자의 게시판 목록을 출력 (로그인 필요 없이 user의 id를 입력받아서)
-async def certain_boards_info_services(user_id: str, conn: Connection):
-    
+async def certain_boards_info_services(user_id: str, page: int, limit: int, conn: Connection):
+
+    offset = (page - 1) * limit
+
     # 입력받은 아이디로 유저의 인덱스 번호를 찾음
     target_user_index = await get_user_index(conn, user_id)
 
@@ -72,10 +76,13 @@ async def certain_boards_info_services(user_id: str, conn: Connection):
             status_code = status.HTTP_404_NOT_FOUND,
             detail = f"'{user_id}' 사용자가 존재하지 않거나 이미 탈퇴한 회원입니다."
         )
+    
+    total_boards = total_certain_user_boards_info(conn, user_id)
+    total_pages = math.ceil(total_boards / limit) if total_boards > 0 else 0
 
     # 해당 사용자가 존재 / 해당 사용자의 전체 게시글 fetch
     # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
-    rows = await certain_user_boards_info(conn, user_id)
+    rows = await certain_user_boards_info(conn, user_id, limit, offset)
 
     # 해당 사용자가 쓴 게시글이 없는 경우
     if not rows:
@@ -101,12 +108,28 @@ async def certain_boards_info_services(user_id: str, conn: Connection):
         # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
         # DB에서 가져온 모든 Record 객체를 각각 dict로 변환하여 리스트 형태로 반환
 
-    return CommonResponse(message = f"{user_id}님의 게시판을 출력합니다.", data = board_list)
+    return CommonResponse(
+        message = f"{user_id}님의 게시판을 출력합니다.",
+        data = {
+            "result": board_list,
+            "meta": {
+                "total_boards": total_boards,
+                "total_pages": total_pages,
+                "current_page": page,
+                "limit": limit
+            }
+        }
+    )
 
 # 전체 게시판을 출력 (사용자 별로 / 로그인 필요 없음)
-async def all_boards_info_services(conn: Connection):
+async def all_boards_info_services(conn: Connection, page: int, limit: int):
 
-    rows = await all_user_boards_info(conn)
+    offset = (page - 1) * limit
+
+    total_boards = await total_all_boards_info(conn)
+    total_pages = math.ceil(total_boards / limit) if total_boards > 0 else 0
+
+    rows = await all_user_boards_info(conn, limit, offset)
     # DB에서 데이터를 가져오면 asyncpg는 Record형태로 데이터를 받아옴.
 
     # boards 테이블에 게시판이 아예 하나도 존재하지 않을 때
@@ -139,10 +162,18 @@ async def all_boards_info_services(conn: Connection):
         AllBoardInfoResponse(author=name, posts=posts) 
         for name, posts in grouped_dict.items()
     ]
-    
+
     return CommonResponse(
         message = "전체 게시글을 사용자별로 분류하여 출력합니다.",
-        data = final_data
+        data = {
+            "result": final_data,
+            "meta": {
+                "total_boards": total_boards,
+                "total_pages": total_pages,
+                "current_page": page,
+                "limit": limit
+            }
+        }
     )
 
 # 게시판 제목 수정
@@ -282,9 +313,14 @@ async def restore_board_services(board_index: int, data: RestoreBoards, conn: Co
 
 
 # 게시판 검색 (제목 + 내용)
-async def search_in_title_content_services(search_keyword: str, conn: Connection):
+async def search_in_title_content_services(search_keyword: str, page: int, limit: int, conn: Connection):
 
-    search_result = await search_in_title_content(conn, search_keyword)
+    offset = (page - 1) * limit
+
+    total_boards = await total_search_in_title_content(conn, search_keyword) 
+    total_pages = math.ceil(total_boards / limit) if total_boards > 0 else 0
+
+    search_result = await search_in_title_content(conn, search_keyword, limit, offset)
 
     if not search_result:
         return CommonResponse(
@@ -292,9 +328,17 @@ async def search_in_title_content_services(search_keyword: str, conn: Connection
             data = []
         )
 
-    formatted_result = [dict(row) for row in search_result]
-    
+    formatted_search_result = [dict(row) for row in search_result]
+
     return CommonResponse(
         message = f"{search_keyword}에 대한 검색이 성공적으로 조회되었습니다.",
-        data = formatted_result
+        data = {
+            "result": formatted_search_result,
+            "meta": {
+                "total_boards": total_boards,
+                "total_pages": total_pages,
+                "current_page": page,
+                "limit": limit
+            }
+        }
     )
