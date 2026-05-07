@@ -55,25 +55,28 @@ async def test_404_not_found(client: AsyncClient):
     assert "x-process-time" in res.headers
     print("[성공] 404 에러 정상 핸들링 및 미들웨어 통과 확인")
 
-
 # ==========================================
 # (선택) Prefix 라우터 연결 상태 점검
 # ==========================================
 async def test_router_prefixes_connected(client: AsyncClient):
     """
-    main.py에서 설정한 prefix(/users, /boards, /files)들이
+    main.py에서 설정한 prefix(/auth, /users, /boards, /files)들이
     정상적으로 연결되었는지 기초적인 엔드포인트를 찔러 확인합니다.
     (Method Not Allowed 등 404가 아닌 에러가 뜬다면 주소는 잘 맵핑된 것입니다)
     """
-    # /user/login 은 POST 방식이므로 GET으로 찌르면 405 Method Not Allowed가 떠야 함.
-    user_res = await client.get("/users/login")
+    # /auth 라우터 확인 (/auth/login 은 POST이므로 GET 요청 시 405)
+    auth_res = await client.get("/auth/login")
+    assert auth_res.status_code == 405
+
+    # /users 라우터 확인 (/users 회원가입은 POST이므로 GET 요청 시 405)
+    user_res = await client.get("/users")
     assert user_res.status_code == 405
 
-    # /boards/allBInfo 는 GET 방식이므로 정상적으로 200 또는 404(게시물없음)가 떠야 함.
+    # /boards 라우터 확인 (/boards 전체 조회는 GET이므로 200, 401, 404 중 하나가 뜸)
     boards_res = await client.get("/boards")
-    assert boards_res.status_code in [200, 404]
+    assert boards_res.status_code in [200, 401, 404]
 
-    # /files/boards/{board_index} 는 파일 업로드(POST) 방식이므로 GET으로 찌르면 405가 떠야 함.
+    # /files 라우터 확인 (/files/boards/{index} 는 POST이므로 GET 요청 시 405)
     files_res = await client.get("/files/boards/1")
     assert files_res.status_code == 405
 

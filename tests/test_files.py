@@ -29,7 +29,7 @@ async def setup_user_and_board(client: AsyncClient, user_id, user_pw):
 
     # 유저 가입 및 로그인 
     await client.post("/users", json={"id": user_id, "password": user_pw})
-    await client.post("/users/login", json={"id": user_id, "password": user_pw})
+    await client.post("/auth/login", json={"id": user_id, "password": user_pw})
 
     # 게시판 생성 
     await client.post("/boards", json={"title": TEST_TITLE, "content": TEST_CONTENT})

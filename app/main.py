@@ -7,6 +7,7 @@ from app.db.database import lifespan
 from app.api.boards import router as boards_router
 from app.api.user import router as user_router
 from app.api.files import router as files_router
+from app.api.auth import router as auth_router
 from app.core.logger import logger
 
 app = FastAPI(lifespan = lifespan)
@@ -49,10 +50,13 @@ async def add_cache_control_header(request: Request, call_next):
         
     return response
 
-# user 테이블에 관련된 라우터 합치기
+# auth 관련된 라우터 합치기
+app.include_router(auth_router, prefix = "/auth", tags = ["Auth"])
+
+# user 관련된 라우터 합치기
 app.include_router(user_router, prefix = "/users", tags = ["Users"])
 
-# boards 테이블에 관련된 라우터 합치기
+# boards 관련된 라우터 합치기
 app.include_router(boards_router, prefix = "/boards", tags = ["Boards"])
 
 # file 업로드 관련돤 라우터 합치기

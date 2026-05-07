@@ -24,7 +24,7 @@ async def setup_test_user(client: AsyncClient, test_userId, test_userPw):
 
     await client.post("/users", json={"id": test_userId, "password": test_userPw})
 
-    await client.post("/users/login", json={"id": test_userId, "password": test_userPw})
+    await client.post("/auth/login", json={"id": test_userId, "password": test_userPw})
 
 # ==========================================
 # 정상 작동 통합 테스트

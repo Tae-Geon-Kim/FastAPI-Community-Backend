@@ -31,8 +31,8 @@ async def test_user_integration_scenario(client: AsyncClient):
     signup_res = await client.post("/users", json={"id": TEST_USER_ID, "password": TEST_USER_PW})
     assert signup_res.status_code == 201
 
-    # 3. 로그인 및 토큰 발급 테스트 (POST /users/login)
-    login_res = await client.post("/users/login", json={"id": TEST_USER_ID, "password": TEST_USER_PW})
+    # 3. 로그인 및 토큰 발급 테스트 (POST /auth/login)
+    login_res = await client.post("/auth/login", json={"id": TEST_USER_ID, "password": TEST_USER_PW})
     assert login_res.status_code == 201
     assert "access_token" in login_res.cookies
 
@@ -98,7 +98,7 @@ async def test_login_wrong_password(client: AsyncClient):
     await client.post("/users", json={"id": LOGIN_ID, "password": REAL_PW})
 
     # 틀린 비밀번호로 로그인 시도
-    login_res = await client.post("/users/login", json={"id": LOGIN_ID, "password": WRONG_PW})
+    login_res = await client.post("/auth/login", json={"id": LOGIN_ID, "password": WRONG_PW})
     assert login_res.status_code == 401
     assert "로그인 정보를 다시 확인해주세요" in login_res.json()["detail"]
     
@@ -122,7 +122,7 @@ async def test_access_without_token(client: AsyncClient):
 async def test_login_nonexistent_user(client: AsyncClient):
 
     login_res = await client.post(
-        "/users/login", 
+        "/auth/login", 
         json={"id": "ghost_user123", "password": "Ghost1234!!"}
     )
     
@@ -143,7 +143,7 @@ async def test_id_modify_duplicate_conflict(client: AsyncClient):
     await client.post("/users", json={"id": USER2_ID, "password": USER2_PW})
 
     # 유저 1로 로그인하여 토큰 획득
-    login_res = await client.post("/users/login", json={"id": USER1_ID, "password": USER1_PW})
+    login_res = await client.post("/auth/login", json={"id": USER1_ID, "password": USER1_PW})
 
     # 유저 1이 본인의 아이디를 유저 2의 아이디(second_user22!!)로 변경
     mod_res = await client.patch(
@@ -165,7 +165,7 @@ async def test_withdraw_wrong_password(client: AsyncClient):
 
     # 가입 및 로그인
     await client.post("/users", json={"id": TARGET_ID, "password": REAL_PW})
-    login_res = await client.post("/users/login", json={"id": TARGET_ID, "password": REAL_PW})
+    login_res = await client.post("/auth/login", json={"id": TARGET_ID, "password": REAL_PW})
 
     # 틀린 비밀번호로 회원탈퇴 시도
     withdraw_res = await client.request(
