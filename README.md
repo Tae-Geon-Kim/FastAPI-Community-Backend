@@ -195,50 +195,58 @@ Login → Access Token 발급 → API 요청 시 Header 포함 → 인증 검증
 
 ```text
 .
-├── 📁 app/                      # 메인 애플리케이션 소스
-│   ├── main.py                  # FastAPI 실행 엔트리 포인트
-│   ├── 📁 api/                  # [Router] API 엔드포인트 정의
+├── 📁 app/                      
+│   ├── main.py                  
+│   ├── 📁 api/                  # [Router] API 엔드포인트 (URI 라우팅)
+│   │   ├── auth.py              
 │   │   ├── boards.py
 │   │   ├── files.py
 │   │   └── user.py
-│   ├── 📁 services/             # [Service] 핵심 비즈니스 로직 및 예외 처리
+│   ├── 📁 services/             # [Service] 핵심 비즈니스 로직 처리
 │   │   ├── auth.py
 │   │   ├── boards.py
 │   │   ├── files.py
 │   │   └── user.py
-│   ├── 📁 models/               # [Model] 데이터베이스 비동기 쿼리
+│   ├── 📁 models/               # [Model] 데이터베이스 비동기 쿼리 (SQL 처리)
 │   │   ├── boards.py
 │   │   ├── files.py
 │   │   └── user.py
-│   ├── 📁 schemas/              # [Schema] Pydantic 데이터 검증 및 응답 규격
+│   ├── 📁 schemas/              # [Schema] Pydantic 데이터 검증 및 응답 DTO
 │   │   ├── boards.py
+│   │   ├── common.py            
 │   │   ├── files.py
 │   │   └── user.py
-│   ├── 📁 core/                 # 공통 설정, 보안(JWT, Bcrypt) 및 로깅
-│   │   ├── config.py
-│   │   ├── logger.py
-│   │   └── security.py
-│   └── 📁 db/                   # DB 연결 및 커넥션 풀 설정
-│       └── database.py
-├── 📁 tests/                    # Pytest 기반 통합 및 단위 테스트
+│   ├── 📁 core/                 # 공통 설정 및 보안 로직
+│   │   ├── config.py            
+│   │   ├── logger.py            
+│   │   └── security.py          
+│   └── 📁 db/                   # DB 및 캐시 연결 설정
+│       ├── database.py          
+│       └── redis_config.py      
+│
+├── 📁 tests/                    # Pytest 기반 통합/단위 테스트
 │   ├── conftest.py              
 │   ├── test_boards.py
 │   ├── test_files.py
 │   ├── test_main.py
+│   ├── test_schemas.py
 │   └── test_user.py
-├── 📁 nginx/                    # 웹 서버 및 리버스 프록시 설정
-│   └── nginx.conf
+│
 ├── 📁 docs/                     # 시스템 아키텍처 및 Flow 문서화
 │   ├── auth_flow.md
 │   ├── boards_flow.md
+│   ├── db_table.md              
+│   ├── files_flow.md
 │   └── user_flow.md
-├── 📁 .github/                  
-│   └── workflows/deploy.yml
-├── docker-compose.yml           
+│
+├── 📁 nginx/                    # 웹 서버 및 리버스 프록시 설정
+│   └── nginx.conf
+│
+├── docker-compose.yml          
 ├── Dockerfile                   
 ├── requirements.txt             
-├── schemas.sql                  # 초기 데이터베이스 테이블 정의서
-└── README.md
+├── schemas.sql                  
+└── README.md                    
 ```
 
 ### 🗃️ 데이터베이스 스키마
@@ -266,6 +274,7 @@ Login → Access Token 발급 → API 요청 시 Header 포함 → 인증 검증
 | **user_index** | 작성자 고유 번호 (user.index 참조) | FK (NOT NULL) |
 | **deleted_at** | 삭제된 시간 (삭제 처리) | |
 | **total_file_size** | 해당 게시판에 있는 파일 전체 용량의 합 | DEFAULT 0 |
+| **view_count** | 해당 게시판의 조회수 | DEFAULT 0 |
 
 #### - Files Table
 |Column|Description|Constraint|
