@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, status, Path, Query
+from fastapi import APIRouter, Depends, status, Path, Query, Request
 from asyncpg import Connection
 from app.schemas.boards import CreateBoard, ModiTitle, ModiContent, DeleteBoards, RestoreBoards
 from app.schemas.user import UserLogin
 from app.db.database import get_db
+from app.db.redis_config import redis_db
 from app.core.security import get_current_user
 from app.schemas.common import CommonResponse
 from app.services.boards import (
@@ -19,6 +20,9 @@ from app.services.boards import (
 
 router = APIRouter()
 # 파일별로 API를 나누기 위해 APIRouter를 사용
+
+async def get_redis():
+    return redis_db
 
 # 특정 유저의 게시판 생성
 @router.post(
@@ -99,10 +103,15 @@ async def get_user_boards(
     """
  )
 async def get_board_detail(
+    request: Request,
     board_index: int = Path(..., gt = 0, description = "조회할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    redis_client = Depends(get_redis)
 ):
-    return await single_board_info_services(board_index, conn)
+    # 접속한 사람의 IP 접속 정보
+    client_ip = request.client.host
+
+    return await single_board_info_services(board_index, client_ip, conn, redis_client)
 
 # 모든 유저의 게시판 조회
 @router.get(

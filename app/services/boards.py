@@ -5,6 +5,7 @@ from asyncpg import Connection
 from fastapi import HTTPException, status
 from app.models.user import get_user_id_pw, get_user_index
 from app.core.security import verify
+from app.db.redis_config import redis_db
 from app.schemas.common import CommonResponse
 from app.schemas.boards import (
     CreateBoard, BoardInfo, AllBoardInfo, AllBoardInfoResponse,
@@ -15,7 +16,7 @@ from app.models.boards import (
     all_user_boards_info, check_boards_owner, title_modify, content_modify,
     soft_delete_boards, delete_boards, check_restore_boards_owner,
     restore_board, search_in_title_content, total_search_in_title_content,
-    total_certain_user_boards_info, total_all_boards_info
+    total_certain_user_boards_info, total_all_boards_info, update_view_count
 )
 from app.models.files import (
     soft_delete_all_file, delete_files, restore_all_files,
@@ -37,8 +38,21 @@ async def create_boards_services(data: CreateBoard, conn: Connection, current_us
         data = {"board_index": new_board_index}
     )
 
-# 특정 게시글 1개 상세 조회 
-async def single_board_info_services(board_index: int, conn: Connection):
+# 특정 게시글 1개 상세 조회 (조회수 조회 로직 포함)
+async def single_board_info_services(board_index: int, client_ip: str, conn: Connection, redis_client):
+
+    redis_key = f"board_view:{board_index}:{client_ip}"
+
+    is_viewed = await redis_client.get(redis_key)
+
+    # 처음 접속하는 IP이면 조회수 증가
+    if not is_viewed:
+        await update_view_count(conn, board_index)
+
+        # redis에 해당 IP가 viewed 라고 표시
+        # 300초 (5분) 지나면 자동으로 표시 초기화
+        await redis_client.setex(redis_key, 300, "viewed")
+    
     board_data = await pull_board_info_by_index(conn, board_index)
 
     if not board_data:

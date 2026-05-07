@@ -158,6 +158,7 @@ async def pull_board_info_by_index(conn: Connection, board_index: int):
             b.reg_date,
             b.update_date,
             b.total_file_size,
+			b.view_count,
             u.id AS author,
             COALESCE(
                 (SELECT json_agg(json_build_object (
@@ -224,3 +225,10 @@ async def total_all_boards_info(conn: Connection):
 	sql = 'SELECT COUNT(*) from boards WHERE deleted_at IS NULL'
 	
 	return await conn.fetchval(sql)
+
+# 게시글 조회수 1 증가
+async def update_view_count(conn: Connection, board_index: int):
+
+	sql = 'UPDATE boards SET view_count = view_count + 1 WHERE index = $1'
+
+	return await conn.execute(sql, board_index)
