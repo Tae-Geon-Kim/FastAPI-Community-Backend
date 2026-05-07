@@ -31,6 +31,7 @@ CREATE TABLE public.boards (
 	user_index int4 NULL,
 	deleted_at timestamp NULL,
 	total_file_size int8 DEFAULT 0 NULL,
+	view_count int4 DEFAULT 0 NULL,
 	CONSTRAINT boards_pkey PRIMARY KEY (index),
 	CONSTRAINT boards_user_index_fkey FOREIGN KEY (user_index) REFERENCES public."user"("index") ON DELETE CASCADE
 );
