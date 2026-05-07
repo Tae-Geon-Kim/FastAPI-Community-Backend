@@ -9,7 +9,11 @@ from fastapi import Request
 # 프로젝트의 다른 모듈(app...)을 임포트하기 '전'에 무조건 실행
 # Pydantic이 .env를 읽기 전에 시스템 환경변수를 강제로 127.0.0.1로 덮어씌운다
 os.environ["REDIS_HOST"] = "127.0.0.1"
-os.environ["DB_PORT"] = "15432"
+
+# GitHub Actions 환경에서는 deploy.yml의 5432 port를
+# 로컬 (개발서버)에서는 15432 port를
+if os.environ.get("GITHUB_ACTIONS") != "true":
+    os.environ["DB_PORT"] = "15432"
 
 from app.main import app
 from app.db.database import get_db
