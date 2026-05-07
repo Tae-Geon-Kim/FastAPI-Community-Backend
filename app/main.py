@@ -24,6 +24,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def log_request(request: Request, call_next):
+    
     try:
         start_time = time.time()
         response = await call_next(request)
@@ -37,6 +38,16 @@ async def log_request(request: Request, call_next):
         logger.error(f"error on {request.url.path}: {e}\n {traceback.format_exc()}")
 
         return Response(content = "Internal Server Error", status_code = 500)
+
+@app.middleware("http")
+async def add_cache_control_header(request: Request, call_next):
+
+    response = await call_next(request)
+
+    # 모든 Method 무조건 캐시 금지
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        
+    return response
 
 # user 테이블에 관련된 라우터 합치기
 app.include_router(user_router, prefix = "/users", tags = ["Users"])
