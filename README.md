@@ -303,11 +303,16 @@ Swagger UI는 프로젝트를 클론하고 docker 컨테이너를 실행한 후 
 
 - [API 상세 명세서](https://www.notion.so/API-0769db8647b18277af2e813304fbddb0?source=copy_link)
 
-#### - User API (Base URL: `/users`)
+#### - Auth API (Base URL: /`auth`)
 | Method | Endpoint | Description |
 | :--- | :--- | :--- | 
 | POST | /refresh | 만료된 JWT Access Token 재발급 |
 | POST | /login | 사용자 인증 및 JWT (Access / Refresh) 토큰 발급 |
+| POST | /logout | 사용자 로그아웃 처리 및 브라우저에 저장된 JWT (Access / Refresh) 쿠키 삭제|
+
+#### - User API (Base URL: `/users`)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- | 
 | POST | / | 신규 회원가입 (비밀번호 Bcrypt 해싱 저장) | 
 | GET | /check-id/{user_id} | 신규 회원가입 전 아이디 중복 및 유효성 검사 |
 | GET | /me | 로그인한 사용자 본인의 정보 조회 |
@@ -321,6 +326,8 @@ Swagger UI는 프로젝트를 클론하고 docker 컨테이너를 실행한 후 
 | :--- | :--- | :--- | 
 | POST | / | 신규 게시글 작성 |
 | GET | /users/{user_id} | 특정 사용자의 게시글 목록 조회 (로그인 x / 유저 아이디 기준) |
+| GET | /{board_index} | 특정 게시글 하나만 상세 조회 (로그인 x / 게시글 조회수)|
+| GET | /search | 제목 + 내용 게시판 통합 검색 (로그인 x) |
 | GET | / | 모든 사용자의 게시글 목록 전체 조회 (로그인 x) |
 | PATCH | /{board_index}/title | 특정 게시글 제목 수정 |
 | PATCH | /{board_index}/content | 특정 게시글 내용 수정 |
