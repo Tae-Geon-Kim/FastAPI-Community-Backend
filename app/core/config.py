@@ -20,32 +20,32 @@ class Settings(BaseSettings):
 settings = Settings()
 
 class JWT_Auth(BaseSettings):
-    SECRET_KEY: str
-    ALGORITHM: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int
-    REFRESH_TOKEN_EXPIRE_DAYS: int
+    SECRET_KEY: str = "your-secret-key"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     
     model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
     
 jwt_auth = JWT_Auth()
 
 class Logging(BaseSettings):
-    LOGGING_DIR: str
-    FILE_NAME: str
-    WHEN: str
-    INTERVAL: int
-    BACKUP: int
+    LOGGING_DIR: str = "log"
+    FILE_NAME: str = "app.log"
+    WHEN: str = "midnight"
+    INTERVAL: int = 1
+    BACKUP: int = 7
 
-    FORMAT: str
-    DATEFMT: str
-    
+    FORMAT: str = %(asctime)s %(levelname)s %(message)s
+    DATEFMT: str =  %m/%d/%Y %I:%M:%S %p
+
     model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
 
 log_setting = Logging()
 
 class RedisSettings(BaseSettings):
-    REDIS_HOST: str
-    REDIS_PORT: int
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
     REDIS_PASSWORD: str | None = None
     
     model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
