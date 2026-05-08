@@ -36,8 +36,8 @@ class Logging(BaseSettings):
     INTERVAL: int = 1
     BACKUP: int = 7
 
-    FORMAT: str = %(asctime)s %(levelname)s %(message)s
-    DATEFMT: str =  %m/%d/%Y %I:%M:%S %p
+    FORMAT: str = "%(asctime)s %(levelname)s %(message)s"
+    DATEFMT: str =  "%m/%d/%Y %I:%M:%S %p"
 
     model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
 
