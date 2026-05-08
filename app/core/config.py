@@ -7,13 +7,13 @@ class Settings(BaseSettings):
     DB_NAME: str
     DB_HOST: str
     DB_PORT: int
-    DB_MAX_SIZE: int
-    DB_MIN_SIZE: int
+    DB_MAX_SIZE: int = 10
+    DB_MIN_SIZE: int = 5
 
-    UPLOAD_DIR: str
+    UPLOAD_DIR: str = "upload"
 
-    FILE_MAX_SIZE: int
-    FILE_TOTAL_MAX_SIZE: int
+    FILE_MAX_SIZE: int = 5242880
+    FILE_TOTAL_MAX_SIZE: int = 26214400
     
     model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
 
