@@ -52,11 +52,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 테스트용 DB 테이블 뼈대 구축 (schemas.sql 실행)
+      - name: Test DB Alembic 마이그레이션
+        run: alembic upgrade head
         env:
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: |
-          psql -h localhost -U ${{ secrets.DB_USER }} -d Test_CommunityBackendDB -f schemas.sql
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: Test_CommunityBackendDB
 
       - name: Pytest 실행
         env:
