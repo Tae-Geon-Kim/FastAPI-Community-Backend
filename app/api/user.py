@@ -71,7 +71,7 @@ async def get_my_info(
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await user_info_services(conn, current_user['index'])
+    return await user_info_services(conn, current_user)
 
 # 사용자 회원탈퇴
 @router.delete(
@@ -93,7 +93,7 @@ async def withdraw_user(
 ):
     await redis_db.delete(f"refresh:user:{current_user['index']}")
 
-    return await user_withdraw_services(data, conn, current_user['index'])
+    return await user_withdraw_services(data, conn, current_user)
 
 # 사용자 아이디 변경
 @router.patch(
@@ -114,7 +114,7 @@ async def update_my_id(
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await userId_modify_services(data, conn, current_user['index'])
+    return await userId_modify_services(data, conn, current_user)
 
 # 사용자 비밀번호 변경
 @router.patch(
@@ -137,7 +137,7 @@ async def update_my_password(
 ):
     await redis_db.delete(f"refresh:user:{current_user['index']}")
 
-    return await userPw_modify_services(data, conn, current_user['index'])
+    return await userPw_modify_services(data, conn, current_user)
 
 
 # 사용자 회원탈퇴 복구 - JWT 기반 로그인 

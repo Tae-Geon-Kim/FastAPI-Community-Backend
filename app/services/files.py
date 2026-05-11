@@ -39,9 +39,9 @@ allow_max_total_fsize = settings.FILE_TOTAL_MAX_SIZE
 os.makedirs(upload_dir, exist_ok = True)
 
 # 파일 업로드
-async def upload_files_services(file: UploadFile, board_index: int, conn: Connection, current_user_num: str):
+async def upload_files_services(file: UploadFile, board_index: int, conn: Connection, current_user: dict):
 
-    user_info = await get_user_id_pw(conn, int(current_user_num))
+    user_info = await get_user_id_pw(conn, current_user['index'])
 
     boards_owner = await check_boards_owner(conn, board_index)
     
@@ -53,7 +53,7 @@ async def upload_files_services(file: UploadFile, board_index: int, conn: Connec
         )
     
     # 업로드하려고 하는 게시판의 작성자와 로그인한 작성자가 동일한 인물인지
-    if boards_owner['user_index'] != int(current_user_num):
+    if boards_owner['user_index'] != current_user['index']:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "본인의 게시글에만 파일을 업로드 할 수 있습니다."
@@ -116,9 +116,10 @@ async def upload_files_services(file: UploadFile, board_index: int, conn: Connec
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 {file.filename}파일의 업로드 작업이 완료되었습니다.")
 
 # 단일 파일 삭제
-async def delete_files_services(board_index: int, file_index: int, data: DeleteFile, conn: Connection, current_user_num: str):
+async def delete_files_services(board_index: int, file_index: int, data: DeleteFile, conn: Connection, current_user: dict):
 
-    user_info = await get_user_id_pw(conn, int(current_user_num))
+    user_info = await get_user_id_pw(conn, current_user['index'])
+    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -136,10 +137,10 @@ async def delete_files_services(board_index: int, file_index: int, data: DeleteF
         )
     
     # 권한 확인
-    if boards_owner['user_index'] != int(current_user_num):
+    if boards_owner['user_index'] != current_user['index'] and user_role != "ADMIN":
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
-            detail = "권한이 없습니다. 본인 게시글의 파일만 삭제할 수 있습니다."
+            detail = "권한이 없습니다."
         )
     
     if await check_files_belong(conn, file_index, board_index) is None:
@@ -159,9 +160,10 @@ async def delete_files_services(board_index: int, file_index: int, data: DeleteF
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 삭제 요청이 성공적으로 처리되었습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 
 # 한 게시판에 존재하는 모든 파일을 삭제 (게시판은 삭제 x)
-async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Connection, current_user_num: str):
+async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Connection, current_user: dict):
     
-    user_info = await get_user_id_pw(conn, int(current_user_num))
+    user_info = await get_user_id_pw(conn, current_user['index'])
+    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -177,10 +179,10 @@ async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Conne
             detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
 
-    if board_owner['user_index'] != int(current_user_num):
+    if board_owner['user_index'] != current_user['index'] and user_role != "ADMIN":
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
-            detail = "권한이 없습니다. 본인 게시글의 파일만 삭제할 수 있습니다."
+            detail = "권한이 없습니다."
         )
 
     async with conn.transaction():
@@ -191,9 +193,10 @@ async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Conne
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 해당 게시물의 모든 파일이 삭제되었습니다.")
 
 # 삭제된 단일 파일 복구 (용량 재계산) / 게시판은 삭제 상태 x
-async def restore_file_services(board_index: int, file_index: int, data: RestoreFile, conn: Connection, current_user_num:str):
+async def restore_file_services(board_index: int, file_index: int, data: RestoreFile, conn: Connection, current_user: dict):
     
-    user_info = await get_user_id_pw(conn, int(current_user_num))
+    user_info = await get_user_id_pw(conn, current_user['index'])
+    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -209,10 +212,10 @@ async def restore_file_services(board_index: int, file_index: int, data: Restore
             detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
     
-    if boards_owner['user_index'] != int(current_user_num):
+    if boards_owner['user_index'] != current_user['index'] and user_role != "ADMIN":
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
-            detail = "권한이 없습니다. 본인의 게시글 파일만 복구할 수 있습니다."
+            detail = "권한이 없습니다."
         )
     
     if await restore_check_files_belong(conn, file_index, board_index) is None:
@@ -233,7 +236,6 @@ async def restore_file_services(board_index: int, file_index: int, data: Restore
             status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail = f"해당 파일 복구시, 한 게시판에 업로드 할 수 있는 총 파일 용량을 초과합니다. (최대: {(allow_max_total_fsize / (1024 * 1024)):.2f}MB, 현재: {(cur_total_fsize / (1024 * 1024)):.2f}MB 복구: {(softDelete_fsize / (1024 * 1024)):.2f}MB)"
         )
-
         
     async with conn.transaction():
         await restore_files(conn, file_index, board_index)
@@ -243,9 +245,10 @@ async def restore_file_services(board_index: int, file_index: int, data: Restore
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 파일이 복구되었습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 
 # 삭제된 파일 일괄 복구 (용량 재계산) / 게시판은 삭제 상태 x)
-async def restore_all_file_services(board_index: int, data: RestoreAllFile, conn: Connection, current_user_num: str):
+async def restore_all_file_services(board_index: int, data: RestoreAllFile, conn: Connection, current_user: dict):
 
-    user_info = await get_user_id_pw(conn, int(current_user_num))
+    user_info = await get_user_id_pw(conn, current_user['index'])
+    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -261,10 +264,10 @@ async def restore_all_file_services(board_index: int, data: RestoreAllFile, conn
             detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
     
-    if boards_owner['user_index'] != int(current_user_num):
+    if boards_owner['user_index'] != current_user['index'] and user_role != "ADMIN":
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
-            detail = "권한이 없습니다. 본인의 게시글 파일만 복구할 수 있습니다."
+            detail = "권한이 없습니다."
         )    
     
     restore_files_belong = await restore_all_check_files_belong(conn, board_index)

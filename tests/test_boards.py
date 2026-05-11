@@ -145,7 +145,7 @@ async def test_boards_unauthorized_access(client: AsyncClient):
         json={"password": TEST_USER_PW}
     )
     assert del_res.status_code == 403
-    assert "본인의 게시글만" in del_res.json()["detail"]
+    assert "권한이 없습니다." in del_res.json()["detail"]
 
 
 # ==========================================

@@ -43,7 +43,7 @@ async def register_boards(
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await create_boards_services(data, conn, current_user['index'])
+    return await create_boards_services(data, conn, current_user)
 
 # 게시판 제목 + 게시판 내용으로 게시판 검색
 @router.get(
@@ -153,7 +153,7 @@ async def update_board_title(
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await title_modify_services(board_index, data, conn, current_user['index'])
+    return await title_modify_services(board_index, data, conn, current_user)
 
 # 게시판 내용 변경
 @router.patch(
@@ -175,7 +175,7 @@ async def update_content(
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await content_modify_services(board_index, data, conn, current_user['index'])
+    return await content_modify_services(board_index, data, conn, current_user)
 
 # 게시판 삭제
 @router.delete(
@@ -198,7 +198,7 @@ async def delete_boards(
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await boards_delete_services(board_index, data, conn, current_user['index'])
+    return await boards_delete_services(board_index, data, conn, current_user)
 
 # 게시판 복구
 @router.post(
@@ -221,4 +221,4 @@ async def restore_boards(
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await restore_board_services(board_index, data, conn, current_user['index'])
+    return await restore_board_services(board_index, data, conn, current_user)
