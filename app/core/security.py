@@ -109,4 +109,14 @@ async def get_current_user(
             detail = "탈퇴 처리된 사용자입니다. 접근 할 수 없습니다."
         )
     
-    return current_user_num
+    return user_info
+    
+async def require_admin(
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.get("role") != "ADMIN":
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "관리자만 접근 가능합니다. (Access Denied)"
+        )
+    return current_user

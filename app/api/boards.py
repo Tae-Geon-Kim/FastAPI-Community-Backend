@@ -41,9 +41,9 @@ async def get_redis():
 async def register_boards(
     data: CreateBoard,
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await create_boards_services(data, conn, current_user_num)
+    return await create_boards_services(data, conn, current_user['index'])
 
 # 게시판 제목 + 게시판 내용으로 게시판 검색
 @router.get(
@@ -151,9 +151,9 @@ async def update_board_title(
     data: ModiTitle,
     board_index: int = Path(..., gt = 0, description = "수정할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await title_modify_services(board_index, data, conn, current_user_num)
+    return await title_modify_services(board_index, data, conn, current_user['index'])
 
 # 게시판 내용 변경
 @router.patch(
@@ -173,9 +173,9 @@ async def update_content(
     data: ModiContent,
     board_index: int = Path(..., gt = 0, description = "수정할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await content_modify_services(board_index, data, conn, current_user_num)
+    return await content_modify_services(board_index, data, conn, current_user['index'])
 
 # 게시판 삭제
 @router.delete(
@@ -196,9 +196,9 @@ async def delete_boards(
     data: DeleteBoards,
     board_index: int = Path(..., gt = 0, description = "삭제할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await boards_delete_services(board_index, data, conn, current_user_num)
+    return await boards_delete_services(board_index, data, conn, current_user['index'])
 
 # 게시판 복구
 @router.post(
@@ -219,6 +219,6 @@ async def restore_boards(
     data: RestoreBoards,
     board_index: int = Path(..., gt = 0, description = "복구할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await restore_board_services(board_index, data, conn, current_user_num)
+    return await restore_board_services(board_index, data, conn, current_user['index'])

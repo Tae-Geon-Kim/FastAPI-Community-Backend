@@ -83,10 +83,10 @@ async def token_login(
 )
 async def token_logout(
     response: Response,
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
 
-    await redis_db.delete(f"refresh:user:{current_user_num}")
+    await redis_db.delete(f"refresh:user:{current_user['index']}")
     
     response.delete_cookie(key = "access_token", httponly = True, samesite = "lax")
     response.delete_cookie(key = "refresh_token", httponly = True, samesite = "lax")

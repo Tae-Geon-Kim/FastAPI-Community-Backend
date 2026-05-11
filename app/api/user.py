@@ -69,9 +69,9 @@ async def check_user_id(
 )
 async def get_my_info(
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await user_info_services(conn, current_user_num)
+    return await user_info_services(conn, current_user['index'])
 
 # 사용자 회원탈퇴
 @router.delete(
@@ -89,11 +89,11 @@ async def get_my_info(
 async def withdraw_user(
     data: UserPw,
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    await redis_db.delete(f"refresh:user:{current_user_num}")
+    await redis_db.delete(f"refresh:user:{current_user['index']}")
 
-    return await user_withdraw_services(data, conn, current_user_num)
+    return await user_withdraw_services(data, conn, current_user['index'])
 
 # 사용자 아이디 변경
 @router.patch(
@@ -112,9 +112,9 @@ async def withdraw_user(
 async def update_my_id(
     data: ModiId,
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await userId_modify_services(data, conn, current_user_num)
+    return await userId_modify_services(data, conn, current_user['index'])
 
 # 사용자 비밀번호 변경
 @router.patch(
@@ -133,11 +133,11 @@ async def update_my_id(
 async def update_my_password(
     data: ModiPw,
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    await redis_db.delete(f"refresh:user:{current_user_num}")
+    await redis_db.delete(f"refresh:user:{current_user['index']}")
 
-    return await userPw_modify_services(data, conn, current_user_num)
+    return await userPw_modify_services(data, conn, current_user['index'])
 
 
 # 사용자 회원탈퇴 복구 - JWT 기반 로그인 

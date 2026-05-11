@@ -33,9 +33,9 @@ async def upload_files(
     file: UploadFile = File(...),
     board_index: int = Path(..., gt = 0, description = "파일을 업로드할 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await upload_files_services(file, board_index, conn, current_user_num)
+    return await upload_files_services(file, board_index, conn, current_user['index'])
 
 
 # 단일 파일 삭제
@@ -56,9 +56,9 @@ async def delete_single_file(
     board_index: int = Path(..., gt = 0, description = "삭제할 파일이 속한 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"), 
     file_index: int = Path(..., gt = 0, description = "삭제할 파일의 인덱스 (파일의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await delete_files_services(board_index, file_index, data, conn, current_user_num)
+    return await delete_files_services(board_index, file_index, data, conn, current_user['index'])
 
 # 파일 전체를 삭제 (게시판은 x)
 @router.delete(
@@ -76,9 +76,9 @@ async def delete_all_files(
     data: DeleteAllFile,
     board_index: int = Path(..., gt = 0, description = "파일을 전체 삭제할 게시판의 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await delete_all_services(board_index, data, conn, current_user_num)
+    return await delete_all_services(board_index, data, conn, current_user['index'])
 
 
 # 특정 게시판 DB에 있는 soft delete 삭제된 단일 파일 복구 (게시판 전체 용량 재계산 로직 필요)
@@ -101,9 +101,9 @@ async def restore_file(
     board_index: int = Path(..., gt = 0, description = "복구할 파일이 속한 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"), 
     file_index: int = Path(..., gt = 0, description = "복구할 파일의 인덱스 (파일의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await restore_file_services(board_index, file_index, data, conn, current_user_num)
+    return await restore_file_services(board_index, file_index, data, conn, current_user['index'])
 
 # 특정 게시판 DB에 있는 soft delete 삭제된 파일들 일괄 복구 (게시판 전체 용량 재게산 로직 필요)
 @router.post(
@@ -124,6 +124,6 @@ async def restore_all_file(
     data: RestoreAllFile,
     board_index: int = Path(..., gt = 0, description = "전체 파일을 복구할 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
-    current_user_num: str = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
-    return await restore_all_file_services(board_index, data, conn, current_user_num)
+    return await restore_all_file_services(board_index, data, conn, current_user['index'])

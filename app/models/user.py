@@ -14,10 +14,10 @@ async def get_user_index(conn: Connection, user_id: str):
 
     return await conn.fetchval(sql, user_id)
 
-# 특정 유저의 인덱스를 통해서 해당 유저의 인덱스 값과 deleted_at 상태를 불러온다.
+# 특정 유저의 인덱스를 통해서 해당 유저의 index, deleted_at, role을 불러온다.
 async def get_user_index_deletedAt(conn: Connection, user_index: int):
 
-    sql = 'SELECT index, deleted_at FROM "user" WHERE index = $1'
+    sql = 'SELECT index, deleted_at, role FROM "user" WHERE index = $1'
 
     return await conn.fetchrow(sql, user_index)
 
@@ -25,7 +25,7 @@ async def get_user_index_deletedAt(conn: Connection, user_index: int):
 # 아이디에 맞는 비밀번호 확인
 async def pull_pw_login(conn: Connection, user_id: str):
 
-    sql = 'SELECT index, password FROM "user" WHERE id = $1 AND deleted_at IS NULL'
+    sql = 'SELECT index, password, role FROM "user" WHERE id = $1 AND deleted_at IS NULL'
 
     return await conn.fetchrow(sql, user_id)
 
