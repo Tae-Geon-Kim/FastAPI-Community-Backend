@@ -1,6 +1,6 @@
 """add_role_to_user
 
-Rebision ID: abc6689d37a8
+Revision ID: abc6689d37a8
 Revises:
 Create Date: 2026-05-08
 """
