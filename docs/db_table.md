@@ -8,6 +8,10 @@ erDiagram
         timestamp reg_date
         timestamp update_date
         timestamp deleted_at
+        varchar role
+        varchar status
+        int ban_caount
+        timestamp ban_end_at
     }
 
     boards {
@@ -18,6 +22,8 @@ erDiagram
         timestamp update_date
         timestamp deleted_at
         int user_index FK
+        int view_count
+        varchar category
     }
 
     files {
