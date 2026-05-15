@@ -8,6 +8,7 @@ from app.api.boards import router as boards_router
 from app.api.user import router as user_router
 from app.api.files import router as files_router
 from app.api.auth import router as auth_router
+from app.api.admin import router as admin_router
 from app.core.logger import logger
 
 app = FastAPI(lifespan = lifespan)
@@ -49,6 +50,9 @@ async def add_cache_control_header(request: Request, call_next):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         
     return response
+
+# admin 관련된 라우터 합치기
+app.include_router(admin_router, prefix = "/admin", tags = ["Admin"])
 
 # auth 관련된 라우터 합치기
 app.include_router(auth_router, prefix = "/auth", tags = ["Auth"])

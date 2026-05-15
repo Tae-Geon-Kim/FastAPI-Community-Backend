@@ -9,7 +9,7 @@ from app.models.admin import (
     admin_get_specific_user,
     admin_get_specific_board,
     admin_check_board_belong,
-    admin_get_file_board_index
+    admin_get_file_board_index,
     admin_register_notice,
     admin_blacklist,
     admin_get_banCount,

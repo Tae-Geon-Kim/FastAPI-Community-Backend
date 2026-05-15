@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, configDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from app.schemas.boards import validate_title_format, validate_content_format
 
 # 공지사항 생성
