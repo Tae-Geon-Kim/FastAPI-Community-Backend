@@ -1,15 +1,39 @@
 import uvicorn
 import traceback
 import time
+import redis.asyncio as redis
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from app.db.database import lifespan
+from fastapi_limiter import FastAPILimiter
+from app.db.database import lifespan as db_lifespan
 from app.api.boards import router as boards_router
 from app.api.user import router as user_router
 from app.api.files import router as files_router
 from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
 from app.core.logger import logger
+from app.core.config import redis_settings
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    async with db_lifespan(app):
+        
+        redis_pw = redis_settings.REDIS_PASSWORD
+      
+        redis_url = f"redis://:{redis_pw}@redis-cache-container:6379/1" if redis_pw else "redis://redis-cache-container:6379/1"
+        
+        redis_connection = redis.from_url(
+            redis_url, 
+            encoding="utf-8", 
+            decode_responses=True
+        )
+        await FastAPILimiter.init(redis_connection)
+        
+        yield
+        
+        await redis_connection.close()
 
 app = FastAPI(lifespan = lifespan)
 

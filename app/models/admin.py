@@ -153,7 +153,7 @@ async def admin_check_hard_delete_file(conn: Connection, file_index: int):
 
     return await conn.fetchval(sql, file_index)
 
-# 관리자 특정 파일을 삭제 (soft delete - 관리자는 3일)
+# 관리자 특정 파일을 삭제 (soft delete)
 async def admin_soft_delete_file(conn: Connection, file_index: int):
 
     sql = 'UPDATE files SET deleted_at = NOW() WHERE index = $1 AND deleted_at IS NULL'
@@ -166,6 +166,20 @@ async def admin_hard_delete_file(conn: Connection, file_index: int):
     sql = 'DELETE FROM files WHERE index = $1'
 
     return await conn.execute(sql, file_index)
+
+# 관리자 특정 게시판에 파일이 존재하는지 확인 (삭제 안된 것 중에서)
+async def admin_check_files_exist(conn: Connection, board_index: int):
+
+    sql  = 'SELECT 1 FROM files WHERE board_index = $1 AND deleted_at IS NULL LIMIT 1'
+
+    return await conn.fetchval(sql, board_index)
+
+# 관리자 특정 게시판에 있는 모든 파일을 삭제 (hard delete - 삭제처리 상관 x)
+async def admin_hard_delete_all_files(conn: Connection, board_index: int):
+
+    sql = 'DELETE FROM files WHERE board_index = $1'
+
+    return await conn.execute(sql, board_index)
 
 # 관리자 복구하려는 게시판이 삭제처리된 게시판인지
 async def admin_check_restore_board(conn: Connection, board_index: int):
@@ -202,7 +216,7 @@ async def admin_check_file_belong(conn: Connection, board_index: int, file_index
 
     return await conn.fetchval(sql, board_index, file_index)
 
-# 관리자 파일 복구 (soft delete된 파일들만)
+# 관리자 삭제된 단일 파일 복구 (soft delete된 파일만)
 async def admin_restore_file(conn: Connection, file_index: int):
 
     sql = 'UPDATE files SET deleted_at = NULL WHERE index = $1 AND deleted_at IS NOT NULL'

@@ -3,15 +3,18 @@ import shutil
 import pytest
 import pytest_asyncio
 import asyncpg
+import redis.asyncio as redis
 from httpx import AsyncClient, ASGITransport
-from fastapi import Request
 
-# 프로젝트의 다른 모듈(app...)을 임포트하기 '전'에 무조건 실행
-# Pydantic이 .env를 읽기 전에 시스템 환경변수를 강제로 127.0.0.1로 덮어씌운다
+from fastapi import Request, Response
+from fastapi_limiter.depends import RateLimiter
+
+async def mock_rate_limit(self, request: Request, response: Response):
+    pass
+RateLimiter.__call__ = mock_rate_limit
+
 os.environ["REDIS_HOST"] = "127.0.0.1"
 
-# GitHub Actions 환경에서는 deploy.yml의 5432 port를
-# 로컬 (개발서버)에서는 15432 port를
 if os.environ.get("GITHUB_ACTIONS") != "true":
     os.environ["DB_PORT"] = "15432"
 
@@ -19,21 +22,12 @@ from app.main import app
 from app.db.database import get_db
 from app.db.redis_config import redis_db
 from app.core.config import settings
-
-# 파일 서비스 모듈 임포트 (업로드 경로를 가로채기 위함)
 from app.services import files as files_service 
 
-# 테스트용 데이터베이스 이름
 TEST_DB_NAME = "Test_CommunityBackendDB"
 
-# pytest를 진행할 때, db pool을 생성하는 부분에서는 scope = "session"을 사용하면 안된다.
-# pytest-asyncio는 테스트마다 별도의 event loop를 사용한다.
-# asyncpg의 connection pool은 생성된 event loop에 종속되기 때문에,
-# scope="session"으로 공유하면 서로 다른 loop에서 접근하게 되어 오류가 발생한다.
 @pytest_asyncio.fixture()
 async def db_pool():
-# 테스트용 DB 커넥션 풀 생성
-
     pool = await asyncpg.create_pool(
         user=settings.DB_USER,
         password=settings.DB_PASSWORD,
@@ -48,72 +42,46 @@ async def db_pool():
 
 @pytest_asyncio.fixture()
 async def db_connection(db_pool):
-# 테스트가 끝날때마다 DB 초기화
-
     async with db_pool.acquire() as connection:
         transaction = connection.transaction()
-        await transaction.start() # 트랜잭션 시작 (데이터 저장 보류)
-        
-        yield connection # 테스트 코드에 커넥션 전달
-        
-        await transaction.rollback() # 테스트 종료 후 무조건 롤백! (초기화)
+        await transaction.start() 
+        yield connection 
+        await transaction.rollback() 
 
 @pytest_asyncio.fixture()
 async def client(db_connection):
 
-    # 기존 get_db 대신 실행될 가짜(Override) 함수
     async def override_get_db():
         yield db_connection
 
-    # app의 의존성 가로채기
     app.dependency_overrides[get_db] = override_get_db
 
-    # 비동기 테스트 클라이언트 생성 (httpx)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
-    # 테스트가 끝나면 가로챘던 의존성 복구
     app.dependency_overrides.clear()
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_upload_dir():
-# 파일 업로드 테스트시 쌓이는 테스트 파일들을 임시 파일에 저장 후 테스트가 끝나면 삭제
-
-    # 실제 운영 파일과 섞이지 않도록 '테스트 전용' 폴더 이름 지정
     TEST_UPLOAD_DIR = "./test_uploads_temp"
     
-    # 만약 이전 테스트에서 찌꺼기가 남았다면 지우고, 폴더를 새로 만듦
     if os.path.exists(TEST_UPLOAD_DIR):
         shutil.rmtree(TEST_UPLOAD_DIR)
     os.makedirs(TEST_UPLOAD_DIR, exist_ok=True)
     
-    # services/files.py 의 upload_dir 변수를 강제로 테스트 폴더로 바꿔치기 (Monkeypatch)
     original_upload_dir = files_service.upload_dir
     files_service.upload_dir = TEST_UPLOAD_DIR
     
-    # 이 시점에서 테스트 실행
     yield 
-    # 테스트 종료 (디스크에 테스트 파일들 있음)
     
-    # 테스트 끝나면 테스트 파일이 담긴 테스트 폴더 전체 삭제
     if os.path.exists(TEST_UPLOAD_DIR):
         shutil.rmtree(TEST_UPLOAD_DIR)
         
-    # 다음 실행을 위해 원래 경로로 얌전히 되돌려 놓음
     files_service.upload_dir = original_upload_dir
 
 @pytest_asyncio.fixture(autouse = True)
 async def flush_redis():
-    """
-    각 테스트 실행하기 전, 후 Redis 데이터 flush
-    autouse = True 설정하면 모든 테스트 함수에 자동 적용
-    """
-
-    # 테스트 전 flush
     await redis_db.flushdb()
-
-    yield # 테스트 코드 실행
-
-    # 테스트 끝난 후 flush
+    yield
     await redis_db.flushdb()
     await redis_db.connection_pool.disconnect()

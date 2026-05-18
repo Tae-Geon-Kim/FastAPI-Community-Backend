@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, status, Path
+from fastapi_limiter.depends import RateLimiter
 from asyncpg import Connection
 from app.core.security import require_admin, get_current_user
 from app.db.database import get_db
@@ -18,11 +19,12 @@ from app.services.admin import (
     admin_restore_file_services
 )
 
-router = APIRouter(dependencies=[Depends(require_admin)])
+router = APIRouter(dependencies = [Depends(require_admin)])
 
 # 관리자 전체 유저 목록 조회
 @router.get(
     "/users",
+    dependencies = [Depends(RateLimiter(times = 100, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 전체 유저(정보) 조회",
@@ -42,6 +44,7 @@ async def get_all_users(
 # 관리자 전체 유저 중 특정 유저 상세 조회
 @router.get(
     "/users/{user_index}",
+    dependencies = [Depends(RateLimiter(times = 100, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 특정 유저(정보) 상세조회",
@@ -62,6 +65,7 @@ async def get_specific_user(
 # 관리자 전체 유저 중 특정 게시판 상세 조회
 @router.get(
     "/users/{user_index}/boards/{board_index}",
+    dependencies = [Depends(RateLimiter(times = 100, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 특정 게시판(정보) 상세조회",
@@ -83,6 +87,7 @@ async def get_specific_board(
 # 관리자 공지사항 작성
 @router.post(
     "/boards",
+    dependencies = [Depends(RateLimiter(times = 1, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_201_CREATED,
     summary = "[관리자] 공지사항 작성",
@@ -103,7 +108,8 @@ async def register_notice(
 
 # 관리자 유저 삭제 (블랙리스트 관리)
 @router.delete(
-    "/user/{user_index}",
+    "/users/{user_index}",
+    dependencies = [Depends(RateLimiter(times = 30, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 특정 유저를 관리자 권한으로 삭제 (soft delete)",
@@ -123,9 +129,10 @@ async def user_blacklist(
     return await admin_user_blacklist_services(user_index, conn)
 
 
-# 관리자 특정 게시판 soft delete (관리자는 3일)
+# 관리자 특정 게시판 삭제 처리 (soft delete)
 @router.delete(
     "/boards/{board_index}/soft",
+    dependencies = [Depends(RateLimiter(times = 30, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 부적절한 게시판을 관리자 권한으로 삭제 (soft delete)",
@@ -147,6 +154,7 @@ async def admin_soft_delete_board(
 # 관리자 특정 게시판 hard delete
 @router.delete(
     "/boards/{board_index}/hard",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 부적절한 게시판을 관리자 권한으로 삭제",
@@ -165,9 +173,10 @@ async def admin_IMT_hard_delete_boards(
     return await admin_IMT_hard_delete_board_services(board_index, conn)
 
 
-# 관리자 특정 파일 soft delete (관리자는 3일)
+# 관리자 특정 단일 파일 삭제 처리 (soft delete)
 @router.delete(
     "/files/{file_index}/soft",
+    dependencies = [Depends(RateLimiter(times = 30, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 부적절한 파일을 관리자 권한으로 삭제 (soft delete)",
@@ -186,9 +195,10 @@ async def admin_soft_delete_file(
     return await admin_soft_delete_file_services(file_index, conn)
 
 
-# 관리자 특정 파일 hard delete
+# 관리자 특정 단일 파일 hard delete
 @router.delete(
     "/files/{file_index}/hard",
+    dependencies = [Depends(RateLimiter(times = 10, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 부적절한 게시판을 관리자 권한으로 삭제",
@@ -205,10 +215,49 @@ async def admin_IMT_hard_delete_files(
 ):
     return await admin_IMT_hard_delete_file_services(file_index, conn)
 
+# 관리자 한 게시판에 존재하는 모든 파일 soft delete
+@router.delete(
+    "/boards/{board_index}/files/soft",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 60))],
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[관리자] 특정 게시판 모든 파일 삭제 처리",
+    description = """
+    한 게시판에 존재하는 모든 파일 삭제처리 (soft delete)
+
+    - 관리자만 접근 가능
+    """
+)
+async def admin_soft_delete_all_files(
+    board_index: int = Path(..., gt = 0, description = "관리자 - 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
+    conn: Connection = Depends(get_db)
+):
+    return await admin_soft_delete_all_files_services(board_index, conn)
+
+# 관리자 한 게시판에 존재하는 모든 파일 hard delete
+@router.delete(
+    "/boards/{board_index}/files/hard",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 60))],
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[관리자] 특정 게시판 모든 파일 영구 삭제",
+    description = """
+    한 게시판에 존재하는 모든 파일 강제 삭제 (hard delete)
+
+    - 관리자만 접근 가능
+    """
+)
+async def admin_IMT_hard_delete_all_files(
+    board_index: int = Path(..., gt = 0, description = "관리자 - 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
+    conn: Connection = Depends(get_db)
+):
+    return await admin_IMT_hard_delete_all_files_services(board_index, conn)
+
 
 # 관리자 soft delete한 게시판 복구
 @router.post(
     "/boards/{board_index}/restore",
+    dependencies = [Depends(RateLimiter(times = 30, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 게시판 복구",
@@ -229,6 +278,7 @@ async def admin_restore_board(
 # 관리자 soft delete한 파일 복구
 @router.post(
     "/boards/{board_index}/files/{file_index}/restore",
+    dependencies = [Depends(RateLimiter(times = 30, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 파일 복구",
@@ -245,3 +295,22 @@ async def admin_restore_file(
     conn: Connection = Depends(get_db)
 ):
     return await admin_restore_file_services(board_index, file_index, conn)
+
+# 관리자 한 게시판에 삭제처리된 모든 파일 복구
+@router.post(
+    "/boards/{board_index}/files/restore",
+    dependencies = [Depends(RateLimiter(times = 30, seconds = 60))],
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[관리자] 파일 일괄 복구",
+    description = """
+    특정 게시판에 삭제 처리된 모든 파일 일괄 복구
+
+    - 관리자만 접근 가능
+    """
+)
+async def admin_restore_all_files(
+    board_index: int = Path(..., gt = 0, description = "관리자 - 파일 일괄 복구할 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
+    conn: Connection = Depends(get_db)
+):
+    return await admin_restore_all_files_services(board_index, conn)

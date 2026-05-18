@@ -72,17 +72,17 @@ async def test_files_valid_case(client: AsyncClient):
     files_index = await get_latest_file_index(client, TEST_USER_ID)
     assert files_index is not None
 
-    # 2. 단일 파일 삭제 (DELETE /files/boards/{board_index}/{file_index})
+    # 2. 단일 파일 삭제 (DELETE /files/boards/{board_index}/files/{file_index}/soft)
     del_res = await client.request(
         "DELETE",
-        f"/files/boards/{board_index}/{files_index}",
+        f"/files/boards/{board_index}/files/{files_index}/soft",
         json = {"password": TEST_USER_PW}
     )
     assert del_res.status_code == 200
 
-    # 3. 단일 파일 복구 (POST /files/boards/{board_index}/{file_index}/restore)
+    # 3. 단일 파일 복구 (POST /files/boards/{board_index}/files/{file_index}/restore)
     res_res = await client.post(
-        f"/files/boards/{board_index}/{files_index}/restore",
+        f"/files/boards/{board_index}/files/{files_index}/restore",
         json = {"password": TEST_USER_PW}
     )
     assert res_res.status_code == 200
@@ -90,7 +90,7 @@ async def test_files_valid_case(client: AsyncClient):
     # 4. 파일 전체 삭제 (DELETE /files/boards/{board_index})
     del_all_res = await client.request(
         "DELETE",
-        f"/files/boards/{board_index}",
+        f"/files/boards/{board_index}/soft",
         json = {"password": TEST_USER_PW}
     )
     assert del_all_res.status_code == 200
@@ -159,7 +159,7 @@ async def test_delete_file_wrong_password(client: AsyncClient):
     # 틀린 비밀번호로 삭제 시도
     del_res = await client.request(
         "DELETE",
-        f"/files/boards/{board_index}/{files_index}",
+        f"/files/boards/{board_index}/files/{files_index}/soft",
         json = {"password": "WrongPassword99!!"}
     )
     

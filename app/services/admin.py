@@ -2,8 +2,18 @@ from asyncpg import Connection
 from fastapi import HTTPException, status
 from app.schemas.common import CommonResponse
 from app.models.user import pull_user_info
-from app.models.files import get_total_fsize, get_softDelete_fsize, update_total_fsize
 from app.schemas.admin import CreateNotice
+from app.core.config import settings
+from app.models.files import (
+    get_total_fsize,
+    get_softDelete_fsize,
+    update_total_fsize,
+    soft_delete_all_file,
+    restore_all_files,
+    restore_all_check_files_belong,
+    get_total_softDelete_fsize
+)
+
 from app.models.admin import (
     admin_get_all_users,
     admin_get_specific_user,
@@ -14,10 +24,12 @@ from app.models.admin import (
     admin_blacklist,
     admin_get_banCount,
     admin_delete_user,
+    admin_check_files_exist,
     admin_soft_delete_board,
     admin_soft_delete_file,
     admin_hard_delete_board,
     admin_hard_delete_file,
+    admin_hard_delete_all_files,
     admin_check_soft_delete_board,
     admin_check_soft_delete_file,
     admin_check_hard_delete_board,
@@ -27,6 +39,8 @@ from app.models.admin import (
     admin_check_file_belong,
     admin_restore_all_files
 )
+
+allow_max_total_fsize = settings.FILE_TOTAL_MAX_SIZE # 20MB
 
 # 관리자 전체 유저 목록 조회
 async def admin_get_all_users_services(conn: Connection):
@@ -178,6 +192,43 @@ async def admin_IMT_hard_delete_file_services(file_index: int, conn: Connection)
 
     return CommonResponse(message = f"{file_index}번의 파일이 영구적으로 삭제되었습니다.")
 
+# 관리자 한 게시판에 존재하는 모든 file soft delete (게시판은 삭제 x)
+async def admin_soft_delete_all_files_services(board_index: int, conn: Connection):
+
+    # 해당 board_index 게시판에 파일이 존재하는지 확인
+    files_exist = await admin_check_files_exist(conn, board_index)
+
+    if files_exist is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"해당 {board_index}번 게시판에는 삭제 가능한 파일이 존재하지 않습니다."
+        )
+
+    # soft delete 진행 (용량 재계산 로직 필요)
+    async with conn.transaction():
+        await soft_delete_all_file(conn, board_index)
+        total_file_size = await get_total_fsize(conn, board_index)
+        await update_total_fsize(conn, total_file_size, board_index)
+    
+    return CommonResponse(message = f"{board_index}번 게시판에 존재하는 모든 파일을 삭제 처리하였습니다.")
+
+# 관리자 한 게시판에 존재하는 모든 file hard delete (게시판은 삭제 x)
+async def admin_IMT_hard_delete_all_files_services(board_index: int, conn: Connection):
+
+    # 해당 board_index 게시판에 파일이 존재하는지 확인
+    files_exist = await admin_check_files_exist(conn, board_index)
+
+    if files_exist is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"해당 {board_index}번 게시판에는 삭제 가능한 파일이 존재하지 않습니다."
+        )
+    
+    await admin_hard_delete_all_files(conn, board_index)
+
+    return CommonResponse(message = f"{board_index}번 게시판에 존재하는 모든 파일을 영구 삭제 처리하였습니다.")
+
+
 # 관리자 삭제처리된 게시판 복구
 async def admin_restore_board_services(board_index: int, conn: Connection):
 
@@ -225,3 +276,38 @@ async def admin_restore_file_services(board_index: int, file_index: int, conn: C
         await update_total_fsize(conn, new_total_fsize, board_index)
 
     return CommonResponse(message = f"{file_index}번의 파일이 복구되었습니다.")
+
+# 관리자 특정 게시판에 삭제처리된 모든 파일 일괄 복구
+async def admin_restore_all_files_services(board_index: int, conn: Connection):
+
+    # 해당 board_index 게시판에 삭제 처리된 파일이 존재하는지
+    restore_files_belong = await restore_all_check_files_belong(conn, board_index)
+
+    if restore_files_belong is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"{board_index}번 게시판에는 복구 가능한 파일이 존재하지 않습니다."
+        )
+    
+    # 현재 파일 총 용량
+    cur_total_fsize = await get_total_fsize(conn, board_index)
+    cur_total_fsize = cur_total_fsize or 0
+
+    # 삭제 처리된 파일 총 용량
+    soft_deleted_fsize = await get_total_softDelete_fsize(conn, board_index)
+    soft_deleted_fsize = soft_deleted_fsize or 0
+    
+    if cur_total_fsize + soft_deleted_fsize > allow_max_total_fsize:
+        raise HTTPException(
+            status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+             detail = f"복구를 진행할 시, 한 게시판에 업로드 할 수 있는 총 파일 용량을 초과합니다. (최대: {(allow_max_total_fsize / (1024 * 1024)):.2f}MB 현재: {(cur_total_fsize / (1024 * 1024)):.2f}MB 복구: {(soft_deleted_fsize / (1024 * 1024)):.2f}MB)"   
+        )
+    
+    # 파일 복구 & 용량 재계산
+    async with conn.transaction():
+        await restore_all_files(conn, board_index)
+        new_total_fsize = await get_total_fsize(conn, board_index)
+        new_total_fsize = new_total_fsize or 0
+        await update_total_fsize(conn, new_total_fsize, board_index)
+    
+    return CommonResponse(message = f"{board_index}번 게시판의 삭제 처리된 모든 파일을 일괄 복구하였습니다.")

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, status, Path, Query, Request
+from fastapi_limiter.depends import RateLimiter
 from asyncpg import Connection
 from app.schemas.boards import CreateBoard, ModiTitle, ModiContent, DeleteBoards, RestoreBoards
 from app.schemas.user import UserLogin
@@ -27,6 +28,7 @@ async def get_redis():
 # 특정 유저의 게시판 생성
 @router.post(
     "",
+    dependencies = [Depends(RateLimiter(times = 1, seconds = 15))],
     response_model = CommonResponse,
     status_code = status.HTTP_201_CREATED,
     summary = "[게시판] 새로운 게시판 생성",
@@ -48,6 +50,7 @@ async def register_boards(
 # 게시판 제목 + 게시판 내용으로 게시판 검색
 @router.get(
     "/search",
+    dependencies = [Depends(RateLimiter(times = 20, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 게시판 검색 (제목 + 내용)",
@@ -70,6 +73,7 @@ async def search_boards(
 # 특정 유저의 게시판 조회
 @router.get(
     "/users/{user_id}",
+    dependencies = [Depends(RateLimiter(times = 60, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 게시판 검색 (유저 ID)",
@@ -92,6 +96,7 @@ async def get_user_boards(
  # 단건 게시글 조회
 @router.get(
     "/{board_index}",
+    dependencies = [Depends(RateLimiter(times = 60, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 특정 게시글 상세 조회",
@@ -116,6 +121,7 @@ async def get_board_detail(
 # 모든 유저의 게시판 조회
 @router.get(
     "",
+    dependencies = [Depends(RateLimiter(times = 60, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 전체 게시판 목록을 출력",
@@ -136,6 +142,7 @@ async def get_all_boards(
 # 게시판 제목 변경
 @router.patch(
     "/{board_index}/title",
+    dependencies = [Depends(RateLimiter(times = 1, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 게시판 제목을 수정",
@@ -158,6 +165,7 @@ async def update_board_title(
 # 게시판 내용 변경
 @router.patch(
     "/{board_index}/content",
+    dependencies = [Depends(RateLimiter(times = 1, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 게시판 내용을 수정",
@@ -180,6 +188,7 @@ async def update_content(
 # 게시판 삭제
 @router.delete(
     "/{board_index}",
+    dependencies = [Depends(RateLimiter(times = 1, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 게시판 삭제",
@@ -203,6 +212,7 @@ async def delete_boards(
 # 게시판 복구
 @router.post(
     "/{board_index}/restore",
+    dependencies = [Depends(RateLimiter(times = 1, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[게시판] 게시판 데이터 복구",

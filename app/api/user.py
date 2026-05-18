@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, status, Path
+from fastapi_limiter.depends import RateLimiter
 from asyncpg import Connection
 from app.schemas.user import UserLogin, UserPw, ModiId, ModiPw
 from app.schemas.common import CommonResponse
@@ -20,6 +21,7 @@ router = APIRouter()
 # 신규 회원가입 비밀번호를 입력했을 때, 해싱된 비밀번호 값을 DB에 저장
 @router.post(
     "",
+    dependencies = [Depends(RateLimiter(times = 1, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_201_CREATED,
     summary = "[유저] 신규 회원가입",
@@ -39,6 +41,7 @@ async def register_user(
 # 신규 회원의 아이디 중복, not null 검사
 @router.get(
     "/check-id/{user_id}",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 신규 아이디 중복 확인",
@@ -58,6 +61,7 @@ async def check_user_id(
 # 사용자 정보 조회
 @router.get(
     "/me",
+    dependencies = [Depends(RateLimiter(times = 20, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 사용자 정보 조회",
@@ -76,6 +80,7 @@ async def get_my_info(
 # 사용자 회원탈퇴
 @router.delete(
     "/me",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 사용자 회원탈퇴",
@@ -98,6 +103,7 @@ async def withdraw_user(
 # 사용자 아이디 변경
 @router.patch(
     "/me/id",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 사용자 아이디 변경",
@@ -119,6 +125,7 @@ async def update_my_id(
 # 사용자 비밀번호 변경
 @router.patch(
     "/me/password",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 사용자 비밀번호 변경",
@@ -145,6 +152,7 @@ async def update_my_password(
 # why? : 이미 삭제 처리된 데이터이기 때문에 삭제 처리가 된 순간 발급 된 (되어있던) access / refresh은 삭제된다.
 @router.post(
     "/me/restore",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[유저] 사용자 데이터 복구",

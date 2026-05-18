@@ -30,10 +30,11 @@ jobs:
           --health-retries 5
       redis:
         image: redis:alpine
+        command: redis-server --requirepass test_redis_password
         ports:
           - 6379:6379
         options: >-
-          --health-cmd "redis-cli ping"
+          --health-cmd "redis-cli -a test_redis_password ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -77,6 +78,7 @@ jobs:
 
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          REDIS_PASSWORD: test_redis_password
 
           SECRET_KEY: ${{ secrets.TOKEN_SECRET_KEY }}
           ALGORITHM: HS256

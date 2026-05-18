@@ -2,6 +2,7 @@ from fastapi import (
     APIRouter, Depends, HTTPException, Cookie,
     status, Response
 )
+from fastapi_limiter.depends import RateLimiter
 from asyncpg import Connection
 from app.core.security import get_current_user
 from app.db.database import get_db
@@ -18,6 +19,7 @@ router = APIRouter()
 # JWT 토큰 재발급
 @router.post(
     "/refresh",
+    dependencies = [Depends(RateLimiter(times = 3, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_201_CREATED,
     summary = "[인증] 만료된 JWT Access 토큰 재발급",
@@ -47,7 +49,8 @@ async def refresh_access_token(
 
 # JWT 사용자 로그인
 @router.post(
-    "/login", 
+    "/login",
+    dependencies = [Depends(RateLimiter(times = 3, seconds = 60))],
     response_model = CommonResponse, 
     status_code = status.HTTP_201_CREATED,
     summary  = "[인증] 사용자 로그인", 
@@ -73,6 +76,7 @@ async def token_login(
 # JWT 사용자 로그아웃
 @router.post(
     "/logout",
+    dependencies = [Depends(RateLimiter(times = 3, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
     summary = "[인증] 사용자 로그아웃",
