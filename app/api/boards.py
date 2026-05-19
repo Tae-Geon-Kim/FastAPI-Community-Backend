@@ -16,7 +16,8 @@ from app.services.boards import (
     content_modify_services,
     boards_delete_services,
     restore_board_services,
-    search_in_title_content_services
+    search_in_title_content_services,
+    get_popular_board_services
 )
 
 router = APIRouter()
@@ -92,6 +93,29 @@ async def get_user_boards(
     conn: Connection = Depends(get_db)
 ):
     return await certain_boards_info_services(user_id, page, limit, conn)
+
+# 인기 게시글 설정
+@router.get(
+    "/popular",
+    dependencies = [Depends(RateLimiter(times = 60, seconds = 60))],
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[게시판] 인기 게시글 설정",
+    description = """
+    전체 게시판에서 조회수 TOP 5 를 인기글로 설정
+
+    - view_count 칼럼 조회수를 기준으로 순서를 매겼을 때 동일값으로 인해 5개가 넘어가면 해당 조회수 순위까지만 출력
+    - 1등: 100회 2등: 50회 3,4,5,6등: 40회 --> 공동 6등 (조회수 3등) 까지만 출력
+    - period: all - 전체 기간동안 쓰여진 글 기준으로
+    - period: weekly - 7일 이내의 글 기준으로 
+    - 로그인 필요하지 않음.
+    """
+)
+async def get_popular_board(
+    period: str = Query("all", description = "조회 기간 (all 또는 weekly)"),
+    conn: Connection = Depends(get_db)
+):
+    return await get_popular_board_services(period, conn)
 
  # 단건 게시글 조회
 @router.get(

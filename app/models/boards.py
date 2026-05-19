@@ -1,5 +1,6 @@
 from asyncpg import Connection
 
+# 게시글 새로 생성 및 저장
 async def insert_boards_db(conn: Connection, title: str, content: str, user_index: int):
 
 	sql = 'INSERT INTO boards (title, content, user_index) VALUES ($1, $2, $3) RETURNING index;'
@@ -220,7 +221,7 @@ async def total_certain_user_boards_info(conn: Connection, user_id: str):
 	return await conn.fetchval(sql, user_id)
 
 # 전체 게시판 숫자
-async def total_all_boards_info(conn: Connection):
+async def get_total_boards_num(conn: Connection):
 
 	sql = 'SELECT COUNT(*) from boards WHERE deleted_at IS NULL'
 	
@@ -232,3 +233,21 @@ async def update_view_count(conn: Connection, board_index: int):
 	sql = 'UPDATE boards SET view_count = view_count + 1 WHERE index = $1'
 
 	return await conn.execute(sql, board_index)
+
+# 게시글에서 조회수를 기준으로 TOP5 가져오기 (전체 게시글 기준 or 최근 7일내 생성된 게시글 기준)
+async def get_popular_top5_board(conn: Connection, time_condition: str):
+
+	sql = f"""
+		WITH Top5_List AS (
+		SELECT
+			index, title, content, view_count, category,
+			RANK () OVER (ORDER BY view_count DESC) as ranking
+		FROM boards
+		WHERE deleted_at IS NULL
+		{time_condition}
+		)
+		SELECT * FROM Top5_List
+		WHERE ranking <= 5;
+	"""
+
+	return await conn.fetch(sql)

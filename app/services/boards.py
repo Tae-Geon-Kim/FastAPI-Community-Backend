@@ -16,7 +16,8 @@ from app.models.boards import (
     all_user_boards_info, check_boards_owner, title_modify, content_modify,
     soft_delete_boards, delete_boards, check_restore_boards_owner,
     restore_board, search_in_title_content, total_search_in_title_content,
-    total_certain_user_boards_info, total_all_boards_info, update_view_count
+    total_certain_user_boards_info, get_total_boards_num, update_view_count,
+    get_popular_top5_board
 )
 from app.models.files import (
     soft_delete_all_file, delete_files, restore_all_files,
@@ -140,7 +141,7 @@ async def all_boards_info_services(conn: Connection, page: int, limit: int):
 
     offset = (page - 1) * limit
 
-    total_boards = await total_all_boards_info(conn)
+    total_boards = await get_total_boards_num(conn)
     total_pages = math.ceil(total_boards / limit) if total_boards > 0 else 0
 
     rows = await all_user_boards_info(conn, limit, offset)
@@ -367,4 +368,36 @@ async def search_in_title_content_services(search_keyword: str, page: int, limit
                 "limit": limit
             }
         }
+    )
+
+# 인기게시글 설정
+async def get_popular_board_services(period: str, conn: Connection):
+
+    # 전체 게시글이 하나도 존재하지 않는 경우
+    total_boards_num = await get_total_boards_num(conn)
+
+    if total_boards_num == 0:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "등록된 게시글이 존재하지 않습니다." 
+        )
+
+    if(period == "all"):
+        time_condition = ""
+    elif(period == "weekly"):
+        time_condition = "AND reg_date >= NOW() - INTERVAL '7 days'"
+    else:
+        return CommonResponse(
+            success = False,
+            data = None,
+            message = "잘못된 입력입니다. period(조회기간)는 all 또는 weekly만 가능합니다."
+        )
+
+    rows = await get_popular_top5_board(conn, time_condition)
+
+    result = [dict(row) for row in rows]
+
+    return CommonResponse(
+        message = f"{'주간' if period == 'weekly' else '전체기간'} 인기글 조회에 성공하였습니다",
+        data = result
     )
