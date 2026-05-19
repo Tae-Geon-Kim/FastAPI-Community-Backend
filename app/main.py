@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     redis_connection = redis.from_url(
         redis_url,
         encoding = "utf-8",
-        decode_respomese = True
+        decode_responses = True
     )   
 
     await FastAPILimiter.init(redis_connection)
