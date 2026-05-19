@@ -68,8 +68,8 @@ async def token_login(
 ):
     access_token, refresh_token = await token_login_services(conn, data)
 
-    response.set_cookie(key = "access_token", value = f"Bearer {access_token}", httponly = True, samesite = "lax")
-    response.set_cookie(key = "refresh_token", value = f"Bearer {refresh_token}", httponly = True, samesite = "lax")
+    response.set_cookie(key = "access_token", value = access_token, httponly = True, samesite = "lax"),
+    response.set_cookie(key = "refresh_token", value = refresh_token, httponly = True, samesite = "lax")
 
     return CommonResponse(message = "로그인에 성공하였습니다.")
 

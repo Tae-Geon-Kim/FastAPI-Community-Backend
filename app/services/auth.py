@@ -27,7 +27,7 @@ async def refresh_access_token_services(conn: Connection, refresh_token: str):
             raise credentials_exception
         
         # Redis DB에 저장된 해싱된 토큰 값이 stored_token에
-        stored_token = await redis_db.get(f"refresh:user: {user_id}")
+        stored_token = await redis_db.get(f"refresh:user:{user_id}")
 
         # front에 받은 refresh_token을 해싱한 값
         received_token = hashlib.sha256(refresh_token.encode()).hexdigest()
