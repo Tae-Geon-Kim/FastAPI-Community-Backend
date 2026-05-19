@@ -17,7 +17,7 @@ from app.models.boards import check_boards_owner
 from app.models.user import get_user_id_pw
 from app.core.config import settings
 from app.core.security import verify
-
+ADMIN
 upload_dir = settings.UPLOAD_DIR
 
 # 허용되는 파일 확장자: jpg, jpeg, png, gif, webp, pdf, docx, xlsx, pptx, txt, zip
@@ -135,9 +135,8 @@ async def delete_files_services(board_index: int, file_index: int, data: DeleteF
             status_code = status.HTTP_404_NOT_FOUND,
             detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
-    
-    # 권한 확인
-    if boards_owner['user_index'] != current_user['index'] and user_role != "ADMIN":
+
+    if boards_owner['user_index'] != current_user['index']:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다."
@@ -179,7 +178,7 @@ async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Conne
             detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
 
-    if board_owner['user_index'] != current_user['index'] and user_role != "ADMIN":
+    if boards_owner['user_index'] != current_user['index']:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다."
@@ -212,7 +211,7 @@ async def restore_file_services(board_index: int, file_index: int, data: Restore
             detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
     
-    if boards_owner['user_index'] != current_user['index'] and user_role != "ADMIN":
+    if boards_owner['user_index'] != current_user['index']:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다."
@@ -264,11 +263,11 @@ async def restore_all_file_services(board_index: int, data: RestoreAllFile, conn
             detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
     
-    if boards_owner['user_index'] != current_user['index'] and user_role != "ADMIN":
+    if boards_owner['user_index'] != current_user['index']:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다."
-        )    
+        )
     
     restore_files_belong = await restore_all_check_files_belong(conn, board_index)
 
