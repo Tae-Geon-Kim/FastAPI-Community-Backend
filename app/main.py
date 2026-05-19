@@ -16,7 +16,7 @@ from app.api.admin import router as admin_router
 from app.core.logger import logger
 from app.core.config import redis_settings
 from app.core.scheduler import start_scheduler, stop_scheduler
-responses
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
