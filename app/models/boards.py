@@ -234,7 +234,7 @@ async def update_view_count(conn: Connection, board_index: int):
 
 	return await conn.execute(sql, board_index)
 
-# 게시글에서 조회수를 기준으로 TOP5 가져오기 (전체 게시글 기준 or 최근 7일내 생성된 게시글 기준)
+# 게시글에서 조회수를 기준으로 TOP5 가져오기 (전체 기간 / 최근 7일 / 최근 30일 기준)
 async def get_popular_top5_board(conn: Connection, time_condition: str):
 
 	sql = f"""

@@ -386,18 +386,27 @@ async def get_popular_board_services(period: str, conn: Connection):
         time_condition = ""
     elif(period == "weekly"):
         time_condition = "AND reg_date >= NOW() - INTERVAL '7 days'"
+    elif(period == "month"):
+        time_condition = "AND reg_date >= NOW() - INTERVAL '1 month'"
     else:
         return CommonResponse(
             success = False,
             data = None,
-            message = "잘못된 입력입니다. period(조회기간)는 all 또는 weekly만 가능합니다."
+            message = "잘못된 입력입니다. period(조회기간)는 all, weekly, month만 가능합니다."
         )
 
     rows = await get_popular_top5_board(conn, time_condition)
 
     result = [dict(row) for row in rows]
 
+    if period == "weekly":
+        period = "주간"
+    elif period == "month":
+        period = "월간"
+    else:
+        period = "전체기간"
+
     return CommonResponse(
-        message = f"{'주간' if period == 'weekly' else '전체기간'} 인기글 조회에 성공하였습니다",
+        message = f"{period} 인기글 조회에 성공하였습니다.",
         data = result
     )
