@@ -17,7 +17,7 @@ from app.models.boards import check_boards_owner
 from app.models.user import get_user_id_pw
 from app.core.config import settings
 from app.core.security import verify
-ADMIN
+
 upload_dir = settings.UPLOAD_DIR
 
 # 허용되는 파일 확장자: jpg, jpeg, png, gif, webp, pdf, docx, xlsx, pptx, txt, zip
