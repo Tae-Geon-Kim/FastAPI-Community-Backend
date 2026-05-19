@@ -178,7 +178,7 @@ async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Conne
             detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
 
-    if boards_owner['user_index'] != current_user['index']:
+    if board_owner['user_index'] != current_user['index']:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다."
