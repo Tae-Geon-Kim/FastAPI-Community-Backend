@@ -10,6 +10,7 @@ services:
       - db
       - redis
     volumes:
+      - .:/app
       - ./logs:/app/logs
 
   db:
