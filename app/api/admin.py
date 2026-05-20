@@ -124,9 +124,10 @@ async def register_notice(
 )
 async def user_blacklist(
     user_index: int = Path(..., gt = 0, description = "관리자 - 블랙리스트(삭제) 처리할 유저의 인덱스 (유저의 인덱스는 1이상이여야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    return await admin_user_blacklist_services(user_index, conn)
+    return await admin_user_blacklist_services(user_index, conn, current_user)
 
 
 # 관리자 특정 게시판 삭제 처리 (soft delete)
@@ -146,9 +147,10 @@ async def user_blacklist(
 )
 async def admin_soft_delete_board(
     board_index: int = Path(..., gt = 0, description = "관리자 - 삭제처리(soft delete) 할 게시판(공지사항) 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    return await admin_soft_delete_board_services(board_index, conn)
+    return await admin_soft_delete_board_services(board_index, conn, current_user)
 
 
 # 관리자 특정 게시판 hard delete
@@ -168,9 +170,10 @@ async def admin_soft_delete_board(
 )
 async def admin_IMT_hard_delete_boards(
     board_index: int = Path(..., gt = 0, description = "관리자 - 삭제할 게시판의 인덱스 (게시판의 인덱스는 1이상이어야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    return await admin_IMT_hard_delete_board_services(board_index, conn)
+    return await admin_IMT_hard_delete_board_services(board_index, conn, current_user)
 
 
 # 관리자 특정 단일 파일 삭제 처리 (soft delete)
@@ -190,9 +193,10 @@ async def admin_IMT_hard_delete_boards(
 )
 async def admin_soft_delete_file(
     file_index: int = Path(..., gt = 0, description = "관리자 - 삭제처리(soft delete) 할 파일의 인덱스 (파일의 인덱스는 1이상이여야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    return await admin_soft_delete_file_services(file_index, conn)
+    return await admin_soft_delete_file_services(file_index, conn, current_user)
 
 
 # 관리자 특정 단일 파일 hard delete
@@ -211,9 +215,10 @@ async def admin_soft_delete_file(
 )
 async def admin_IMT_hard_delete_files(
     file_index: int = Path(..., gt = 0, description = "관리자 - 삭제할 파일의 인덱스 (파일의 인덱스는 1이상이여야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    return await admin_IMT_hard_delete_file_services(file_index, conn)
+    return await admin_IMT_hard_delete_file_services(file_index, conn, current_user)
 
 # 관리자 한 게시판에 존재하는 모든 파일 soft delete
 @router.delete(
@@ -230,9 +235,10 @@ async def admin_IMT_hard_delete_files(
 )
 async def admin_soft_delete_all_files(
     board_index: int = Path(..., gt = 0, description = "관리자 - 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    return await admin_soft_delete_all_files_services(board_index, conn)
+    return await admin_soft_delete_all_files_services(board_index, conn, current_user)
 
 # 관리자 한 게시판에 존재하는 모든 파일 hard delete
 @router.delete(
@@ -249,9 +255,10 @@ async def admin_soft_delete_all_files(
 )
 async def admin_IMT_hard_delete_all_files(
     board_index: int = Path(..., gt = 0, description = "관리자 - 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    return await admin_IMT_hard_delete_all_files_services(board_index, conn)
+    return await admin_IMT_hard_delete_all_files_services(board_index, conn, current_user)
 
 
 # 관리자 soft delete한 게시판 복구
@@ -270,9 +277,10 @@ async def admin_IMT_hard_delete_all_files(
 )
 async def admin_restore_board(
     board_index: int = Path(..., gt = 0, description = "관리자 - 복구할 게시판 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    return await admin_restore_board_services(board_index, conn)
+    return await admin_restore_board_services(board_index, conn, current_user)
 
 
 # 관리자 soft delete한 파일 복구
@@ -292,9 +300,10 @@ async def admin_restore_board(
 async def admin_restore_file(
     board_index: int = Path(..., gt = 0, description = "관리자 - 복구할 파일이 속한 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
     file_index: int = Path(..., gt = 0, description = "관리자 - 복구할 파일 인덱스 (파일의 인덱스는 1이상이여야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    return await admin_restore_file_services(board_index, file_index, conn)
+    return await admin_restore_file_services(board_index, file_index, conn, current_user)
 
 # 관리자 한 게시판에 삭제처리된 모든 파일 복구
 @router.post(
@@ -311,6 +320,7 @@ async def admin_restore_file(
 )
 async def admin_restore_all_files(
     board_index: int = Path(..., gt = 0, description = "관리자 - 파일 일괄 복구할 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
-    conn: Connection = Depends(get_db)
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    return await admin_restore_all_files_services(board_index, conn)
+    return await admin_restore_all_files_services(board_index, conn, current_user)

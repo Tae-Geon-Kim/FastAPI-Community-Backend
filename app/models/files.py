@@ -6,9 +6,12 @@ async def upload_files_db(conn: Connection, original_name: str, stored_name: str
     sql = '''
         INSERT INTO "files" (original_name, stored_name, file_path, file_size, board_index)
         VALUES ($1, $2, $3, $4, $5)
+        RETURNING index
     '''
 
-    return await conn.execute(sql, original_name, stored_name, file_path, file_size, board_index)
+    new_file_index = await conn.fetchval(sql, original_name, stored_name, file_path, file_size, board_index)
+
+    return new_file_index
 
 # 파일이 해당 게시판에 소속되어있는지 확인
 # files_index 와 boards index에 해당하는 파일이 있으면 1 없므면 None

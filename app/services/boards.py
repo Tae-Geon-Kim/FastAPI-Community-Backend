@@ -4,6 +4,7 @@ from collections import defaultdict
 from asyncpg import Connection
 from fastapi import HTTPException, status
 from app.models.user import get_user_id_pw, get_user_index
+from app.models.audit_log import insert_audit_log
 from app.core.security import verify
 from app.db.redis_config import redis_db
 from app.schemas.common import CommonResponse
@@ -32,7 +33,19 @@ def convert_mb(size_bytes: int) -> str:
 # 게시판 생성 - DB에 저장을 하고 게시판의 인덱스를 다시 받아온다.
 async def create_boards_services(data: CreateBoard, conn: Connection, current_user: dict):
 
-    new_board_index = await insert_boards_db(conn, data.title, data.content, current_user['index'])
+    async with conn.transaction():
+        new_board_index = await insert_boards_db(conn, data.title, data.content, current_user['index'])
+        await insert_audit_log(
+            conn = conn,
+            action = "CREATE",
+            target_type = "BOARD",
+            target_index = new_board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "title": data.title,
+            }
+        )
 
     return CommonResponse(
         message = "게시판이 생성되었습니다.",
@@ -195,7 +208,6 @@ async def all_boards_info_services(conn: Connection, page: int, limit: int):
 async def title_modify_services(board_index: int, data: ModiTitle, conn: Connection, current_user: dict):
     
     user_info = await get_user_id_pw(conn, current_user['index'])
-    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -221,7 +233,20 @@ async def title_modify_services(board_index: int, data: ModiTitle, conn: Connect
             detail = "권한이 없습니다."
         )
 
-    await title_modify(conn, data.new_title, board_index)
+    async with conn.transaction():
+        await title_modify(conn, data.new_title, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "MODIFY_TITLE",
+            target_type = "BOARD",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "new_title": data.new_title,
+            }
+        )
+
 
     return CommonResponse(message = f"{user_info['id']}의 게시판 제목이 {data.new_title}로 변경되었습니다.")
 
@@ -229,7 +254,6 @@ async def title_modify_services(board_index: int, data: ModiTitle, conn: Connect
 async def content_modify_services(board_index: int, data: ModiContent, conn: Connection, current_user: dict):
 
     user_info = await get_user_id_pw(conn, current_user['index'])
-    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -250,8 +274,21 @@ async def content_modify_services(board_index: int, data: ModiContent, conn: Con
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다."
         )
-    
-    await content_modify(conn, data.new_content, board_index)
+
+    async with conn.transaction():
+        await content_modify(conn, data.new_content, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "MODIFY_CONTENT",
+            target_type = "BOARD",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "new_content_preview": new_content[:50] + "..." 
+            }
+        )
+
 
     return CommonResponse(message = f"{user_info['id']}님의 게시판 내용이 변경되었습니다.")
 
@@ -259,7 +296,6 @@ async def content_modify_services(board_index: int, data: ModiContent, conn: Con
 async def boards_delete_services(board_index: int, data: DeleteBoards, conn: Connection, current_user: dict):
     
     user_info = await get_user_id_pw(conn, current_user['index'])
-    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -287,6 +323,17 @@ async def boards_delete_services(board_index: int, data: DeleteBoards, conn: Con
         #  soft delete
         await soft_delete_boards(conn, board_index)
         await soft_delete_all_file(conn, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "DELETE",
+            target_type = "BOARD",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "사용자 본인 요청에 의한 삭제 (soft delete)"
+            }
+        )
 
     return CommonResponse(message = f"{user_info['id']}님의 요청하신 삭제 요청이 성공적으로 처리되었습니다.")
 
@@ -301,7 +348,6 @@ async def delete_boards_perman(pool):
 async def restore_board_services(board_index: int, data: RestoreBoards, conn: Connection, current_user: dict):
 
     user_info = await get_user_id_pw(conn, current_user['index'])
-    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -328,6 +374,17 @@ async def restore_board_services(board_index: int, data: RestoreBoards, conn: Co
         await restore_all_files(conn, board_index) # 게시판 내에 저장되어 있던 파일들이 있으면 파일들 일괄 복구
         new_total_fsize = await get_total_fsize(conn, board_index) # 파일들 복구되었으면 파일 용량 재계산
         await update_total_fsize(conn, new_total_fsize, board_index) # 재계산된 용량 DB 업로드
+        await insert_audit_log(
+            conn = conn,
+            action = "RESTORE",
+            target_type = "BOARD",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "사용자 본인 요청에 의한 복구"
+            }
+        )
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 게시판이 복구되었습니다.")
 

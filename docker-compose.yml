@@ -2,6 +2,7 @@ services:
   app:
     build: .
     container_name: fastapi-app-container
+    user: "${UID}:${GID}"
     environment:
       TZ: Asia/Seoul
     env_file:

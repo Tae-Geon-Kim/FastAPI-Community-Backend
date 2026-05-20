@@ -68,7 +68,7 @@ class ModiId(BaseModel):
 
     @field_validator('password')
     @classmethod
-    def check_id(cls, v): return validate_password_format(v)
+    def check_password(cls, v): return validate_password_format(v)
 
     @field_validator('new_id')
     @classmethod

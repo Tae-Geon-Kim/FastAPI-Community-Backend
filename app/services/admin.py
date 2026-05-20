@@ -2,6 +2,7 @@ from asyncpg import Connection
 from fastapi import HTTPException, status
 from app.schemas.common import CommonResponse
 from app.models.user import pull_user_info
+from app.models.audit_log import insert_audit_log
 from app.schemas.admin import CreateNotice
 from app.core.config import settings
 from app.models.files import (
@@ -37,7 +38,8 @@ from app.models.admin import (
     admin_check_restore_board,
     admin_check_restore_file,
     admin_check_file_belong,
-    admin_restore_all_files
+    admin_restore_all_files,
+    admin_restore_file
 )
 
 allow_max_total_fsize = settings.FILE_TOTAL_MAX_SIZE # 20MB
@@ -92,15 +94,27 @@ async def admin_get_specific_board_services(user_index: int, board_index: int, c
 # 관리자 공지사항 작성
 async def admin_register_notice_services(data: CreateNotice, conn: Connection, current_user: dict):
 
-    registerd_notice_index = await admin_register_notice(conn, data.title, data.content, 'NOTICE', current_user['index'])
+    async with conn.transaction():
+        registered_notice_index = await admin_register_notice(conn, data.title, data.content, 'NOTICE', current_user['index'])
+        await insert_audit_log(
+            conn = conn,
+            action = "CREATE",
+            target_type = "ADMIN",
+            target_index = registered_notice_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "title": data.title
+            }
+        )
 
     return CommonResponse(
         message = "공지사항이 등록되었습니다.",
-        data = f"notice_index: {registerd_notice_index}"
+        data = f"notice_index: {registered_notice_index}"
     )
 
 # 관리자 유저 블랙리스트 관리
-async def admin_user_blacklist_services(user_index: int, conn: Connection):
+async def admin_user_blacklist_services(user_index: int, conn: Connection, current_user: dict):
 
     ban_count = await admin_get_banCount(conn, user_index)
 
@@ -111,23 +125,49 @@ async def admin_user_blacklist_services(user_index: int, conn: Connection):
         )
     
     if ban_count >= 3:
-        await admin_delete_user(conn, user_index)
-        return CommonResponse(
-            success = False,
-            message = "이미 삭제처리된 유저입니다."
-        )
-    
+        async with conn.transaction():
+            await admin_delete_user(conn, user_index)
+            await insert_audit_log(
+                conn = conn,
+                action = "DELETE (ADMIN/HARD)",
+                target_type = "USER",
+                target_index = user_index,
+                actor_user_index = current_user['index'],
+                actor_user_id = current_user['id'],
+                detail = {
+                    "reason": "누적 경고 3회 이상으로 관리자 권한으로 해당 사용자 영구 삭제",
+                    "total_ban_count": ban_count
+                }
+            )
+            return CommonResponse(
+                success = False,
+                message = "이미 삭제처리된 유저입니다."
+            )
+
     if ban_count == 0: ban_days = 1
     elif ban_count == 1: ban_days = 3
     else: ban_days = 5
- 
-    # 특정 유저를 블랙리스트 처리
-    await admin_blacklist(conn, user_index, ban_days)
+
+    async with conn.transaction():
+        await admin_blacklist(conn, user_index, ban_days)
+        await insert_audit_log(
+            conn = conn,
+            action = "BAN (ADMIN)",
+            target_type = "USER",
+            target_index = user_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": f"관리자 권한으로 해당 유저를 {ban_days}만큼 이용정지",
+                "ban_days": ban_days,
+                "current_ban_count": ban_count + 1
+            }
+        )
 
     return CommonResponse(message = f"해당 유저가 {ban_days}일 만큼 이용 정지처리 되었습니다.")
 
 # 관리자 게시판 삭제 (soft delete)
-async def admin_soft_delete_board_services(board_index: int, conn: Connection):
+async def admin_soft_delete_board_services(board_index: int, conn: Connection, current_user: dict):
 
     target_index = await admin_check_soft_delete_board(conn, board_index)
 
@@ -136,14 +176,26 @@ async def admin_soft_delete_board_services(board_index: int, conn: Connection):
             status_code = status.HTTP_404_NOT_FOUND,
             detail = "해당 게시판을 찾을 수 없습니다."
         )
-    
-    await admin_soft_delete_board(conn, board_index)
+
+    async with conn.transaction():
+        await admin_soft_delete_board(conn, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "DELETE (ADMIN/SOFT)",
+            target_type = "BOARD",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "관리자 권한으로 게시판을 삭제 처리 (soft delete)"
+            }
+        )
 
     return CommonResponse(message = f"{board_index}번의 게시판이 삭제 처리되었습니다.")
 
 
 # 관리자가 직접 게시판 hard delete (hard delete 경우는 용량 재계산 로직 필요 x)
-async def admin_IMT_hard_delete_board_services(board_index: int, conn: Connection):
+async def admin_IMT_hard_delete_board_services(board_index: int, conn: Connection, current_user: dict):
 
     target_index = await admin_check_hard_delete_board(conn, board_index)
 
@@ -152,13 +204,25 @@ async def admin_IMT_hard_delete_board_services(board_index: int, conn: Connectio
             status_code = status.HTTP_404_NOT_FOUND,
             detail = "해당 게시판을 찾을 수 없습니다"
         )
-    
-    await admin_hard_delete_board(conn, board_index)
+
+    async with conn.transaction():
+        await admin_hard_delete_board(conn, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "DELETE (ADMIN/HARD)",
+            target_type = "BOARD",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "관리자 권한으로 게시판을 영구 삭제 (hard delete)"
+            }
+        )
 
     return CommonResponse(message = f"{board_index}번의 게시판이 영구적으로 삭제되었습니다.")
 
 # 관리자 파일 삭제 (soft delete)
-async def admin_soft_delete_file_services(file_index: int, conn: Connection):
+async def admin_soft_delete_file_services(file_index: int, conn: Connection, current_user: dict):
 
     target_index = await admin_check_soft_delete_file(conn, file_index)
 
@@ -174,11 +238,22 @@ async def admin_soft_delete_file_services(file_index: int, conn: Connection):
         await admin_soft_delete_file(conn, file_index)
         new_total_fsize = await get_total_fsize(conn, board_index)
         await update_total_fsize(conn, new_total_fsize, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "DELETE (ADMIN/SOFT)",
+            target_type = "FILES",
+            target_index = file_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "관리자 권한으로 파일을 삭제 처리(soft delete)"
+            }
+        )
 
     return CommonResponse(message = f"{file_index}번의 파일이 삭제 처리되었습니다.")
 
 # 관리자가 직접 파일 hard delete (hard delete 경우는 용량 재계산 로직 필요 x)
-async def admin_IMT_hard_delete_file_services(file_index: int, conn: Connection):
+async def admin_IMT_hard_delete_file_services(file_index: int, conn: Connection, current_user: dict):
 
     target_index = await admin_check_hard_delete_file(conn, file_index)
 
@@ -187,13 +262,25 @@ async def admin_IMT_hard_delete_file_services(file_index: int, conn: Connection)
             status_code = status.HTTP_404_NOT_FOUND,
             detail = "해당 파일을 찾을 수 없습니다."
         )
-   
-    await admin_hard_delete_file(conn, file_index)
+
+    async with conn.transaction():
+        await admin_hard_delete_file(conn, file_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "DELETE (ADMIN/HARD)",
+            target_type = "FILES",
+            target_index = file_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "관리자 권한으로 파일을 영구 삭제 (hard delete)"
+            }
+        )
 
     return CommonResponse(message = f"{file_index}번의 파일이 영구적으로 삭제되었습니다.")
 
 # 관리자 한 게시판에 존재하는 모든 file soft delete (게시판은 삭제 x)
-async def admin_soft_delete_all_files_services(board_index: int, conn: Connection):
+async def admin_soft_delete_all_files_services(board_index: int, conn: Connection, current_user: dict):
 
     # 해당 board_index 게시판에 파일이 존재하는지 확인
     files_exist = await admin_check_files_exist(conn, board_index)
@@ -209,11 +296,22 @@ async def admin_soft_delete_all_files_services(board_index: int, conn: Connectio
         await soft_delete_all_file(conn, board_index)
         total_file_size = await get_total_fsize(conn, board_index)
         await update_total_fsize(conn, total_file_size, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "DELETE_ALL (ADMIN/SOFT)",
+            target_type = "BOARD_FILES",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "관리자 권한으로 게시판의 모든 파일을 삭제 처리 (soft delete)"
+            }
+        )
     
     return CommonResponse(message = f"{board_index}번 게시판에 존재하는 모든 파일을 삭제 처리하였습니다.")
 
 # 관리자 한 게시판에 존재하는 모든 file hard delete (게시판은 삭제 x)
-async def admin_IMT_hard_delete_all_files_services(board_index: int, conn: Connection):
+async def admin_IMT_hard_delete_all_files_services(board_index: int, conn: Connection, current_user: dict):
 
     # 해당 board_index 게시판에 파일이 존재하는지 확인
     files_exist = await admin_check_files_exist(conn, board_index)
@@ -223,14 +321,26 @@ async def admin_IMT_hard_delete_all_files_services(board_index: int, conn: Conne
             status_code = status.HTTP_404_NOT_FOUND,
             detail = f"해당 {board_index}번 게시판에는 삭제 가능한 파일이 존재하지 않습니다."
         )
-    
-    await admin_hard_delete_all_files(conn, board_index)
+
+    async with conn.transaction():
+        await admin_hard_delete_all_files(conn, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "DELETE_ALL (ADMIN/HARD)",
+            target_type = "BOARD_FILES",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "관리자 권한으로 게시판의 모든 파일을 영구 삭제 (hard delete)"
+            }
+        )
 
     return CommonResponse(message = f"{board_index}번 게시판에 존재하는 모든 파일을 영구 삭제 처리하였습니다.")
 
 
 # 관리자 삭제처리된 게시판 복구
-async def admin_restore_board_services(board_index: int, conn: Connection):
+async def admin_restore_board_services(board_index: int, conn: Connection, current_user: dict):
 
     check_boards = await admin_check_restore_board(conn, board_index)
 
@@ -246,12 +356,23 @@ async def admin_restore_board_services(board_index: int, conn: Connection):
         await admin_restore_all_files(conn, board_index)
         new_total_fsize = await get_total_fsize(conn, board_index)
         await update_total_fsize(conn, new_total_fsize, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "RESTORE",
+            target_type = "BOARD",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "관리자 권한으로 삭제 처리된 게시판 복구"
+            }
+        )
     
     return CommonResponse(message = f"{board_index}번의 게시판이 복구되었습니다.")
 
 
 # 관리자 삭제처리된 파일복구
-async def admin_restore_file_services(board_index: int, file_index: int, conn: Connection):
+async def admin_restore_file_services(board_index: int, file_index: int, conn: Connection, current_user: dict):
 
     check_file_belong = await admin_check_file_belong(conn, board_index, file_index)
 
@@ -274,11 +395,23 @@ async def admin_restore_file_services(board_index: int, file_index: int, conn: C
         await admin_restore_file(conn, file_index)
         new_total_fsize = await get_total_fsize(conn, board_index)
         await update_total_fsize(conn, new_total_fsize, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "RESTORE",
+            target_type = "FILES",
+            target_index = file_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "관리자 권한으로 삭제처리된 단일 파일 복구",
+                "new_board_size": new_total_fsize
+            }
+        )
 
     return CommonResponse(message = f"{file_index}번의 파일이 복구되었습니다.")
 
 # 관리자 특정 게시판에 삭제처리된 모든 파일 일괄 복구
-async def admin_restore_all_files_services(board_index: int, conn: Connection):
+async def admin_restore_all_files_services(board_index: int, conn: Connection, current_user: dict):
 
     # 해당 board_index 게시판에 삭제 처리된 파일이 존재하는지
     restore_files_belong = await restore_all_check_files_belong(conn, board_index)
@@ -309,5 +442,17 @@ async def admin_restore_all_files_services(board_index: int, conn: Connection):
         new_total_fsize = await get_total_fsize(conn, board_index)
         new_total_fsize = new_total_fsize or 0
         await update_total_fsize(conn, new_total_fsize, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "RESTORE_ALL",
+            target_type = "BOARD_FILES",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "관리자 권한으로 게시판의 삭제 처리된 파일을 일괄 복구",
+                "new_board_size": new_total_fsize
+            }
+        )
     
     return CommonResponse(message = f"{board_index}번 게시판의 삭제 처리된 모든 파일을 일괄 복구하였습니다.")

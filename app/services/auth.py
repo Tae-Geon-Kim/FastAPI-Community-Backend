@@ -10,6 +10,7 @@ from app.core.security import(
     credentials_exception
 )
 from app.models.user import pull_pw_login, pull_pw_restore_login
+from app.models.audit_log import insert_audit_log
 from app.db.redis_config import redis_db
 from app.core.config import jwt_auth
 
@@ -75,6 +76,16 @@ async def token_login_services(conn: Connection, data: UserLogin):
         f"refresh:user:{user_num}", 
         hashed_refresh_token,
         ex = expire_seconds
+    )
+    
+    await insert_audit_log(
+        conn = conn,
+        action = "LOGIN",
+        target_type = "USER",
+        target_index = user_num,
+        actor_user_index = user_num,
+        actor_user_id = data.id,
+        detail = {"status": "success"}
     )
 
     return access_token, refresh_token

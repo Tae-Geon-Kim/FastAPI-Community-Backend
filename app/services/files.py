@@ -15,6 +15,7 @@ from app.models.files import (
 )
 from app.models.boards import check_boards_owner
 from app.models.user import get_user_id_pw
+from app.models.audit_log import insert_audit_log
 from app.core.config import settings
 from app.core.security import verify
 
@@ -109,9 +110,21 @@ async def upload_files_services(file: UploadFile, board_index: int, conn: Connec
         await out_file.write(content)
     
     async with conn.transaction():
-        await upload_files_db(conn, file.filename, filename, filepath, file.size, board_index)
+        new_file_index = await upload_files_db(conn, file.filename, filename, filepath, file.size, board_index)
         new_total_fsize = await get_total_fsize(conn, board_index)
         await update_total_fsize(conn, new_total_fsize, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "UPLOAD",
+            target_type = "FILES",
+            target_index = new_file_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "original_filename": file.filename,
+                "file_size_bytes": file.size
+            }
+        )
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 {file.filename}파일의 업로드 작업이 완료되었습니다.")
 
@@ -119,7 +132,6 @@ async def upload_files_services(file: UploadFile, board_index: int, conn: Connec
 async def delete_files_services(board_index: int, file_index: int, data: DeleteFile, conn: Connection, current_user: dict):
 
     user_info = await get_user_id_pw(conn, current_user['index'])
-    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -155,6 +167,17 @@ async def delete_files_services(board_index: int, file_index: int, data: DeleteF
         new_total_fsize = await get_total_fsize(conn, board_index) # 용량 값이 bytes 단위로 저장
         new_total_fsize = new_total_fsize or 0
         await update_total_fsize(conn, new_total_fsize, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "DELETE",
+            target_type = "FILES",
+            target_index = file_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+
+            }
+        )
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 삭제 요청이 성공적으로 처리되었습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 
@@ -162,7 +185,6 @@ async def delete_files_services(board_index: int, file_index: int, data: DeleteF
 async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Connection, current_user: dict):
     
     user_info = await get_user_id_pw(conn, current_user['index'])
-    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -188,6 +210,17 @@ async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Conne
         # soft delete
         await soft_delete_all_file(conn, board_index)
         await update_total_fsize(conn, 0, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "DELETE_ALL",
+            target_type = "BOARD_FILES",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "사용자 본인 요청에 의한 게시판 파일 전체 삭제 (soft delete)"
+            }
+        )
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 해당 게시물의 모든 파일이 삭제되었습니다.")
 
@@ -195,7 +228,6 @@ async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Conne
 async def restore_file_services(board_index: int, file_index: int, data: RestoreFile, conn: Connection, current_user: dict):
     
     user_info = await get_user_id_pw(conn, current_user['index'])
-    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -240,6 +272,17 @@ async def restore_file_services(board_index: int, file_index: int, data: Restore
         await restore_files(conn, file_index, board_index)
         new_total_fsize = await get_total_fsize(conn, board_index)
         await update_total_fsize(conn, new_total_fsize, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "RESTORE",
+            target_type = "FILE",
+            target_index = file_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "사용자 본인 요청에 의한 단일 파일 복구"
+            }
+        )
     
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 파일이 복구되었습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 
@@ -247,7 +290,6 @@ async def restore_file_services(board_index: int, file_index: int, data: Restore
 async def restore_all_file_services(board_index: int, data: RestoreAllFile, conn: Connection, current_user: dict):
 
     user_info = await get_user_id_pw(conn, current_user['index'])
-    user_role = current_user['role']
 
     if not verify(data.password, user_info['password']):
         raise HTTPException(
@@ -297,6 +339,18 @@ async def restore_all_file_services(board_index: int, data: RestoreAllFile, conn
         new_total_fsize = await get_total_fsize(conn, board_index)
         new_total_fsize = new_total_fsize or 0
         await update_total_fsize(conn, new_total_fsize, board_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "RESTORE_ALL",
+            target_type = "BOARD_FILES",
+            target_index = board_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "사용자 본인 요청으로 게시판 파일 전체 일괄 복구"
+            }
+
+        )
 
     return CommonResponse(message = f"{user_info['id']}님이 요청하신 해당 게시판의 모든 파일을 복구하였습니다. 새로운 전체 용량: {(new_total_fsize / (1024 * 1024)):.2f}MB")
 

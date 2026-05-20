@@ -8,7 +8,8 @@ from app.models.user import (
     userPw_modify, restore_user_data
 )
 from app.models.boards import soft_withdraw_boards, restore_user_boards
-from app.models.files import soft_withdraw_files, restore_user_file
+from app.models.files import soft_withdraw_files, restore_user_file 
+from app.models.audit_log import insert_audit_log
 from app.core.security import hash_password, verify
 from app.services.auth import restore_login
 
@@ -63,6 +64,17 @@ async def user_withdraw_services(data: UserPw, conn: Connection, current_user: d
         await soft_withdraw_user(conn, current_user['index'])
         await soft_withdraw_boards(conn, current_user['index'])
         await soft_withdraw_files(conn, current_user['index'])
+        await insert_audit_log(
+            conn = conn,
+            action = "DELETE",
+            target_type = "USER",
+            target_index = current_user['index'],
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "사용자 본인 요청에 의한 회원탈퇴 (soft delete)"
+            }
+        )
     
     return CommonResponse(message = f"{user_info['id']}님의 회원탈퇴가 성공적으로 처리되었습니다.")
 
@@ -88,7 +100,19 @@ async def userId_modify_services(data: ModiId, conn: Connection, current_user: d
             detail = "중복되는 아이디가 존재합니다."
         )
     
-    await userId_modify(conn, data.new_id, current_user['index'])
+    async with conn.transaction():
+        await userId_modify(conn, data.new_id, current_user['index'])
+        await insert_audit_log(
+            conn = conn,
+            action = "MODIFY_ID",
+            target_type = "USER",
+            target_index = current_user['index'],
+            action_user_index = current_user['index'],
+            action_user_id = current_user['id'],
+            detail = {
+                "new_id": data.new_id
+            }
+        )
 
     return CommonResponse(
         message = f"{user_info['id']}님의 아이디가 {data.new_id}로 수정되었습니다."
@@ -108,8 +132,19 @@ async def userPw_modify_services(data: ModiPw, conn: Connection, current_user: d
     # 새로운 비밀번호 해싱처리
     data.new_password = hash_password(data.new_password)
 
-    # DB 저장
-    await userPw_modify(conn, data.new_password, current_user['index'])
+    async with conn.transaction():
+        await userPw_modify(conn, data.new_password, current_user['index'])
+        await insert_audit_log(
+            conn = conn,
+            action = "MODIFY_PASSWORD",
+            target_type = "USER",
+            target_index = current_user['index'],
+            actor_user_index = current_user['index'],
+            actor_user_id = current_iser['id'],
+            detail = {
+                "reason": "사용자 본인 요청에 의한 비밀번호 변경"
+            }
+        )
 
     return CommonResponse(message = f"{user_info['id']}님의 비밀번호가 변경되었습니다.")
 
@@ -130,5 +165,16 @@ async def restore_user_services(conn: Connection, data: UserLogin):
         await restore_user_data(conn, data.id)
         await restore_user_boards(conn, user_num)
         await restore_user_file(conn, user_num)
+        await insert_audit_log(
+            conn = conn,
+            action = "RESTORE",
+            target_type = "USER",
+            target_index = user_num,
+            actor_user_index = user_num,
+            actor_user_id = data.id,
+            detail = {
+                "reason": "사용자 본인 요청에 의한 회원탈퇴 유저 아이디 복구"
+            }
+        )
 
     return CommonResponse(message = f"{data.id}님의 아이디가 복구되었습니다.") 
