@@ -6,7 +6,7 @@ from jose import jwt, JWTError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.config import jwt_auth
 from app.db.database import get_db
-from app.models.user import get_user_index_deletedAt
+from app.models.user import get_current_user_info
 
 
 secret_key = jwt_auth.SECRET_KEY
@@ -95,7 +95,7 @@ async def get_current_user(
     current_user_num: str = Depends(verify_token),
     conn: Connection = Depends(get_db)
 ):
-    user_info = await get_user_index_deletedAt(conn, int(current_user_num))
+    user_info = await get_current_user_info(conn, int(current_user_num))
 
     if not user_info:
         raise HTTPException(

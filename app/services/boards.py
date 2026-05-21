@@ -285,7 +285,7 @@ async def content_modify_services(board_index: int, data: ModiContent, conn: Con
             actor_user_index = current_user['index'],
             actor_user_id = current_user['id'],
             detail = {
-                "new_content_preview": new_content[:50] + "..." 
+                "new_content_preview": data.new_content[:50] + "..." 
             }
         )
 

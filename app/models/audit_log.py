@@ -12,4 +12,4 @@ async def insert_audit_log(conn: Connection, action: str, target_type: str, targ
 
     detail_json = json.dumps(detail) if detail else None
 
-    return await conn.execute(sql, action, target_type, target_index, actor_user_index, actor_user_id, detail)
+    return await conn.execute(sql, action, target_type, target_index, actor_user_index, actor_user_id, detail_json)

@@ -107,8 +107,8 @@ async def userId_modify_services(data: ModiId, conn: Connection, current_user: d
             action = "MODIFY_ID",
             target_type = "USER",
             target_index = current_user['index'],
-            action_user_index = current_user['index'],
-            action_user_id = current_user['id'],
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
             detail = {
                 "new_id": data.new_id
             }
@@ -140,7 +140,7 @@ async def userPw_modify_services(data: ModiPw, conn: Connection, current_user: d
             target_type = "USER",
             target_index = current_user['index'],
             actor_user_index = current_user['index'],
-            actor_user_id = current_iser['id'],
+            actor_user_id = current_user['id'],
             detail = {
                 "reason": "사용자 본인 요청에 의한 비밀번호 변경"
             }

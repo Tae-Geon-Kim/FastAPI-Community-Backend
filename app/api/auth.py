@@ -96,5 +96,3 @@ async def token_logout(
     response.delete_cookie(key = "refresh_token", httponly = True, samesite = "lax")
 
     return CommonResponse(message = "성공적으로 로그아웃 되었습니다.")
-
-
