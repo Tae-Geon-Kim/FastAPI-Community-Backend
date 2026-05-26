@@ -234,6 +234,13 @@ async def update_view_count(conn: Connection, board_index: int):
 
 	return await conn.execute(sql, board_index)
 
+# boards_view 테이블에 누가 특정 게시물을 봤는지 기록
+async def insert_boards_view_info(conn: Connection, board_index: int, user_index: int, anonymous_id: str):
+
+	sql = 'INSERT INTO boards_view(board_index, user_index, anonymous_id) VALUES ($1, $2, $3);'
+
+	return await conn.execute(sql, board_index, user_index, anonymous_id)
+
 # 게시글에서 조회수를 기준으로 TOP5 가져오기 (전체 기간 / 최근 7일 / 최근 30일 기준) - 공지사항 게시글은 제외
 async def get_popular_top5_board(conn: Connection, time_condition: str):
 

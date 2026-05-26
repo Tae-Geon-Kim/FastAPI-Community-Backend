@@ -1,3 +1,4 @@
+import uuid
 import bcrypt
 from asyncpg import Connection
 from datetime import timedelta, datetime, timezone
@@ -6,7 +7,7 @@ from jose import jwt, JWTError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.config import jwt_auth
 from app.db.database import get_db
-from app.models.user import get_current_user_info
+from app.models.user import get_current_user_info, get_user_index
 
 
 secret_key = jwt_auth.SECRET_KEY
@@ -120,3 +121,42 @@ async def require_admin(
             detail = "관리자만 접근 가능합니다. (Access Denied)"
         )
     return current_user
+
+async def get_viewer(
+    request: Request,
+    response: Response,
+    conn: Connection = Depends(get_db)
+):
+    viewer_info = {"user_index": None, "anonymous_id": None}
+
+    token = request.cookies.get("access_token")
+
+    if token:
+        actual_token = token.split(" ")[1] if token.startswith("Bearer ") else token
+        try:
+            payload = jwt.decode(actual_token, secret_key, algorithms = [algorithm])
+            username: str = payload.get("sub")
+
+            if username:
+                user_record = await get_user_index(conn, username)
+                if user_record:
+                    viewer_info["user_index"] = user_record
+        except JWTError:
+            pass
+    
+    if viewer_info["user_index"] is None:
+        anonymous_id = request.cookies.get("anonymous_id")
+
+        if not anonymous_id:
+            anonymous_id = str(uuid.uuid4())
+            response.set_cookie(
+                key = "anonymous_id",
+                value = anonymous_id,
+                max_age = 31536000,
+                httponly = True,
+                samesite = "lax"
+            )
+        
+        viewer_info["anonymous_id"] = anonymous_id
+
+    return viewer_info
