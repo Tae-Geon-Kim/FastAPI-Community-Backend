@@ -114,9 +114,10 @@ async def get_user_boards(
 )
 async def get_popular_board(
     period: str = Query("all", description = "조회 기간 (all / weekly / month)"),
+    redis_client = Depends(get_redis),
     conn: Connection = Depends(get_db)
 ):
-    return await get_popular_board_services(period, conn)
+    return await get_popular_board_services(period, conn, redis_client)
 
  # 단건 게시글 조회
 @router.get(

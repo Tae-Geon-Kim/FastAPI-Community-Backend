@@ -70,7 +70,7 @@ async def single_board_info_services(board_index: int, viewer_info: dict, conn: 
     else: # 비로그인 유저
         redis_key = f"board_view:{board_index}:anon:{viewer_info['anonymous_id']}"
 
-    # 2. 5분 안에 본 적 있는지 검사
+    # 5분 안에 본 적 있는지 검사
     is_viewed = await redis_client.get(redis_key)
 
     # 처음 보거나 5분이 지난경우 (캐시에 없음)
@@ -435,42 +435,47 @@ async def search_in_title_content_services(search_keyword: str, page: int, limit
     )
 
 # 인기게시글 설정
-async def get_popular_board_services(period: str, conn: Connection):
+async def get_popular_board_services(period: str, conn: Connection, redis_client):
 
-    # 전체 게시글이 하나도 존재하지 않는 경우
-    total_boards_num = await get_total_boards_num(conn)
-
-    if total_boards_num == 0:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "등록된 게시글이 존재하지 않습니다." 
-        )
-
-    if(period == "all"):
+    if period == "all":
         time_condition = ""
-    elif(period == "weekly"):
+        period_output = "전체기간"
+    elif period == "weekly":
         time_condition = "AND reg_date >= NOW() - INTERVAL '7 days'"
-    elif(period == "month"):
-        time_condition = "AND reg_date >= NOW() - INTERVAL '1 month'"
+        period_output = "주간"
+    elif period == "month":
+        time_condition = "AND reg_date >= NOW() - INTERVAL '30 days'"
+        period_output = "월간"
     else:
         return CommonResponse(
             success = False,
-            data = None,
             message = "잘못된 입력입니다. period(조회기간)는 all, weekly, month만 가능합니다."
+        )
+    
+    redis_key = f"popular_boards: {period}"
+
+    cache_data = await redis_client.get(redis_key)
+
+    if cache_data:
+        result = json.loads(cahce_data)
+        return CommonResponse(
+            message = f"{period_output} 인기글 조회에 성공하였습니다.",
+            data = result
         )
 
     rows = await get_popular_top5_board(conn, time_condition)
-
     result = [dict(row) for row in rows]
 
-    if period == "weekly":
-        period = "주간"
-    elif period == "month":
-        period = "월간"
-    else:
-        period = "전체기간"
+    # 전체 게시글이 단 한개도 존재하지 않는 경우
+    if not result:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "전체 게시판에 등록된 게시글이 존재하지 않습니다."
+        )
+
+    await redis_client.setex(redis_key, 600, json.dumps(result))
 
     return CommonResponse(
-        message = f"{period} 인기글 조회에 성공하였습니다.",
+        message = f"{period_output} 인기글 조회에 성공하였습니다.",
         data = result
     )
