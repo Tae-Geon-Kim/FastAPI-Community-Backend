@@ -1,14 +1,17 @@
 from asyncpg import Connection
 from fastapi import HTTPException, status
 from app.schemas.user import UserLogin, UserPw, ModiId, ModiPw, UserInfo
-from app.schemas.common import CommonResponse 
+from app.schemas.common import CommonResponse
+from datetime import datetime, timezone, timedelta
+
 from app.models.user import (
     push_id_pw, id_duplicate, pull_user_info, get_user_id_pw, 
-    soft_withdraw_user, withdraw_permanently, userId_modify, 
-    userPw_modify, restore_user_data
+    soft_delete_user, anonymize_withdrawn_user, userId_modify, 
+    userPw_modify, restore_user_data, get_deleted_user_info,
 )
-from app.models.boards import soft_withdraw_boards, restore_user_boards
-from app.models.files import soft_withdraw_files, restore_user_file 
+
+from app.models.boards import soft_delete_all_user_boards, restore_all_user_boards
+from app.models.files import soft_delete_all_user_files, restore_all_user_files
 from app.models.audit_log import insert_audit_log
 from app.core.security import hash_password, verify
 from app.services.auth import restore_login
@@ -48,7 +51,7 @@ async def user_info_services(conn: Connection, current_user: dict):
         # Pydantic이 Record 객체의 속성을 인식하지 못하므로 dict로 변환 후 검증
     )
 
-# 시용자 회원탈퇴 (복구 기능 포함)
+# 시용자 회원탈퇴 (사용자 정보만 삭제 - 게시판, 파일은 x)
 async def user_withdraw_services(data: UserPw, conn: Connection, current_user: dict):
     
     user_info = await get_user_id_pw(conn, current_user['index'])
@@ -61,9 +64,7 @@ async def user_withdraw_services(data: UserPw, conn: Connection, current_user: d
         
     async with conn.transaction():
         # soft delete
-        await soft_withdraw_user(conn, current_user['index'])
-        await soft_withdraw_boards(conn, current_user['index'])
-        await soft_withdraw_files(conn, current_user['index'])
+        await soft_delete_user(conn, "USER", current_user['index'])
         await insert_audit_log(
             conn = conn,
             action = "DELETE",
@@ -78,9 +79,9 @@ async def user_withdraw_services(data: UserPw, conn: Connection, current_user: d
     
     return CommonResponse(message = f"{user_info['id']}님의 회원탈퇴가 성공적으로 처리되었습니다.")
 
-async def withdraw_user_perman(pool):
+async def anonymize_user(pool):
     async with pool.acquire() as conn:
-        await withdraw_permanently(conn)
+        await anonymize_withdrawn_user(conn)
 
 # 사용자 아이디 변경
 async def userId_modify_services(data: ModiId, conn: Connection, current_user: dict):
@@ -148,10 +149,10 @@ async def userPw_modify_services(data: ModiPw, conn: Connection, current_user: d
 
     return CommonResponse(message = f"{user_info['id']}님의 비밀번호가 변경되었습니다.")
 
-# 사용자 회원탈퇴 복구
+# 사용자 회원탈퇴 복구 (회원의 데이터만 복구 - 게시판, 파일은 x)
 async def restore_user_services(conn: Connection, data: UserLogin):
 
-    # 회원 로그인 (권한 확인)
+    # 삭제 처리된 유저의 로그인 (권한 확인) - user_num에는 유저의 index 값
     user_num = await restore_login(conn, data)
 
     if user_num is None:
@@ -160,11 +161,31 @@ async def restore_user_services(conn: Connection, data: UserLogin):
             detail = "로그인 정보를 다시 확인해주세요."
         )
     
+    deleted_user_info = await get_deleted_user_info(conn, user_num)
+
+    if deleted_user_info is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "삭제된 유저 정보를 찾을 수 없습니다."
+        )
+
+    time_diff = datetime.now(timezone.utc) - deleted_user_info['deleted_at'].replace(tzinfo = timezone.utc)
+
+    if time_diff > timedelta(days = 30):
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = f"삭제 처리를 한지 30일이 경과하여 {data.id} 유저를 복구 시킬 수 없습니다."
+        )
+    
+    if deleted_user_info['deleted_by'] != "USER":
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "관리자에 의해 삭제 처리된 유저 데이터를 일반 유저가 임의로 복구 시킬 수 없습니다."
+        )
+    
     # 사용자 데이터 복구
     async with conn.transaction():
         await restore_user_data(conn, data.id)
-        await restore_user_boards(conn, user_num)
-        await restore_user_file(conn, user_num)
         await insert_audit_log(
             conn = conn,
             action = "RESTORE",

@@ -1,5 +1,6 @@
 import json
 import math
+from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from asyncpg import Connection
 from fastapi import HTTPException, status
@@ -15,14 +16,14 @@ from app.schemas.boards import (
 from app.models.boards import (
     insert_boards_db, pull_board_info_by_index, certain_user_boards_info,
     all_user_boards_info, check_boards_owner, title_modify, content_modify,
-    soft_delete_boards, delete_boards, check_restore_boards_owner,
+    soft_delete_board, delete_boards, check_deleted_boards_owner,
     restore_board, search_in_title_content, total_search_in_title_content,
     total_certain_user_boards_info, get_total_boards_num, update_view_count,
     get_popular_top5_board, insert_boards_view_info
 )
 from app.models.files import (
-    soft_delete_all_file, delete_files, restore_all_files,
-    get_total_fsize, update_total_fsize
+    soft_delete_all_board_files, delete_files, restore_all_board_files,
+    get_total_fsize, update_total_fsize, restore_cascade_board_files,
 )
 
 def convert_mb(size_bytes: int) -> str:
@@ -178,7 +179,7 @@ async def all_boards_info_services(conn: Connection, page: int, limit: int):
 
     for row in rows:
         row_dict = dict(row)
-        author_id = row_dict['author']
+        author_id = row_dict['id']
 
         row_dict['total_file_size'] = convert_mb(row_dict.get('total_file_size', 0))
 
@@ -193,7 +194,7 @@ async def all_boards_info_services(conn: Connection, page: int, limit: int):
         grouped_dict[author_id].append(validate_post)
 
     final_data = [
-        AllBoardInfoResponse(author=name, posts=posts) 
+        AllBoardInfoResponse(id = name, posts = posts) 
         for name, posts in grouped_dict.items()
     ]
 
@@ -222,7 +223,6 @@ async def title_modify_services(board_index: int, data: ModiTitle, conn: Connect
         )
 
     boards_owner = await check_boards_owner(conn, board_index)
-    # check_boards_owner()는 fetchrow() --> fetchrow()는 Record 객체 반환
 
     if not boards_owner:
         raise HTTPException(
@@ -230,10 +230,7 @@ async def title_modify_services(board_index: int, data: ModiTitle, conn: Connect
             detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
     
-    # boards_owner는 {'user_index': 5} 같은 모양의 객체
-    # 정수와 직접 비교하면 (ex: user_num (정수 5)) 항상 다르다고 판단
-    # boards_owner['user_index'] 라고 해야한다.
-    if boards_owner['user_index'] != current_user['index']:
+    if boards_owner != current_user['index']:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다."
@@ -275,7 +272,7 @@ async def content_modify_services(board_index: int, data: ModiContent, conn: Con
             detail = f"{user_info['id']}님의 등록된 게시글이 존재하지않습니다."
         )
     
-    if boards_owner['user_index'] != current_user['index']:
+    if boards_owner != current_user['index']:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다."
@@ -319,16 +316,17 @@ async def boards_delete_services(board_index: int, data: DeleteBoards, conn: Con
         )
     
     # 삭제할려는 글의 User와 로그인한 User가 동일한 인물인지 확인
-    if boards_owner['user_index'] != current_user['index']:
+    if boards_owner != current_user['index']:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다."
         )
 
+    # soft delete
     async with conn.transaction():
-        #  soft delete
-        await soft_delete_boards(conn, board_index)
-        await soft_delete_all_file(conn, board_index)
+        await soft_delete_board(conn, "USER", board_index)
+        await soft_delete_all_board_files(conn, "BOARD_CASCADE", board_index) 
+        # board가 삭제 때문에 file이 삭제되는 경우는 BOARD_CASCADE 로 표시
         await insert_audit_log(
             conn = conn,
             action = "DELETE",
@@ -343,7 +341,7 @@ async def boards_delete_services(board_index: int, data: DeleteBoards, conn: Con
 
     return CommonResponse(message = f"{user_info['id']}님의 요청하신 삭제 요청이 성공적으로 처리되었습니다.")
 
-# 게시판 삭제 (실제 삭제)
+# 게시판 스케줄러 삭제 (ADMIN이 ADMIN_SCHEDULED 옵션으로 지운 데이터만 해당)
 async def delete_boards_perman(pool):
 
     async with pool.acquire() as conn:
@@ -360,8 +358,8 @@ async def restore_board_services(board_index: int, data: RestoreBoards, conn: Co
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "비밀번호가 일치하지 않습니다."
         )
-    
-    restore_boards_owner = await check_restore_boards_owner(conn, board_index)
+
+    restore_boards_owner = await check_deleted_boards_owner(conn, board_index)
 
     if restore_boards_owner is None:
         raise HTTPException(
@@ -369,15 +367,29 @@ async def restore_board_services(board_index: int, data: RestoreBoards, conn: Co
             detail = f"요청하신 {board_index}번 게시판은 존재하지않거나, 복구 대상(삭제 상태)이 아닙니다."
         )
     
-    if restore_boards_owner != current_user['index']:
+    if restore_boards_owner['user_index'] != current_user['index']:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "권한이 없습니다."
         )
+
+    time_diff = datetime.now(timezone.utc) - restore_boards_owner['deleted_at'].replace(tzinfo = timezone.utc)
+
+    if time_diff > timedelta(days = 30):
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = f"삭제 처리를 한지 30일이 경과하여 {board_index}번 게시물을 복구 시킬 수 없습니다."
+        )
+
+    if restore_boards_owner['deleted_by'] != "USER":
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "관리자에 의해 삭제 처리된 게시판을 일반 유저가 임의로 복구시킬 수 없습니다."
+        )
     
     async with conn.transaction():
         await restore_board(conn, board_index) # 게시판 데이터 복구
-        await restore_all_files(conn, board_index) # 게시판 내에 저장되어 있던 파일들이 있으면 파일들 일괄 복구
+        await restore_cascade_board_files(conn, board_index, 30) # 게시판 삭제로 인해서 삭제된 파일들만 복구 - BOARD_CASCADE
         new_total_fsize = await get_total_fsize(conn, board_index) # 파일들 복구되었으면 파일 용량 재계산
         await update_total_fsize(conn, new_total_fsize, board_index) # 재계산된 용량 DB 업로드
         await insert_audit_log(

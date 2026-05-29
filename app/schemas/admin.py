@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, field_validator, ConfigDict
+from enum import Enum
 from app.schemas.boards import validate_title_format, validate_content_format
 
 # 공지사항 생성
@@ -13,3 +14,8 @@ class CreateNotice(BaseModel):
     @field_validator('content')
     @classmethod
     def check_content(cls, v): return validate_content_format(v)
+
+class DeleteOption(str, Enum):
+    SCHEDULED = "SCHEDULED"
+    RETAIN = "RETAIN"
+    IMMEDIATE = "IMMEDIATE"

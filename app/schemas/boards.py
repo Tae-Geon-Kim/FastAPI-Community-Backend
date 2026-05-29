@@ -27,7 +27,7 @@ class BoardInfo(BaseModel):
 
 # 게시판 정보 조회(all)
 class AllBoardInfo(BaseModel):
-    author: str
+    id: str
     index: int # 게시판의 인덱스
     title: str
     content: str
@@ -40,7 +40,7 @@ class AllBoardInfo(BaseModel):
 
 # 게시판 정보 조회(all) 응답
 class AllBoardInfoResponse(BaseModel):
-    author: str
+    id: str
     posts : list[AllBoardInfo]
 
 def validate_title_format(v:str)->str:
