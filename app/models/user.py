@@ -125,6 +125,17 @@ async def anonymize_withdrawn_user(conn: Connection):
     return await conn.execute(sql)
     # execute 성공 시 'UPDATE 5' (5줄이 업데이트 되었다) 같은 결과 문자열 반환
 
+async def delete_user(conn: Connection):
+
+    sql = """
+        DELETE FROM "user"
+        WHERE deleted_by = 'ADMIN_SCHEDULED'
+        AND deleted_at IS NOT NULL
+        AND deleted_at <= NOW() INTERVAL - '100 days'
+    """
+
+    return await conn.execute(sql)
+
 # 사용자 실제 삭제
 async def hard_delete_user(conn: Connection, user_index: int):
 

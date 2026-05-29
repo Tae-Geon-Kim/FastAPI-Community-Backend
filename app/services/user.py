@@ -7,11 +7,11 @@ from datetime import datetime, timezone, timedelta
 from app.models.user import (
     push_id_pw, id_duplicate, pull_user_info, get_user_id_pw, 
     soft_delete_user, anonymize_withdrawn_user, userId_modify, 
-    userPw_modify, restore_user_data, get_deleted_user_info,
+    userPw_modify, restore_user_data, get_deleted_user_info, delete_user
 )
 
-from app.models.boards import soft_delete_all_user_boards, restore_all_user_boards
-from app.models.files import soft_delete_all_user_files, restore_all_user_files
+from app.models.boards import soft_delete_all_user_boards, restore_all_user_boards, delete_boards
+from app.models.files import soft_delete_all_user_files, restore_all_user_files, delete_files
 from app.models.audit_log import insert_audit_log
 from app.core.security import hash_password, verify
 from app.services.auth import restore_login
@@ -79,9 +79,18 @@ async def user_withdraw_services(data: UserPw, conn: Connection, current_user: d
     
     return CommonResponse(message = f"{user_info['id']}님의 회원탈퇴가 성공적으로 처리되었습니다.")
 
+# 영구 보관되는 데이터가 100일이 지난 경우 유저 데이터 익명화
 async def anonymize_user(pool):
     async with pool.acquire() as conn:
         await anonymize_withdrawn_user(conn)
+
+# 유저 데이터 스케줄러 삭제 (ADMIN이 ADMIN_SCHEDULED 옵션으로 지운 데이터만 해당)
+async def delete_user_perman(pool):
+
+    async with pool.acquire() as conn:
+        await delete_user(conn)
+        await delete_boards(conn)
+        await delete_files(conn)
 
 # 사용자 아이디 변경
 async def userId_modify_services(data: ModiId, conn: Connection, current_user: dict):
