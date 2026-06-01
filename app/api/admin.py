@@ -11,9 +11,10 @@ from app.services.admin import (
     admin_get_specific_user_services,
     admin_get_specific_board_services,
     admin_register_notice_services,
-    admin_user_blacklist_services,
+    admin_user_ban_services,
+    admin_user_unban_services,
     admin_delete_user_services,
-    admin_delete_board_services,
+    admin_delete_boards_services,
     admin_delete_one_file_services,
     admin_delete_all_board_files_services,
     admin_restore_user_services,
@@ -108,28 +109,49 @@ async def register_notice(
     return await admin_register_notice_services(data, conn, current_user)
 
 
-# 관리자 유저 삭제 (블랙리스트 관리)
-@router.delete(
-    "/users/{user_index}",
+# 관리자 유저 blacklist ban API
+@router.post(
+    "/users/{user_index}/ban",
     dependencies = [Depends(RateLimiter(times = 30, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
-    summary = "[관리자] 특정 유저를 관리자 권한으로 삭제 (soft delete)",
+    summary = "[관리자] 유저 블랙리스트 처리 (ban / delete)",
     description = """
-    부적절한 행동을 한 유저 삭제
+    부적절한 행동을 한 유저를 벤
 
     - 블랙리스트를 만들어 부적절한 유저를 감시 및 관리자 권한으로 삭제
     - 1번 BANNED 처리되면 1일동안 정지 / 2번 BANNED 처리되면 3일 정지 / 3번 BANNED 처리되면 5일 정지
-    - 4번째 BANNED 처리되면 자동으로 삭제 처리 (WITHDRAWN)
+    - 4번째 BANNED 처리되면 자동으로 삭제 처리 (WITHDRAWN - soft delete)
     - 관리자만 접근 가능
     """
 )
-async def user_blacklist(
-    user_index: int = Path(..., gt = 0, description = "관리자 - 블랙리스트(삭제) 처리할 유저의 인덱스 (유저의 인덱스는 1이상이여야 합니다.)"),
+async def user_blacklist_ban(
+    user_index: int = Path(..., gt = 0, description = "관리자 - 블랙리스트, ban 처리할 유저의 인덱스 (유저의 인덱스는 1이상이여야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await admin_user_blacklist_services(user_index, conn, current_user)
+    return await admin_user_ban_services(user_index, conn, current_user)
+
+# 관리자 유저 blacklist unban API
+@router.post(
+    "/users/{user_index}/unban",
+    dependencies = [Depends(RateLimiter(times = 30, seconds = 60))],
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[관리자] 유저 블랙리스트 처리 철회(unban)",
+    description = """
+    벤 당한 유저를 복구
+
+    - 벤 당한 특정 유저의 벤 횟수를 초기화 및 즉시 활동 가능한 상태로 변경
+    - 관리자만 접근 가능
+    """
+)
+async def user_blacklist_unban(
+    user_index: int = Path(..., gt = 0, description = "관리자 - 블랙리스트 처리 (ban)를 철회시킬 유저의 인덱스 (유저의 인덱스는 1이상이여야 합니다.)"),
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    return await admin_user_unban_services(user_index, conn, current_user)
 
 # admin user delete API
 @router.delete(

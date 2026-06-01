@@ -8,7 +8,7 @@ scheduler = AsyncIOScheduler()
 async def start_scheduler(db_pool):
 
     scheduler.add_job(anonymize_user, 'cron', minute = 0, args = [db_pool]),
-    scheduler.add_job(delete_user_perman, 'corn', minute = 0, args = [db_pool])
+    scheduler.add_job(delete_user_perman, 'cron', minute = 0, args = [db_pool])
     scheduler.add_job(delete_boards_perman, 'cron', minute = 0, args = [db_pool]),
     scheduler.add_job(delete_files_perman, 'cron', minute = 0, args = [db_pool])
 

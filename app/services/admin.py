@@ -41,7 +41,8 @@ from app.models.admin import (
     admin_get_all_users,
     admin_get_specific_user,
     admin_get_specific_board,
-    admin_blacklist,
+    admin_ban,
+    admin_unban,
     admin_get_banCount
 )
 
@@ -99,11 +100,11 @@ async def admin_register_notice_services(data: CreateNotice, conn: Connection, c
 
     async with conn.transaction():
         registered_notice_index = await insert_boards_db(
-            conn,
-            data.title,
-            data.content,
-            'NOTICE',
-            current_user['index']
+            conn = conn,
+            title = data.title,
+            content = data.content,
+            category = 'NOTICE',
+            user_index = current_user['index']
         )
         await insert_audit_log(
             conn = conn,
@@ -122,8 +123,8 @@ async def admin_register_notice_services(data: CreateNotice, conn: Connection, c
         data = f"notice_index: {registered_notice_index}"
     )
 
-# 관리자 유저 블랙리스트 관리
-async def admin_user_blacklist_services(user_index: int, conn: Connection, current_user: dict):
+# 관리자 - 유저 블랙리스트 ban 처리
+async def admin_user_ban_services(user_index: int, conn: Connection, current_user: dict):
 
     ban_count = await admin_get_banCount(conn, user_index)
 
@@ -158,7 +159,7 @@ async def admin_user_blacklist_services(user_index: int, conn: Connection, curre
     else: ban_days = 5
 
     async with conn.transaction():
-        await admin_blacklist(conn, user_index, ban_days)
+        await admin_ban(conn, user_index, ban_days)
         await insert_audit_log(
             conn = conn,
             action = "BAN (ADMIN)",
@@ -173,7 +174,41 @@ async def admin_user_blacklist_services(user_index: int, conn: Connection, curre
             }
         )
 
-    return CommonResponse(message = f"해당 유저가 {ban_days}일 만큼 이용 정지처리 되었습니다.")
+    return CommonResponse(message = f"{user_index}번 유저가 {ban_days}일 만큼 이용 정지처리 되었습니다.")
+
+# 관리자 - 유저 블랙리스트 unban 처리
+async def admin_user_unban_services(user_index: int, conn: Connection, current_user: dict):
+
+    ban_count = await admin_get_banCount(conn, user_index)
+
+    if ban_count is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "해당 유저를 찾을 수 없습니다."
+        )
+    
+    if ban_count == 0:
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = "해당 유저는 ban 상태가 아니며 ban 횟수는 0 입니다."
+        )
+
+    async with conn.transaction():
+        await admin_urban(conn, user_index) # ban_count, ban_end_at, status 초기화 (0, NULL, ACTIVE)
+
+        await insert_audit_log(
+            conn = conn,
+            action = "UNBAN (ADMIN)",
+            target_type = "USER",
+            target_index = user_index,
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": f"관리자 권한으로 {user_index}번 유저의 ban을 초기화"
+            }
+        )
+
+    return CommonResponse(message = f"{user_index}번 유저의 ban 횟수가 초기화되어 정상활동이 가능합니다.")
 
 # 관리자 - 통합 유저 삭제
 async def admin_delete_user_services(user_index: int, delete_option: DeleteOption, conn: Connection, current_user: dict):
@@ -222,7 +257,7 @@ async def admin_delete_user_services(user_index: int, delete_option: DeleteOptio
 
 
 # 관리자 - 통합 단일 게시판 삭제
-async def admin_delete_board_services(board_index: int, delete_option: DeleteOption, conn: Connection, current_user: dict):
+async def admin_delete_boards_services(board_index: int, delete_option: DeleteOption, conn: Connection, current_user: dict):
 
     async with conn.transaction():
         if delete_option == DeleteOption.SCHEDULED:

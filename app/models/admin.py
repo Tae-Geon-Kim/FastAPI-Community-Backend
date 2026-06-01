@@ -72,8 +72,8 @@ async def admin_get_specific_board(conn: Connection, board_index: int):
 
 # ========== 삭제 (값 업데이트) ==========
 
-# 관리자 특정 유저를 블랙리스트 처리 
-async def admin_blacklist(conn: Connection, user_index: int, ban_days: int):
+# 관리자 특정 유저를 ban 처리
+async def admin_ban(conn: Connection, user_index: int, ban_days: int):
 
     sql = """
         UPDATE public."user"
@@ -82,7 +82,21 @@ async def admin_blacklist(conn: Connection, user_index: int, ban_days: int):
             ban_end_at = NOW() + $2::int * INTERVAL '1 day'
         WHERE index = $1
     """
+
     return await conn.execute(sql, user_index, ban_days)
+
+# 관리자 특정 유저를 unban 처리
+async def admin_unban(conn: Connection, user_index: int):
+
+    sql = """
+        UPDATE public."user"
+        SET status = 'ACTIVE',
+            ban_count = 0,
+            ban_end_at = NULL
+        WHERE index = $1
+    """
+
+    return await conn.execute(sql, user_index)
 
 # ========== 데이터 가져오기 ==========
 
