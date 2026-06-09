@@ -187,13 +187,13 @@ async def get_popular_top5_board(conn: Connection, time_condition: str):
 
     sql = f"""
         WITH Top5_List AS (
-        SELECT
-            index, title, content, view_count, category, reg_date,
-            RANK () OVER (ORDER BY view_count DESC) as ranking
-        FROM boards
-        WHERE deleted_at IS NULL
-        AND CATEGORY != 'NOTICE'
-        {time_condition}
+            SELECT
+                index, title, content, view_count, category, reg_date,
+                ROW_NUMBER() OVER (ORDER BY view_count DESC, index DESC) as ranking
+            FROM boards
+            WHERE deleted_at IS NULL
+            AND category != 'NOTICE' 
+            {time_condition}
         )
         SELECT * FROM Top5_List
         WHERE ranking <= 5;

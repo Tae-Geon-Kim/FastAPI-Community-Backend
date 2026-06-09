@@ -41,7 +41,7 @@ async def upload_files(
 
 # 단일 파일 삭제
 @router.delete(
-    "/{file_index}/soft",
+    "/{file_index}",
     dependencies = [Depends(RateLimiter(times = 5, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
@@ -63,7 +63,7 @@ async def delete_single_file(
 
 # 특정 게시판의 모든 파일을 일괄 삭제 (게시판은 삭제 x)
 @router.delete(
-    "/boards/{board_index}/soft",
+    "/boards/{board_index}",
     dependencies = [Depends(RateLimiter(times = 1, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
