@@ -75,7 +75,7 @@ async def test_files_valid_case(client: AsyncClient):
     # 2. 단일 파일 삭제 (DELETE /files/boards/{board_index}/files/{file_index}/soft)
     del_res = await client.request(
         "DELETE",
-        f"/files/{files_index}/soft",
+        f"/files/{files_index}",
         json = {"password": TEST_USER_PW}
     )
     assert del_res.status_code == 200
@@ -90,7 +90,7 @@ async def test_files_valid_case(client: AsyncClient):
     # 4. 파일 전체 삭제 (DELETE /files/boards/{board_index})
     del_all_res = await client.request(
         "DELETE",
-        f"/files/boards/{board_index}/soft",
+        f"/files/boards/{board_index}",
         json = {"password": TEST_USER_PW}
     )
     assert del_all_res.status_code == 200
@@ -159,7 +159,7 @@ async def test_delete_file_wrong_password(client: AsyncClient):
     # 틀린 비밀번호로 삭제 시도
     del_res = await client.request(
         "DELETE",
-        f"/files/{files_index}/soft",
+        f"/files/{files_index}",
         json = {"password": "WrongPassword99!!"}
     )
     
