@@ -12,8 +12,8 @@ class Settings(BaseSettings):
 
     UPLOAD_DIR: str = "upload"
 
-    FILE_MAX_SIZE: int = 5242880
-    FILE_TOTAL_MAX_SIZE: int = 26214400
+    FILE_MAX_SIZE: int = 5242880 # 5MB
+    FILE_TOTAL_MAX_SIZE: int = 26214400 # 25MB
     
     model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
 

@@ -4,14 +4,17 @@ from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from asyncpg import Connection
 from fastapi import HTTPException, status
-from app.models.user import get_user_id_pw, get_user_index
-from app.models.audit_log import insert_audit_log
+from fastapi.encoders import jsonable_encoder
+
 from app.core.security import verify
 from app.db.redis_config import redis_db
+
+from app.models.user import get_user_id_pw, get_user_index
+from app.models.audit_log import insert_audit_log
 from app.schemas.common import CommonResponse
 from app.schemas.boards import (
     CreateBoard, BoardInfo, AllBoardInfo, AllBoardInfoResponse,
-    ModiTitle, ModiContent, DeleteBoards, RestoreBoards
+    ModiTitle, ModiContent, DeleteBoards, RestoreBoards, PopularOption
 )
 from app.models.boards import (
     insert_boards_db, pull_board_info_by_index, certain_user_boards_info,
@@ -19,11 +22,11 @@ from app.models.boards import (
     soft_delete_board, delete_boards, check_deleted_boards_owner,
     restore_board, search_in_title_content, total_search_in_title_content,
     total_certain_user_boards_info, get_total_boards_num, update_view_count,
-    get_popular_top5_board, insert_boards_view_info
+    get_popular_top5_board, insert_boards_view_info, update_total_board_fsize
 )
 from app.models.files import (
     soft_delete_all_board_files, delete_files, restore_all_board_files,
-    get_total_fsize, update_total_fsize, restore_cascade_board_files,
+    get_total_fsize, restore_cascade_board_files,
 )
 
 def convert_mb(size_bytes: int) -> str:
@@ -251,7 +254,7 @@ async def title_modify_services(board_index: int, data: ModiTitle, conn: Connect
         )
 
 
-    return CommonResponse(message = f"{user_info['id']}의 게시판 제목이 {data.new_title}로 변경되었습니다.")
+    return CommonResponse(message = f"{user_info['id']}의 {board_index}번 게시판 제목이 {data.new_title}로 변경되었습니다.")
 
 # 게시판 내용 수정
 async def content_modify_services(board_index: int, data: ModiContent, conn: Connection, current_user: dict):
@@ -293,7 +296,7 @@ async def content_modify_services(board_index: int, data: ModiContent, conn: Con
         )
 
 
-    return CommonResponse(message = f"{user_info['id']}님의 게시판 내용이 변경되었습니다.")
+    return CommonResponse(message = f"{user_info['id']}님의 {board_index}번 게시판 내용이 변경되었습니다.")
 
 # 게시판 삭제 (soft delete)
 async def boards_delete_services(board_index: int, data: DeleteBoards, conn: Connection, current_user: dict):
@@ -375,10 +378,10 @@ async def restore_board_services(board_index: int, data: RestoreBoards, conn: Co
 
     time_diff = datetime.now(timezone.utc) - restore_boards_owner['deleted_at'].replace(tzinfo = timezone.utc)
 
-    if time_diff > timedelta(days = 30):
+    if time_diff > timedelta(days = 7):
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
-            detail = f"삭제 처리를 한지 30일이 경과하여 {board_index}번 게시물을 복구 시킬 수 없습니다."
+            detail = f"삭제 처리를 한지 7일이 경과하여 {board_index}번 게시물을 복구 시킬 수 없습니다."
         )
 
     if restore_boards_owner['deleted_by'] != "USER":
@@ -391,7 +394,7 @@ async def restore_board_services(board_index: int, data: RestoreBoards, conn: Co
         await restore_board(conn, board_index) # 게시판 데이터 복구
         await restore_cascade_board_files(conn, board_index, 30) # 게시판 삭제로 인해서 삭제된 파일들만 복구 - BOARD_CASCADE
         new_total_fsize = await get_total_fsize(conn, board_index) # 파일들 복구되었으면 파일 용량 재계산
-        await update_total_fsize(conn, new_total_fsize, board_index) # 재계산된 용량 DB 업로드
+        await update_total_board_fsize(conn, new_total_fsize, board_index) # 재계산된 용량 DB 업로드
         await insert_audit_log(
             conn = conn,
             action = "RESTORE",
@@ -441,42 +444,37 @@ async def search_in_title_content_services(search_keyword: str, page: int, limit
                 "total_boards": total_boards,
                 "total_pages": total_pages,
                 "current_page": page,
-                "limit": limit
+                "limit": limit,
             }
         }
     )
 
 # 인기게시글 설정
-async def get_popular_board_services(period: str, conn: Connection, redis_client):
+async def get_popular_board_services(popular_option: PopularOption, conn: Connection, redis_client):
 
-    if period == "all":
+    if popular_option == PopularOption.ALL:
         time_condition = ""
         period_output = "전체기간"
-    elif period == "weekly":
+    elif popular_option == PopularOption.WEEKLY:
         time_condition = "AND reg_date >= NOW() - INTERVAL '7 days'"
         period_output = "주간"
-    elif period == "month":
+    else: # MONTH
         time_condition = "AND reg_date >= NOW() - INTERVAL '30 days'"
         period_output = "월간"
-    else:
-        return CommonResponse(
-            success = False,
-            message = "잘못된 입력입니다. period(조회기간)는 all, weekly, month만 가능합니다."
-        )
     
-    redis_key = f"popular_boards: {period}"
+    redis_key = f"popular_boards: {popular_option}"
 
     cache_data = await redis_client.get(redis_key)
 
     if cache_data:
-        result = json.loads(cahce_data)
+        result = json.loads(cache_data)
         return CommonResponse(
             message = f"{period_output} 인기글 조회에 성공하였습니다.",
             data = result
         )
 
     rows = await get_popular_top5_board(conn, time_condition)
-    result = [dict(row) for row in rows]
+    result = jsonable_encoder([dict(row) for row in rows])
 
     # 전체 게시글이 단 한개도 존재하지 않는 경우
     if not result:

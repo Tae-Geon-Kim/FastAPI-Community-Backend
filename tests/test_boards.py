@@ -5,7 +5,7 @@ from httpx import AsyncClient
 pytestmark = pytest.mark.asyncio
 
 """
-    - 제목 제약 조건: 2 ~ 50자
+    - 제목 제약 조건: 2 ~200자
     - 내용 제약 조건: 30 ~ 2000자
 """
 

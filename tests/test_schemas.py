@@ -88,7 +88,7 @@ def test_modiPw_valid():
 # 2. Boards 스키마 테스트
 # ==========================================
 
-# 게시판 제목: 2 ~ 50자 이내
+# 게시판 제목: 2 ~ 200자 이내
 # 게시판 내용: 30 ~ 2000자 이내
 
 # 정상적인 게시판 제목 & 게시판 내용 - CreateBoard 성공
@@ -106,11 +106,11 @@ def test_board_title_short_invalid():
             content = "아스날 우승 실패!!" * 15
         )
 
-# 게시판의 제목이 50보다 큰 경우
+# 게시판의 제목이 200보다 큰 경우
 def test_board_title_long_invalid():
     with pytest.raises(ValidationError):
         CreateBoard(
-            title = "아스날 우승 실패" * 10,
+            title = "아스날 우승 실패" * 100,
             content = "아스날 우승 실패!!!" * 10
         )
 

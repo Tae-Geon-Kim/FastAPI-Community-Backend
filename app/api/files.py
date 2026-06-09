@@ -41,7 +41,7 @@ async def upload_files(
 
 # 단일 파일 삭제
 @router.delete(
-    "/boards/{board_index}/files/{file_index}/soft",
+    "/{file_index}/soft",
     dependencies = [Depends(RateLimiter(times = 5, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
@@ -49,20 +49,19 @@ async def upload_files(
     description = """
     특정 게시판 (files_index)에 업로드된 단일 파일 삭제 (soft delete)
 
-    - 삭제 처리를 진행하기 위해서 사용자 비밀번호 재입력 필요 
-    - 실제로 삭제처리되는 것은 스케줄링을 통해 자동으로 실행된다. (삭제처리 상태가 된지 3일이 지났으면 hard delete 된다.)
+    - 삭제 처리를 진행하기 위해서 사용자 비밀번호 재입력 필요
+    - 삭제 처리 후 7일이 지나면 복구가 불가하며 100일 후 스케줄러를 통해 hard delete 된다.
     """
 )
 async def delete_single_file(
     data: DeleteFile,
-    board_index: int = Path(..., gt = 0, description = "삭제할 파일이 속한 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"), 
     file_index: int = Path(..., gt = 0, description = "삭제할 파일의 인덱스 (파일의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await delete_files_services(board_index, file_index, data, conn, current_user)
+    return await delete_files_services(file_index, data, conn, current_user)
 
-# 파일 전체를 삭제 (게시판은 x)
+# 특정 게시판의 모든 파일을 일괄 삭제 (게시판은 삭제 x)
 @router.delete(
     "/boards/{board_index}/soft",
     dependencies = [Depends(RateLimiter(times = 1, seconds = 10))],
@@ -73,6 +72,7 @@ async def delete_single_file(
     특정 게시판 (files_index)에 업로드된 전체 파일을 삭제 (soft delete)
 
     - 삭제 처리를 진행하기 위헤서는 사용자 비밀번호 재입력 필요
+    - 삭제 처리 후 7일이 지나면 복구가 불가하며 100일 후 스케줄러를 통해 hard delete 된다.
     """
 )
 async def delete_all_files(
@@ -86,7 +86,7 @@ async def delete_all_files(
 
 # 특정 게시판 DB에 있는 soft delete 삭제된 단일 파일 복구 (게시판 전체 용량 재계산 로직 필요)
 @router.post(
-    "/boards/{board_index}/files/{file_index}/restore",
+    "/{file_index}/restore",
     dependencies = [Depends(RateLimiter(times = 5, seconds = 10))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
@@ -95,19 +95,18 @@ async def delete_all_files(
     특정 게시판에 삭제 처리된 단일 파일 데이터 하나를 복구
 
     - 한 게시판에 최대 허용 용량: 25MB
-    - boards_index, files_inedx를 입력받아 특정 게시판에 있었던 특정 파일을 복구
+    - board_index, file_index를 입력받아 특정 게시판에 있었던 특정 파일을 복구
     - 복구를 하기 위해서 삭제 처리되었던 기존의 사용자 정보로 로그인 필요.
     - 복구는 soft delete된지 3일이내의 데이터만 가능하다.
     """
 )
 async def restore_file(
     data: RestoreFile,
-    board_index: int = Path(..., gt = 0, description = "복구할 파일이 속한 게시판 인덱스 (게시판 인덱스는 1이상이어야 합니다.)"), 
     file_index: int = Path(..., gt = 0, description = "복구할 파일의 인덱스 (파일의 인덱스는 1이상이어야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await restore_file_services(board_index, file_index, data, conn, current_user)
+    return await restore_file_services(file_index, data, conn, current_user)
 
 # 특정 게시판 DB에 있는 soft delete 삭제된 파일들 일괄 복구 (게시판 전체 용량 재게산 로직 필요)
 @router.post(

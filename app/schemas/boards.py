@@ -2,6 +2,7 @@ import re
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
 from typing import Optional, Any
+from enum import Enum
 from app.schemas.user import validate_password_format
 
 # 특정 유저 게시판 조회 / 전체 게시판 조회 모두에서 사용
@@ -16,6 +17,7 @@ class BoardFileResponse(BaseModel):
 class BoardInfo(BaseModel):
     id: str
     index: int # 게시판의 인덱스
+    category: str
     title: str
     content: str
     reg_date: datetime
@@ -28,9 +30,9 @@ class BoardInfo(BaseModel):
 # 게시판 정보 조회(all)
 class AllBoardInfo(BaseModel):
     id: str
+    category: str
     index: int # 게시판의 인덱스
     title: str
-    content: str
     reg_date: datetime
     update_date: Optional[datetime] = None
     total_file_size: str = "0.00 MB"
@@ -48,10 +50,10 @@ def validate_title_format(v:str)->str:
     # 양쪽 공백 제거 - 공백으로만 내용 채우는 것 방지
     v = v.strip()
 
-    pattern = r'^.{2,50}$'
+    pattern = r'^.{2,200}$'
 
     if not re.match(pattern, v):
-        raise ValueError("게시판 제목 형식이 올바르지 않습니다. (2 ~ 50자)")
+        raise ValueError("게시판 제목 형식이 올바르지 않습니다. (2 ~ 200자)")
     return v
 
 def validate_content_format(v:str)->str:
@@ -67,7 +69,7 @@ def validate_content_format(v:str)->str:
 
 # 게시판 생성
 class CreateBoard(BaseModel):
-    title: str = Field(..., min_length = 2, max_length = 50)
+    title: str = Field(..., min_length = 2, max_length = 200)
     content: str = Field(..., min_length = 30, max_length = 2000)
 
     @field_validator('title')
@@ -81,7 +83,7 @@ class CreateBoard(BaseModel):
 # 게시판 제목 변경
 class ModiTitle(BaseModel):
     password: str = Field(..., min_length = 8, max_length = 30)
-    new_title: str = Field(..., min_length = 2, max_length = 50)
+    new_title: str = Field(..., min_length = 2, max_length = 200)
 
     @field_validator('password')
     @classmethod
@@ -119,3 +121,9 @@ class RestoreBoards(BaseModel):
     @field_validator('password')
     @classmethod
     def check_password(cls, v): return validate_password_format(v)
+
+# 게시판 인기글 설정 옵션 (All, Weekly, Month)
+class PopularOption(str, Enum):
+    ALL = "ALL"
+    WEEKLY = "WEEKLY"
+    MONTH = "MONTH"

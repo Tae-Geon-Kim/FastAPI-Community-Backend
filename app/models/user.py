@@ -9,7 +9,7 @@ async def get_user_id_pw(conn: Connection, user_index: int):
 
     return await conn.fetchrow(sql, user_index)
 
-# 특정 유저의 아이디를 통해서 해당 유저의 인덱스 값을 불러온다. (탈퇴하지 않은 회원의)
+# 삭제안된 특정 유저의 아이디를 통해서 해당 유저의 인덱스 값을 불러온다.
 async def get_user_index(conn: Connection, user_id: str):
 
     sql = 'SELECT index FROM "user" WHERE id = $1 AND deleted_at IS NULL'
@@ -79,7 +79,11 @@ async def push_id_pw(conn: Connection, user_id: str, user_password: str):
 # 사용자 정보 조회
 async def pull_user_info(conn: Connection, user_index: int):
 
-    sql = 'SELECT id, reg_date, update_date FROM "user" WHERE index = $1 AND deleted_at IS NULL'
+    sql = """
+        SELECT id, role, status, ban_count, reg_date, update_date FROM public."user"
+        WHERE index = $1
+        AND deleted_at IS NULL
+    """
 
     return await conn.fetchrow(sql, user_index)
 
@@ -105,43 +109,48 @@ async def userPw_modify(conn: Connection, new_password: str, user_index: int):
 async def soft_delete_user(conn: Connection, deleted_by: str, user_index: int):
 
     sql = """
-        UPDATE "user" SET deleted_by = $1, deleted_at = NOW(), update_date = NOW()
+        UPDATE "user" SET deleted_by = $1, deleted_at = NOW(), update_date = NOW(), status = 'WITHDRAWN'
         WHERE index = $2 AND deleted_at IS NULL
     """
 
     return await conn.execute(sql, deleted_by, user_index)
 
-# 삭제 처리된 유저 100일 지난 경우 유저의 개인정보를 익명화 (id: UNKNOWN, password: DELETED)
-async def anonymize_withdrawn_user(conn: Connection):
+# soft deleted 된 데이터를 기간 (유저 30일, 관리자 100일)에 맞춰 익명화
+async def delete_soft_deleted_user(conn: Connection):
 
     sql = """
         UPDATE "user"
-        SET id = 'UNKNOWN_' || index::text, password = 'DELETED_0000!', update_date = NOW()
-        WHERE deleted_at IS NOT NULL 
-        AND deleted_at <= NOW() - INTERVAL '100 days'
-        AND id NOT LIKE 'UNKNOWN_%'
-    """
-    
-    return await conn.execute(sql)
-    # execute 성공 시 'UPDATE 5' (5줄이 업데이트 되었다) 같은 결과 문자열 반환
-
-async def delete_user(conn: Connection):
-
-    sql = """
-        DELETE FROM "user"
-        WHERE deleted_by = 'ADMIN_SCHEDULED'
-        AND deleted_at IS NOT NULL
-        AND deleted_at <= NOW() INTERVAL - '100 days'
+        SET
+            id = 'DELETED_' || index::text || '_' || extract(epoch from now())::int,
+            password = 'HARD_DELETED_USER_UNUSABLE',
+            update_date = NOW()
+        WHERE deleted_at IS NOT NULL
+        AND id NOT LIKE 'DELETED_%'
+        AND (
+            (deleted_by = 'USER' AND deleted_at <= NOW() - INTERVAL '30 days')
+            OR 
+            (deleted_by IN ('ADMIN_SCHEDULED', 'ADMIN_RETAIN') AND deleted_at <= NOW() - INTERVAL '100 days')
+        )
     """
 
     return await conn.execute(sql)
 
-# 사용자 실제 삭제
+# 특정 유저를 즉시 hard delete (실제로 hard delete x / dummy data)
 async def hard_delete_user(conn: Connection, user_index: int):
 
-    sql = 'DELETE FROM "user" WHERE index = $1'
+    sql = """
+        UPDATE "user" 
+        SET 
+            id = 'DELETED_' || index::text || '_' || extract(epoch from now())::int,
+            password = 'HARD_DELETED_USER_UNUSABLE',
+            status = 'WITHDRAWN',
+            deleted_by = 'ADMIN_IMMEDIATE',
+            deleted_at = NOW(),
+            update_date = NOW()
+        WHERE index = $1
+    """
 
-    return conn.execute(sql, user_index)
+    return await conn.execute(sql, user_index)
 
 # ========== 복구 ==========
 
@@ -149,8 +158,10 @@ async def hard_delete_user(conn: Connection, user_index: int):
 async def restore_user_data(conn: Connection, user_id: str):
 
     sql = """
-        UPDATE "user" SET deleted_by = NULL, deleted_at = NULL, update_date = NOW()
-        WHERE id = $1 AND deleted_at IS NOT NULL
+        UPDATE public."user"
+        SET deleted_by = NULL, deleted_at = NULL, update_date = NOW(), status = 'ACTIVE', ban_count = 0
+        WHERE id = $1
+        AND deleted_at IS NOT NULL
     """
 
     return await conn.execute(sql, user_id)

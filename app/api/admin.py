@@ -4,23 +4,15 @@ from asyncpg import Connection
 from app.core.security import require_admin, get_current_user
 from app.db.database import get_db
 from app.schemas.common import CommonResponse
-from app.schemas.admin import CreateNotice, DeleteOption
+from app.schemas.admin import CreateNotice, DeleteOption, FileDeleteOption
 
 from app.services.admin import (
-    admin_get_all_users_services,
-    admin_get_specific_user_services,
-    admin_get_specific_board_services,
-    admin_register_notice_services,
-    admin_user_ban_services,
-    admin_user_unban_services,
-    admin_delete_user_services,
-    admin_delete_boards_services,
-    admin_delete_one_file_services,
-    admin_delete_all_board_files_services,
-    admin_restore_user_services,
-    admin_restore_board_services,
-    admin_restore_file_services,
-    admin_restore_all_files_services
+    admin_get_all_users_services, admin_get_specific_user_services,
+    admin_get_specific_board_services, admin_register_notice_services,
+    admin_user_ban_services, admin_user_unban_services, admin_delete_user_services,
+    admin_delete_boards_services, admin_delete_one_file_services,
+    admin_delete_all_board_files_services, admin_restore_user_services,
+    admin_restore_board_services, admin_restore_file_services, admin_restore_all_files_services
 )
 
 router = APIRouter(dependencies = [Depends(require_admin)])
@@ -68,7 +60,7 @@ async def get_specific_user(
 
 # 관리자 전체 유저 중 특정 게시판 상세 조회
 @router.get(
-    "/users/{user_index}/boards/{board_index}",
+    "/boards/{board_index}",
     dependencies = [Depends(RateLimiter(times = 100, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
@@ -81,11 +73,10 @@ async def get_specific_user(
     """
 )
 async def get_specific_board(
-    user_index: int = Path(..., gt = 0, description = "상세 조회할 게시판 작성자의 인덱스 (작성자의 인덱스는 1이상이여야 합니다.)"),
     board_index: int = Path(..., gt = 0, description = "상세 조회할 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
     conn: Connection = Depends(get_db)
 ):
-    return await admin_get_specific_board_services(user_index, board_index, conn)
+    return await admin_get_specific_board_services(board_index, conn)
 
 # 관리자 공지사항 작성
 @router.post(
@@ -138,7 +129,7 @@ async def user_blacklist_ban(
     dependencies = [Depends(RateLimiter(times = 30, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
-    summary = "[관리자] 유저 블랙리스트 처리 철회(unban)",
+    summary = "[관리자] 유저 블랙리스트 처리 철회 (unban)",
     description = """
     벤 당한 유저를 복구
 
@@ -161,11 +152,11 @@ async def user_blacklist_unban(
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 유저 삭제",
     description = """
-    특정 유저를 삭제
+    관리자 특정 유저를 삭제
 
-    - soft delete 후 데이터 보관 / soft delete 후 데이터 스케줄러 삭제 / 즉시 hard delete 중 하나 선택해서 삭제
-    - user 데이터가 삭제되면 해당 user의 boards, files 데이터도 같은 옵션으로 같이 삭제된다.
-    - user 데이터 삭제 처리 후 보관될 때 유저를 특정할 수 있는 개인정보는 삭제되고 USER의 게시판 작성자, 파일 업로드자가 '알수없음' 으로 바뀐다.
+    - soft delete 후 데이터 보관 (RETAIN) / soft delete 후 데이터 스케줄러 삭제 (SCHEDULED) / 즉시 hard delete 중 하나 선택해서 삭제 (IMMEDIATE)
+    - user 데이터가 삭제되면 해당 user의 files 데이터도 같은 옵션으로 같이 삭제된다. (게시판은 삭제되지 않는다)
+    - user 데이터 삭제 처리 후 보관될 때 유저를 특정할 수 있는 개인정보는 삭제되고 USER의 게시판 작성자, 파일 업로드자가 '탈퇴한 사용자'로 바뀐다.
     - soft delete된 데이터의 경우 90일 이내에 복구를 원할시 복구 가능 & 100일이 지나면 스케줄러를 통해 삭제
     - soft delete 후 데이터 보관 옵션을 선택해도 파일 데이터는 DB 과부하를 방지하기 위해 100일이 지나면 스케줄러를 통해 삭제
     - 관리자만 접근 가능
@@ -173,7 +164,7 @@ async def user_blacklist_unban(
 )
 async def admin_delete_user(
     user_index: int = Path(..., gt = 0, description = "관리자 - 삭제할 유저의 인덱스 (유저의 인덱스는 1이상이여야 합니다.)"),
-    delete_option: DeleteOption = Query(..., description = "관리자 - 삭제할 옵션 (SCHEDULED, RETAIN, IMMEDIATE)"),
+    delete_option: DeleteOption = Query(..., description = "관리자 - 유저를 삭제할 옵션 (SCHEDULED, RETAIN, IMMEDIATE)"),
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -198,7 +189,7 @@ async def admin_delete_user(
 )
 async def admin_delete_boards(
     board_index: int = Path(..., gt = 0, description = "관리자 - 삭제할 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
-    delete_option: DeleteOption = Query(..., description = "관리자 - 삭제할 옵션 (SCHEDULED, RETAIN, IMMEDIATE)"),
+    delete_option: DeleteOption = Query(..., description = "관리자 - 게시판을 삭제할 옵션 (SCHEDULED, RETAIN, IMMEDIATE)"),
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -215,13 +206,14 @@ async def admin_delete_boards(
     특정 파일 하나를 삭제
 
     - soft delete (스케줄러 삭제) / 즉시 hard delete 중 하나 선택해서 삭제
+    - 파일은 soft delete인 경우 어떠한 경우에도 100일이 지나면 무조건 스케줄러 삭제 - RETAIN 삭제 옵션이 없다.
     - soft delete된 데이터의 경우 90일 이내에 복구를 원할시 복구 가능 & 100일이 지나면 스케줄러를 통해 삭제
     - 관리자만 접근 가능
     """
 )
 async def admin_delete_one_file(
     file_index: int = Path(..., gt = 0, description = "관리자 - 삭제할 파일의 인덱스 (파일의 인덱스는 1이상이여야 합니다.)"),
-    delete_option: DeleteOption = Query(..., description = "관리자 - 삭제할 옵션 (SCHEDULED, RETAIN, IMMEDIATE)"),
+    delete_option: FileDeleteOption = Query(..., description = "관리자 - 단일 파일을 삭제할 옵션 (SCHEDULED, IMMEDIATE)"),
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -238,13 +230,14 @@ async def admin_delete_one_file(
     특정 게시판의 파일 일괄 삭제
 
     - soft delete (스케줄러 삭제) / 즉시 hard delete 중 하나 선택해서 삭제
+    - 파일은 soft delete인 경우 어떠한 경우에도 100일이 지나면 무조건 스케줄러 삭제 - RETAIN 삭제 옵션이 없다.
     - soft delete된 데이터의 경우 90일 이내에 복구를 원할시 복구 가능 & 100일이 지나면 스케줄러를 통해 삭제
     - 관리자만 접근 가능
     """
 )
 async def admin_delete_all_board_files(
     board_index: int = Path(..., gt = 0, description = "관리자 - 파일 일괄 삭제할 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
-    delete_option: DeleteOption = Query(..., description = "관리자 - 삭제할 옵션 (SCHEDULED, RETAIN, IMMEDIATE)"),
+    delete_option: FileDeleteOption = Query(..., description = "관리자 - 특정 게시판의 파일 일괄 삭제 옵션 (SCHEDULED, IMMEDIATE)"),
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -261,8 +254,8 @@ async def admin_delete_all_board_files(
     삭제 처리된 유저를 관리자 권한으로 복구
 
     - 관리자는 삭제처리된지 90일이내의 유저만 복구 가능
-    - 권한 상관없이 복구 가능
-    - 관리자만 접근 가능
+    - 복구하려는 유저가 업로드한 파일 데이터 중 복구 가능한 삭제된 파일 데이터도 같이 복구
+    - 관리자만 접근 가능하며 권한 상관없이 모든 유저의 데이터 복구 가능
     """
 )
 async def admin_restore_user(
@@ -297,7 +290,7 @@ async def admin_restore_board(
 
 # 관리자 soft delete한 단일 파일 복구
 @router.post(
-    "/boards/{board_index}/files/{file_index}/restore",
+    "/files/{file_index}/restore",
     dependencies = [Depends(RateLimiter(times = 30, seconds = 60))],
     response_model = CommonResponse,
     status_code = status.HTTP_200_OK,
@@ -311,13 +304,12 @@ async def admin_restore_board(
     """
 )
 async def admin_restore_file(
-    board_index: int = Path(..., gt = 0, description = "관리자 - 복구할 파일이 속한 게시판의 인덱스 (게시판의 인덱스는 1이상이여야 합니다.)"),
     file_index: int = Path(..., gt = 0, description = "관리자 - 복구할 파일 인덱스 (파일의 인덱스는 1이상이여야 합니다.)"),
     conn: Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return await admin_restore_file_services(board_index, file_index, conn, current_user)
-
+    return await admin_restore_file_services(file_index, conn, current_user)
+    
 # 관리자 한 게시판에 soft delete한 모든 파일 복구
 @router.post(
     "/boards/{board_index}/files/restore",

@@ -1,23 +1,18 @@
 from fastapi import APIRouter, Depends, status, Path, Query, Request, Response
 from fastapi_limiter.depends import RateLimiter
 from asyncpg import Connection
-from app.schemas.boards import CreateBoard, ModiTitle, ModiContent, DeleteBoards, RestoreBoards
+from app.schemas.boards import CreateBoard, ModiTitle, ModiContent, DeleteBoards, RestoreBoards, PopularOption
 from app.schemas.user import UserLogin
 from app.db.database import get_db
 from app.db.redis_config import redis_db
 from app.core.security import get_current_user, get_viewer
 from app.schemas.common import CommonResponse
 from app.services.boards import (
-    create_boards_services,
-    certain_boards_info_services,
-    single_board_info_services,
-    all_boards_info_services,
-    title_modify_services,
-    content_modify_services,
-    boards_delete_services,
-    restore_board_services,
-    search_in_title_content_services,
-    get_popular_board_services
+    create_boards_services, certain_boards_info_services,
+    single_board_info_services, all_boards_info_services,
+    title_modify_services, content_modify_services,
+    boards_delete_services, restore_board_services,
+    search_in_title_content_services, get_popular_board_services
 )
 
 router = APIRouter()
@@ -37,7 +32,7 @@ async def get_redis():
     새로운 게시판을 생성
 
     - 사용자에게 글 제목, 글 내용을 입력받아 JWT 토큰 로그인한 유저의 게시판 목록에 새로운 글 생성
-    - 제목 제약조건: 2 ~ 50 자
+    - 제목 제약조건: 2 ~ 200 자
     - 내용 제약조건: 30 ~ 2000자
     """
 )
@@ -113,11 +108,11 @@ async def get_user_boards(
     """
 )
 async def get_popular_board(
-    period: str = Query("all", description = "조회 기간 (all / weekly / month)"),
+    popular_option: PopularOption = Query(..., description = "조회기간 (all, weekly, month)"),
     redis_client = Depends(get_redis),
     conn: Connection = Depends(get_db)
 ):
-    return await get_popular_board_services(period, conn, redis_client)
+    return await get_popular_board_services(popular_option, conn, redis_client)
 
  # 단건 게시글 조회
 @router.get(
@@ -177,7 +172,7 @@ async def get_all_boards(
     게시판 제목을 수정
 
     - 특정 게시판의 게시판 제목을 수정
-    - 변경하는 제목도 제약조건 검증에 통과해야한다. (2 ~ 50자)
+    - 변경하는 제목도 제약조건 검증에 통과해야한다. (2 ~ 200자)
     - 제목을 변경하기 위해서 비밀번호를 다시 입력해야한다.
     """
 )
@@ -224,8 +219,8 @@ async def update_content(
 
     - 삭제하려는 게시판의 board_index를 입력받아 해당 게시판을 삭제 처리 (soft delete)
     - 특정 게시판을 삭제하면 해당 게시판에 존재하던 파일 데이터도 같이 삭제된다.
-    - 삭제하기 위해서는 비밀번호를 다시 입력해야한다. 
-    - 실제로 삭제처리되는 것은 스케줄링을 통해 자동으로 실행된다. (삭제처리 상태가 된지 3일이 지났으면 hard delete 된다.)
+    - 삭제하기 위해서는 비밀번호를 다시 입력해야한다.
+    - 유저가 삭제하는 게시판은 DB에 영구적으로 보관된다.
     """
 )
 async def delete_boards(
@@ -248,7 +243,8 @@ async def delete_boards(
     
     - 복구를 하기 위해서는 사용자 정보 비밀번호 재확인이 필요하다.
     - 복구시 특정 게시판에 존재하던 파일 데이터들도 같이 복구된다.
-    - 복구는 soft delete된지 3일이내의 데이터만 가능하다.
+    - 복구를 진행한 후 한 게시판에 업로드 가능한 총 파일의 용량 (25MB)을 초과하면 복구는 불가하다.
+    - 복구는 soft delete된지 7일이내에만 가능하다.
     """
 )
 

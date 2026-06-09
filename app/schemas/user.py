@@ -13,8 +13,12 @@ class TokenResponse(BaseModel):
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
 
+# 사용자 정보 출력
 class UserInfo(BaseModel):
     id: str
+    role: str
+    status: str
+    ban_count: int 
     reg_date: datetime
     update_date: Optional[datetime] = None
 
@@ -29,7 +33,7 @@ def validate_id_format(v: str)->str:
     pattern = r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&._-]{5,30}$'
 
     if not re.match(pattern, v):
-        raise ValueError("아이디 형식이 올바르지 않습니다. (영문자, 숫자가 무조건 포함된 5 ~ 30자)")
+        raise ValueError("아이디 형식이 올바르지 않습니다. (영문자, 숫자가 포함된 5 ~ 30자)")
     return v
 
 # 비밀번호 제약조건
@@ -39,7 +43,7 @@ def validate_password_format(v: str)->str:
     pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&._-])[A-Za-z\d@$!%*#?&._-]{8,30}$'
 
     if not re.match(pattern, v):
-        raise ValueError("비밀번호 형식이 올바르지 않습니다. (영문자, 숫자, 특수문자가 무조건 포함한 8 ~ 30자)")
+        raise ValueError("비밀번호 형식이 올바르지 않습니다. (영문자, 숫자, 특수문자(@$!%*#?&._-)가 포함한 8 ~ 30자)")
     return v
 
 

@@ -68,16 +68,16 @@ async def check_file_deleted(conn: Connection, file_index: int):
 
     return await conn.fetchval(sql, file_index)
 
-# 삭제 처리된 특정 파일이 특정 게시판에 속했던 것이 맞는지 확인
-async def get_deleted_file_info(conn: Connection, board_index: int, file_index: int):
+# 삭제 처리된 특정 파일의 정보를 가져온다.
+async def get_deleted_file_info(conn: Connection, file_index: int):
 
     sql = """
-        SELECT board_index, deleted_at, deleted_by FROM files
-        WHERE board_index = $1 AND index = $2 AND deleted_at IS NOT NULL
+        SELECT deleted_at, deleted_by FROM files
+        WHERE index = $1 
+        AND deleted_at IS NOT NULL
     """
 
-    return await conn.fetchrow(sql, board_index, file_index)
-
+    return await conn.fetchrow(sql, file_index)
 
 # ========== 삽입 ==========
 # 파일 삽입
@@ -107,7 +107,7 @@ async def admin_get_restorable_fsize(conn: Connection, board_index: int):
 
     return await conn.fetchval(sql, board_index)
 
-# 유저용 - 복구 가능한 파일들의 용량 합을 반환 - 삭제된지 30일이내 (deleted_by: USER)
+# 유저용 - 복구 가능한 파일들의 용량 합을 반환 - 삭제된지 7일이내 (deleted_by: USER)
 async def user_get_restorable_fsize(conn: Connection, board_index: int):
 
     sql = """
@@ -115,7 +115,7 @@ async def user_get_restorable_fsize(conn: Connection, board_index: int):
         WHERE board_index = $1
         AND deleted_by = 'USER'
         AND deleted_at IS NOT NULL
-        AND deleted_at >= NOW() - INTERVAL '30 days'
+        AND deleted_at >= NOW() - INTERVAL '7 days'
     """
 
     return await conn.fetchval(sql, board_index)
@@ -157,12 +157,21 @@ async def get_total_softDelete_fsize(conn: Connection, board_index: int):
 
     return result if result else 0
 
-# 파일 추가, 삭제로 인해 변동된 게시판의 총 파일 용량 업데이트
-async def update_total_fsize(conn: Connection, total_file_size: int, board_index: int):
+# 특정 유저 복구로 안한 파일 복구에서 복구시 용량이 초과되는 게시판이 있는지 확인 (USER_CASCADE)
+async def check_restore_exceeding_boards_total_fsize(conn: Connection, user_index: int, allow_max_total_fsize: int):
 
-    sql = 'UPDATE boards SET total_file_size = $1, update_date = NOW() WHERE index = $2'
-    
-    return await conn.execute(sql, total_file_size, board_index)
+    sql = """
+        SELECT f.board_index, SUM(f.file_size) as future_total_size
+        FROM files f
+        INNER JOIN boards b ON f.board_index = b.index
+        WHERE b.user_index = $1
+        AND (f.deleted_at IS NULL OR f.deleted_by = 'USER_CASCADE')
+        GROUP BY f.board_index
+        HAVING SUM(f.file_size) > $2
+        LIMIT 1;
+    """
+
+    return await conn.fetchrow(sql, user_index, allow_max_total_fsize)
 
 # ========== 삭제 ==========
 
@@ -196,20 +205,28 @@ async def soft_delete_all_user_files(conn: Connection, deleted_by: str, user_ind
 async def delete_files(conn: Connection):
 
     sql = '''
-        DELETE FROM files 
+        DELETE FROM files
         WHERE deleted_at IS NOT NULL
-        AND deleted_at <= NOW() - INTERVAL '100 days'
+        AND (
+            (deleted_by IN ('USER', 'USER_CASCADE', 'BOARD_CASCADE') AND deleted_at <= NOW() - INTERVAL '30 days')
+            OR
+            (deleted_by IN ('ADMIN_SCHEDULED', 'ADMIN_RETAIN') AND deleted_at <= NOW() - INTERVAL '100 days')
+        )
     '''
-
+    
     return await conn.execute(sql)
 
-# 지워야 할 파일의 실제 파일 경로를 가져온다.
+# 지워야 할 파일의 실제 파일의 경로를 가져온다.
 async def get_delete_file_path(conn: Connection):
 
     sql = '''
         SELECT file_path FROM files
         WHERE deleted_at IS NOT NULL
-        AND deleted_at <= NOW() - INTERVAL '100 days'
+        AND (
+            (deleted_by IN ('USER', 'USER_CASCADE', 'BOARD_CASCADE') AND deleted_at <= NOW() - INTERVAL '30 days')
+            OR
+            (deleted_by IN ('ADMIN_SCHEDULED', 'ADMIN_RETAIN') AND deleted_at <= NOW() - INTERVAL '100 days')
+        )
     '''
 
     return await conn.fetch(sql)
@@ -241,11 +258,11 @@ async def hard_delete_all_user_files(conn: Connection, user_index: int):
 # ========== 복구 ==========
 
 # 삭제 처리된 (soft deleted) 단일 파일을 복구 
-async def restore_one_file(conn: Connection, file_index: int, board_index: int):
+async def restore_one_file(conn: Connection, file_index: int):
 
-    sql = 'UPDATE files SET deleted_by = NULL, deleted_at = NULL WHERE index = $1 AND board_index = $2'
+    sql = 'UPDATE files SET deleted_by = NULL, deleted_at = NULL WHERE index = $1'
 
-    return await conn.execute(sql, file_index, board_index)
+    return await conn.execute(sql, file_index)
 
 # 특정 게시판의 삭제 처리된 (soft deleted) 모든 파일을 일괄 복구
 async def restore_all_board_files(conn: Connection, board_index: int):
@@ -254,17 +271,18 @@ async def restore_all_board_files(conn: Connection, board_index: int):
 
     return await conn.execute(sql, board_index)
 
-# 특정 유저의 삭제 처리된 (soft deleted) 모든 파일을 일괄 복구 
-async def restore_all_user_files(conn: Connection, user_index: int):
+# 특정 유저의 삭제로 인해 삭제처리된 파일들 일괄 복구
+async def restore_all_user_files(conn: Connection, user_index: int, days: int):
 
     sql = '''
         UPDATE files
         SET deleted_by = NULL, deleted_at = NULL
         WHERE board_index IN  (SELECT index FROM boards WHERE user_index = $1)
-        AND deleted_at IS NOT NULL
+        AND deleted_by = 'USER_CASCADE'
+        AND deleted_at >= NOW()  -$2::int * INTERVAL '1 day'
     '''
 
-    return await conn.execute(sql, user_index)
+    return await conn.execute(sql, user_index, days)
 
 # 관리자용 - 복구 가능한 파일들 복구 (deleted_by 체크 x) - 삭제된지 90일 이내
 async def admin_restore_all_restorable_files(conn: Connection, board_index: int):

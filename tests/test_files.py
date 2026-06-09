@@ -10,7 +10,7 @@ pytestmark = pytest.mark.asyncio
 
     ( 허용되는 특수문자 :     @$!%*#?&._-     )
 
-    - 제목 제약 조건: 2 ~ 50자
+    - 제목 제약 조건: 2 ~ 200자
     - 내용 제약 조건: 30 ~ 2000자
 
     - 허용되는 파일 확장자: jpg, jpeg, png, gif, webp, pdf, docx, xlsx, pptx, txt, zip
@@ -75,14 +75,14 @@ async def test_files_valid_case(client: AsyncClient):
     # 2. 단일 파일 삭제 (DELETE /files/boards/{board_index}/files/{file_index}/soft)
     del_res = await client.request(
         "DELETE",
-        f"/files/boards/{board_index}/files/{files_index}/soft",
+        f"/files/{files_index}/soft",
         json = {"password": TEST_USER_PW}
     )
     assert del_res.status_code == 200
 
     # 3. 단일 파일 복구 (POST /files/boards/{board_index}/files/{file_index}/restore)
     res_res = await client.post(
-        f"/files/boards/{board_index}/files/{files_index}/restore",
+        f"/files/{files_index}/restore",
         json = {"password": TEST_USER_PW}
     )
     assert res_res.status_code == 200
@@ -159,7 +159,7 @@ async def test_delete_file_wrong_password(client: AsyncClient):
     # 틀린 비밀번호로 삭제 시도
     del_res = await client.request(
         "DELETE",
-        f"/files/boards/{board_index}/files/{files_index}/soft",
+        f"/files/{files_index}/soft",
         json = {"password": "WrongPassword99!!"}
     )
     

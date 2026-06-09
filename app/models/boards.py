@@ -48,22 +48,30 @@ async def insert_boards_db(
 
 # ========== 조회 ==========
 
-# 모든 유저의 게시판 정보 조회 (INNER JOIN)
+# 모든 유저의 게시판 정보 조회
 async def all_user_boards_info(conn: Connection, limit: int, offset: int):
 
     sql = """
+        WITH TargetBoards AS (
+            SELECT b.index
+            FROM boards b
+            INNER JOIN "user" u ON b.user_index = u.index
+            WHERE b.deleted_at IS NULL
+            ORDER BY u.id ASC, b.index DESC
+            LIMIT $1 OFFSET $2
+        )
         SELECT
             b.index,
+            b.category,
             b.title,
-            b.content,
             b.reg_date,
             b.update_date,
             b.total_file_size,
 
             CASE WHEN u.deleted_at IS NOT NULL THEN '탈퇴한 사용자' ELSE u.id END AS id,
-            
+
             COALESCE(
-                (SELECT json_agg(json_build_object (
+                (SELECT json_agg(json_build_object(
                     'index', f.index,
                     'original_name', f.original_name,
                     'file_size', f.file_size,
@@ -75,12 +83,10 @@ async def all_user_boards_info(conn: Connection, limit: int, offset: int):
                 '[]'::json
             ) AS files
             
-        FROM boards AS b
-        INNER JOIN "user" AS u ON b.user_index = u.index
-        WHERE b.deleted_at IS NULL
-        
+        FROM TargetBoards tb
+        INNER JOIN boards b ON tb.index = b.index
+        INNER JOIN "user" u ON b.user_index = u.index
         ORDER BY u.id ASC, b.index DESC
-        LIMIT $1 OFFSET $2
     """ 
     # ORDER BY u.id ASC : 사용자 아이디를 가나나 / ABC 순으로
     # ORDER BY b.index DESC : 게시글 중 가장 번호가 큰 글 (최신) 위로 정렬
@@ -95,6 +101,7 @@ async def certain_user_boards_info(conn: Connection, user_id: str, limit: int, o
     sql = """
         SELECT
             b.index,
+            b.category,
             b.title,
             b.content,
             b.reg_date,
@@ -131,6 +138,7 @@ async def pull_board_info_by_index(conn: Connection, board_index: int):
     sql = """
         SELECT
             b.index,
+            b.category,
             b.title,
             b.content,
             b.reg_date,
@@ -159,11 +167,13 @@ async def pull_board_info_by_index(conn: Connection, board_index: int):
     """
     return await conn.fetchrow(sql, board_index)
 
-# 게시판 제목 + 게시판 내용 통합 검색 조회
+# 게시판 제목 + 게시판 내용 통합 검색 조회 (content 는 가져올 때 다 가져오지말고 처음의 100자만)
 async def search_in_title_content(conn: Connection, search_keyword: str, limit: int, offset: int):
 
     sql = """
-        SELECT * FROM boards
+        SELECT index, category, title, view_count, reg_date, 
+               LEFT(content, 100) || '...' AS content_preview
+        FROM boards 
         WHERE (title ILIKE '%' || $1 || '%' OR content ILIKE '%' || $1 || '%')
         AND deleted_at IS NULL
         ORDER BY reg_date DESC
@@ -178,7 +188,7 @@ async def get_popular_top5_board(conn: Connection, time_condition: str):
     sql = f"""
         WITH Top5_List AS (
         SELECT
-            index, title, content, view_count, category,
+            index, title, content, view_count, category, reg_date,
             RANK () OVER (ORDER BY view_count DESC) as ranking
         FROM boards
         WHERE deleted_at IS NULL
@@ -224,7 +234,6 @@ async def total_search_in_title_content(conn: Connection, search_keyword: str):
     """
 
     return await conn.fetchval(sql, search_keyword)
-
 
 # ========== 수정 ==========
 
@@ -309,7 +318,7 @@ async def restore_all_user_boards(conn: Connection, user_index: int):
     return await conn.execute(sql, user_index)
 
 
-# ========== 조회수 ==========
+# ========== 조회수 / 용량 ==========
 
 # 게시글 조회수 1 증가
 async def update_view_count(conn: Connection, board_index: int):
@@ -324,3 +333,38 @@ async def insert_boards_view_info(conn: Connection, board_index: int, user_index
     sql = 'INSERT INTO boards_view(board_index, user_index, anonymous_id) VALUES ($1, $2, $3);'
 
     return await conn.execute(sql, board_index, user_index, anonymous_id)
+
+# 파일 추가, 삭제로 인해 변동된 특정 게시판의 총 파일 용량 업데이트
+async def update_total_board_fsize(conn: Connection, total_file_size: int, board_index: int):
+
+    sql = 'UPDATE boards SET total_file_size = $1, update_date = NOW() WHERE index = $2'
+    
+    return await conn.execute(sql, total_file_size, board_index)
+
+# 특정 유저의 모든 게시판의 용량을 특정 값으로 업데이트
+async def update_all_user_boards_total_fsize(conn: Connection, total_file_size: int, user_index: int):
+
+    sql = """
+        UPDATE boards 
+        SET total_file_size = $1, update_date = NOW() 
+        WHERE user_index = $2
+        AND deleted_at IS NULL
+    """
+
+    return await conn.execute(sql, total_file_size, user_index)
+
+# 특정 유저의 모든 게시판의 총 용량을 재계산하여 업데이트
+async def recalculate_all_user_boards_total_fsize(conn: Connection, user_index: int):
+
+    sql = """
+        UPDATE boards
+        SET total_file_size = COALESCE((
+            SELECT SUM(file_size)
+            FROM files
+            WHERE files.board_index = boards.index 
+            AND files.deleted_at IS NULL
+        ), 0)
+        WHERE user_index = $1;
+    """
+
+    return await conn.execute(sql, user_index)

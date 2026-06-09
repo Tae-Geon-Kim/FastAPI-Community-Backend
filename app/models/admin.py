@@ -79,11 +79,26 @@ async def admin_ban(conn: Connection, user_index: int, ban_days: int):
         UPDATE public."user"
         SET status = 'BANNED',
             ban_count = ban_count + 1,
-            ban_end_at = NOW() + $2::int * INTERVAL '1 day'
+            ban_end_at = NOW() + $2::int * INTERVAL '1 day',
+            update_date = NOW()
         WHERE index = $1
     """
 
     return await conn.execute(sql, user_index, ban_days)
+
+# 관리자 특정 유저 ban 4회 됐을 때의 상태값 처리
+async def admin_user_4ban_settings(conn: Connection, user_index: int):
+
+    sql = """
+        UPDATE public."user"
+        SET status = 'WITHDRAWN',
+            ban_end_at = NULL,
+            ban_count = 4,
+            update_date = NOW()
+        WHERE index = $1
+    """
+
+    return await conn.execute(sql, user_index)
 
 # 관리자 특정 유저를 unban 처리
 async def admin_unban(conn: Connection, user_index: int):
@@ -94,6 +109,7 @@ async def admin_unban(conn: Connection, user_index: int):
             ban_count = 0,
             ban_end_at = NULL
         WHERE index = $1
+        AND deleted_at IS NULL
     """
 
     return await conn.execute(sql, user_index)
