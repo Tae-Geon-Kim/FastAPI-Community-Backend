@@ -17,6 +17,11 @@ from app.core.logger import logger
 from app.core.config import redis_settings
 from app.core.scheduler import start_scheduler, stop_scheduler
 
+# app.state: 수많은 파일들이 공통으로 접근 가능한 일종의 공통 보관함
+
+# 전체에서 딱 한번만 실행하게 하는 데코레이터 - 프로그램 전체에서 시작할 때 1번, 끝날 때 1번 
+# 서버가 켜질 때: 데코레이터 안의 코드가 실행되다가 yield를 만나서 일시 정지
+# 서버 끄는 순간: 정지되어 있던 코드가 다시 깨어나 yield 아래의 코드 (DB, Redis 종료)가 실행되고 완전히 끝
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
@@ -47,6 +52,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan = lifespan)
 
+# 이 부분은 수정 필요
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
