@@ -128,12 +128,6 @@ async def admin_get_specific_board_services(board_index: int, conn: Connection):
         data = board_dict 
     )
 
-
-    return CommonResponse(
-        message = f"{board_index}번 게시판의 상세 정보를 조회합니다.",
-        data = dict(board_info) if board_info else {}
-    )
-
 # 관리자 공지사항 작성
 async def admin_register_notice_services(data: CreateNotice, conn: Connection, current_user: dict):
 
