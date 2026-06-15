@@ -69,6 +69,7 @@ async def get_specific_user(
     관리자가 모든 게시판중 특정 게시판의 정보를 상세조회
 
     - 삭제처리된 게시판의 정보도 조회 가능
+    - 해당 유저의 기본 정보와 해당 유저가 작성한 게시판 정보를 출력
     - 관리자만 접근 가능
     """
 )
@@ -86,9 +87,12 @@ async def get_specific_board(
     status_code = status.HTTP_201_CREATED,
     summary = "[관리자] 공지사항 작성",
     description = """
-    관리자가 공시사항이라는 태그가 있는 게시판을 작성
+    관리자가 공지사항을 작성
 
     - 게시판 목록 상단에 [공시사항]으로 고정되는 게시판을 작성
+    - 게시판의 category 칼럼이 'NOTICE'인 공지사항 작성
+    - 공지사항 제목 제약조건: 2 ~ 200자
+    - 공지사항 내용 제약조건: 30 ~ 2000자
     - 관리자만 접근 가능
     """
 )
@@ -152,14 +156,15 @@ async def user_blacklist_unban(
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 유저 삭제",
     description = """
-    관리자 특정 유저를 삭제
+    관리자 특정 유저를 삭제 (RETAIN, SCHEDULED, IMMEDIATE)
 
-    - soft delete 후 데이터 보관 (RETAIN) / soft delete 후 데이터 스케줄러 삭제 (SCHEDULED) / 즉시 hard delete 중 하나 선택해서 삭제 (IMMEDIATE)
-    - user 데이터가 삭제되면 해당 user의 files 데이터도 같은 옵션으로 같이 삭제된다. (게시판은 삭제되지 않는다)
-    - user 데이터 삭제 처리 후 보관될 때 유저를 특정할 수 있는 개인정보는 삭제되고 USER의 게시판 작성자, 파일 업로드자가 '탈퇴한 사용자'로 바뀐다.
-    - soft delete된 데이터의 경우 90일 이내에 복구를 원할시 복구 가능 & 100일이 지나면 스케줄러를 통해 삭제
-    - soft delete 후 데이터 보관 옵션을 선택해도 파일 데이터는 DB 과부하를 방지하기 위해 100일이 지나면 스케줄러를 통해 삭제
-    - 관리자만 접근 가능
+    - user 데이터가 삭제되면 user가 업로드한 모든 file 데이터도 같은 옵션으로 삭제된다. (게시판은 삭제 x)
+    - IMMEDIATE: 즉시 유저 데이터를 익명화 처리, 파일은 즉시 hard delete
+    - SCHEDULED: 삭제 처리만 하고 100일 뒤 익명화 처리, 파일은 100일 뒤 hard delete
+    - RETAIN: soft delete 처리만하고 데이터는 영구 보관, 파일은 100일 뒤 hard delete
+    - 파일의 deleted_by 칼럼: USER_CASCADE
+    - soft delete된 데이터의 경우 90일 이내에 복구 가능 
+    - 관리자만 접근 가능하며 권한 상관없이 삭제할 수 있다.
     """
 )
 async def admin_delete_user(
@@ -178,13 +183,15 @@ async def admin_delete_user(
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 게시판 삭제",
     description = """
-    특정 게시판을 삭제
+    관리자 특정 게시판을 삭제 (RETAIN, SCHEDULED, IMMEDIATE)
 
-    - soft delete 후 데이터 보관 / soft delete 후 데이터 스케줄러 삭제 / 즉시 hard delete 중 하나 선택해서 삭제
-    - boards 데이터가 삭제되면 해당 boards의 files 데이터도 같은 옵션으로 같이 삭제된다.
-    - soft delete된 데이터의 경우 90일 이내에 복구를 원할시 복구 가능 & 100일이 지나면 스케줄러를 통해 삭제
-    - soft delete 후 데이터 보관 옵션을 선택해도 파일 데이터는 DB 과부하를 방지하기 위해 100일이 지나면 스케줄러를 통해 삭제
-    - 관리자만 접근 가능
+    - boards 데이터가 삭제되면 해당 게시판에 업로드되어 있던 모든 file 데이터도 같은 옵션으로 삭제된다.
+    - IMMEDIATE: 게시판과 파일을 모두 즉시 hard delete
+    - SCHEDULED: boards, files를 모두 즉시 soft delete 처리하고 100일 뒤 스케줄러를 통한 hard delete
+    - RETAIN: boards, files를 모두 soft delete 처리하고 100일 뒤 파일 데이터만 스케줄러를 통한 hard delete, 게시판은 영구적으로 보관
+    - 파일의 deleted_by 칼럼: BOARD_CASCADE
+    - soft deleted 된 데이터의 경우 90일 이내에 복구 가능
+    - 관리자만 접근 가능하며 권한 상관없이 삭제할 수 있다.
     """
 )
 async def admin_delete_boards(
@@ -203,12 +210,12 @@ async def admin_delete_boards(
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 단일 파일 삭제",
     description = """
-    특정 파일 하나를 삭제
+    관리자가 특정 단일 파일을 삭제 (IMMEDIATE, SCHEDULED)
 
-    - soft delete (스케줄러 삭제) / 즉시 hard delete 중 하나 선택해서 삭제
-    - 파일은 soft delete인 경우 어떠한 경우에도 100일이 지나면 무조건 스케줄러 삭제 - RETAIN 삭제 옵션이 없다.
-    - soft delete된 데이터의 경우 90일 이내에 복구를 원할시 복구 가능 & 100일이 지나면 스케줄러를 통해 삭제
-    - 관리자만 접근 가능
+    - IMMEDIATE: 해당 파일을 즉시 hard delete
+    - SCHEDULED: 해당 파일을 즉시 soft delete 처리하고 100일 뒤에 스케줄러를 통한 hard delete
+    - soft deleted 된 데이터의 경우 90일 이내에 복구 가능
+    - 관리자만 접근 가능하며 권한 상관없이 삭제할 수 있다.
     """
 )
 async def admin_delete_one_file(
@@ -227,12 +234,12 @@ async def admin_delete_one_file(
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 파일 일괄 삭제",
     description = """
-    특정 게시판의 파일 일괄 삭제
+    관리자가 특정 게시판의 파일을 일괄 삭제 (IMMEDIATE, SCHEDULED)
 
-    - soft delete (스케줄러 삭제) / 즉시 hard delete 중 하나 선택해서 삭제
-    - 파일은 soft delete인 경우 어떠한 경우에도 100일이 지나면 무조건 스케줄러 삭제 - RETAIN 삭제 옵션이 없다.
-    - soft delete된 데이터의 경우 90일 이내에 복구를 원할시 복구 가능 & 100일이 지나면 스케줄러를 통해 삭제
-    - 관리자만 접근 가능
+    - IMMEDIATE: 특정 게시판의 파일 전체를 즉시 hard delete
+    - SCHEDULED: 특정 게시판의 파일 전체를 즉시 soft delete 처리하고 100일 뒤에 스케줄러를 통한 hard delete
+    - soft deleted 된 데이터의 경우 90일 이내에 복구 가능
+    - 관리자만 접근 가능하며 권한 상관없이 삭제할 수 있다.
     """
 )
 async def admin_delete_all_board_files(
@@ -251,11 +258,11 @@ async def admin_delete_all_board_files(
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 유저 복구",
     description = """
-    삭제 처리된 유저를 관리자 권한으로 복구
+    관리자가 탈퇴 처리한 유저를 복구 
 
-    - 관리자는 삭제처리된지 90일이내의 유저만 복구 가능
-    - 복구하려는 유저가 업로드한 파일 데이터 중 복구 가능한 삭제된 파일 데이터도 같이 복구
-    - 관리자만 접근 가능하며 권한 상관없이 모든 유저의 데이터 복구 가능
+    - 관리자는 탈퇴처리된지 90일이내의 유저만 복구 가능 (USER_CASCADE 파일도 삭제처리된지 90일 이내만 복구 가능)
+    - 유저 데이터 복구시 해당 유저 삭제로 인해 같이 삭제된 파일들도 복구된다. (해당 파일의 deleted_by 칼럼: USER_CASCADE)
+    - 관리자만 접근 가능하며 권한 상관없이 복구할 수 있다.
     """
 )
 async def admin_restore_user(
@@ -273,11 +280,11 @@ async def admin_restore_user(
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 게시판 복구",
     description = """
-    삭제 처리된 게시판을 관리자 권한으로 복구
+    관리자가 삭제 처리된 게시판을 복구
 
-    - 관리자는 삭제처리된지 90일이내의 게시판만 복구 가능
-    - 권한 상관없이 복구 가능
-    - 관리자만 접근 가능
+    - 관리자는 삭제처리된지 90일이내의 게시판만 복구 가능 (BOARD_CASCADE 파일도 삭제처리된지 90일 이내만 복구 가능)
+    - 게시판 복구시 해당 게시판 삭제로 인해 같이 삭제된 파일들도 복구된다. (해당 파일의 deleted_by: BOARD_CASCADE)
+    - 관리자만 접근 가능하며 권한 상관없이 복구할 수 있다.
     """
 )
 async def admin_restore_board(
@@ -296,11 +303,10 @@ async def admin_restore_board(
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 파일 복구",
     description = """
-    삭제 처리된 파일을 관리자 권한으로 복구
+    관리자가 삭제 처리된 단일 파일을 복구
 
     - 관리자는 삭제처리된지 90일이내의 파일만 복구 가능
-    - 권한 상관없이 복구 가능
-    - 관리자만 접근 가능
+    - 관리자만 접근 가능하며 권한 상관없이 복구할 수 있다.
     """
 )
 async def admin_restore_file(
@@ -318,11 +324,11 @@ async def admin_restore_file(
     status_code = status.HTTP_200_OK,
     summary = "[관리자] 파일 일괄 복구",
     description = """
-    특정 게시판에 삭제 처리된 모든 파일 일괄 복구
+    관리자가 특정 게시판의 삭제처리된 모든 파일을 복구
 
-    - 관리자는 삭제처리된지 90일이내의 파일들만 복구 가능
-    - 권한 상관없이 복구 가능
-    - 관리자만 접근 가능
+    - 관리자는 삭제처리된지 90일 이내의 파일들만 복구 가능
+    - 이 API에서 게시판은 삭제처리된 상태가 아니다.
+    - 관리자만 접근 가능하며 권한 상관없이 복구할 수 있다.
     """
 )
 async def admin_restore_all_files(

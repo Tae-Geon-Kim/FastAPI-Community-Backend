@@ -59,6 +59,7 @@ async def refresh_access_token(
 
      - 허용되는 id 형식: 영문자, 숫자가 무조건 포함한 5 ~ 30자 (특수문자 허용)
      - 허용되는 password 형식: 영문자, 숫자, 특수문자가 무조건 포함한 8 ~ 30자
+     - 허용되는 특수문자: @$!%*#?&._-
     """
 )
 async def token_login(

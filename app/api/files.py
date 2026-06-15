@@ -47,7 +47,7 @@ async def upload_files(
     status_code = status.HTTP_200_OK,
     summary = "[파일] 단일 파일 삭제",
     description = """
-    특정 게시판 (files_index)에 업로드된 단일 파일 삭제 (soft delete)
+    특정 단일 파일의 인덱스를 입력받아 해당 파일을 삭제 (soft delete)
 
     - 삭제 처리를 진행하기 위해서 사용자 비밀번호 재입력 필요
     - 삭제 처리 후 7일이 지나면 복구가 불가하며 100일 후 스케줄러를 통해 hard delete 된다.
@@ -69,7 +69,7 @@ async def delete_single_file(
     status_code = status.HTTP_200_OK,
     summary = "[파일] 파일 전체 삭제",
     description = """
-    특정 게시판 (files_index)에 업로드된 전체 파일을 삭제 (soft delete)
+    특정 게시판의 인덱스를 입력받아 해당 게시판에 업로드된 전체 파일을 삭제 (soft delete)
 
     - 삭제 처리를 진행하기 위헤서는 사용자 비밀번호 재입력 필요
     - 삭제 처리 후 7일이 지나면 복구가 불가하며 100일 후 스케줄러를 통해 hard delete 된다.
@@ -92,10 +92,10 @@ async def delete_all_files(
     status_code = status.HTTP_200_OK,
     summary = "[파일] 단일 파일 하나 복구",
     description = """
-    특정 게시판에 삭제 처리된 단일 파일 데이터 하나를 복구
+    특정 단일 파일 데이터를 복구
 
     - 한 게시판에 최대 허용 용량: 25MB
-    - board_index, file_index를 입력받아 특정 게시판에 있었던 특정 파일을 복구
+    - file_index를 입력받아 해당 파일을 복구
     - 복구를 하기 위해서 삭제 처리되었던 기존의 사용자 정보로 로그인 필요.
     - 복구는 soft delete된지 3일이내의 데이터만 가능하다.
     """
@@ -120,6 +120,7 @@ async def restore_file(
     
     - 한 게시판에 최대 허용 용량: 25MB
     - boards_index를 입력받아 특정 게시판에 있었던 삭제된 파일 전체를 일괄 복구
+    - 복구를 진행 했을 때 한 게시판에 최대 허용 용량인 25MB를 초과하면 복구는 불가능하다.
     - 복구를 하기 위해서는 삭제 처리되었던 기존의 사용자 정보로 로그인 필요.
     - 복구는 soft delete된지 3일내의 데이터만 가능하다.
     """
