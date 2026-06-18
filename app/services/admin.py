@@ -455,7 +455,7 @@ async def admin_restore_user_services(user_index: int, conn: Connection, current
     if exceeding_boards:
         raise HTTPException(
             status_code = status.HTTP_400_BAD_REQUEST,
-            detail = f"유저 데이터 복구시 {exceeding_boards[board_index]}번 게시판은 업로드 가능한 파일 총 용량인 25MB를 초과합니다."
+            detail = f"유저 데이터 복구시 {exceeding_boards['board_index']}번 게시판은 업로드 가능한 파일 총 용량인 25MB를 초과합니다."
         )
 
     # 복구 로직 - 유저를 복구하면 복구 가능한 (삭제처리된지 90일이 안지난 데이터) 해당 유저의 파일 데이터도 같이 복구

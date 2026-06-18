@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, status
 from fastapi_limiter.depends import RateLimiter
 from asyncpg import Connection
 
 from app.schemas.user import (
     UserRegister, UserLogin, UserId, UserPw, 
-    ModiId, ModiPw, EmailRequest, EmailVerification
+    ModiId, ModiPw, EmailRequest, EmailVerification,
+    FindId, FindPw
 )
 
 from app.schemas.common import CommonResponse
@@ -14,6 +15,7 @@ from app.services.user import (
     user_email_duplicate_services, send_verification_email_services,
     check_verification_code_services, user_info_services, user_withdraw_services, 
     userId_modify_services, userPw_modify_services, restore_user_services,
+    find_id_services, find_password_services
 )
 
 from app.db.database import get_db
@@ -173,6 +175,48 @@ async def withdraw_user(
     await redis_db.delete(f"refresh:user:{current_user['index']}")
 
     return await user_withdraw_services(data, conn, current_user)
+
+# 사용자 아이디 찾기
+@router.post(
+    "/find-id",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 60))],
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[유저] 사용자 아이디 찾기",
+    description = """
+    사용자 아이디 찾기
+
+	- 이메일 인증을 통해서 본인확인을 진행 (유저의 name - mail 매칭되는 값 존재하는지 확인)
+	- 본인인게 확인되면 사용자의 이메일로 해당 사용자의 아이디를 일부 블러 처리해서 보내준다. (예를 들어, ktk3276 -> ktk32**)
+    """
+)
+async def find_id(
+    data: FindId,
+    conn: Connection = Depends(get_db)
+):
+    return await find_id_services(data, conn)
+
+# 사용자 비밀번호 찾기
+@router.post(
+    "/find-password",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 60))],
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[요약] 사용자 비밀번호 찾기",
+    description = """
+    사용자 비밀번호 찾기
+
+    - 이메일 인증을 통해서 본인확인을 진행 (유저의 name -mail -id 매칭되는 값 존재하는지 확인)
+    - 본인인게 확인되면 제약조건에 맞는 임시 비밀번호를 무작위로 생성하여 사용자의 이메일로 보내준다.
+	- DB에는 생성한 임시 비밀번호를 해싱처리하여 보관한다.
+	- 임시 비밀번호로 로그인을 진행한 후 즉시 비밀번호 변경 안내를 한다.
+    """
+)
+async def find_password(
+    data: FindPw,
+    conn: Connection = Depends(get_db)
+):
+    return await find_password_services(data, conn)
 
 # 사용자 아이디 변경
 @router.patch(

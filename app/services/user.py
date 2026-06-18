@@ -1,4 +1,6 @@
 import random
+import secrets
+import string
 import aiosmtplib
 
 from email.mime.text import MIMEText
@@ -9,7 +11,8 @@ from datetime import datetime, timezone, timedelta
 from app.models.user import (
     insert_user_basic_info, id_duplicate, email_duplicate, pull_user_info, 
     get_user_id_pw, soft_delete_user, delete_soft_deleted_user, userId_modify, 
-    userPw_modify, restore_user_data, get_deleted_user_info, update_is_verified_true
+    userPw_modify, restore_user_data, get_deleted_user_info, update_is_verified_true,
+    get_lost_id, check_find_password_matching_email, get_user_index
 )
 
 from app.models.files import (
@@ -26,7 +29,7 @@ from app.models.audit_log import insert_audit_log
 
 from app.schemas.user import (
     UserRegister, EmailVerification, UserLogin,
-    UserId, UserPw, ModiId, ModiPw, UserInfo
+    UserPw, ModiId, ModiPw, UserInfo, FindId, FindPw
 )
 
 from app.schemas.common import CommonResponse
@@ -222,6 +225,134 @@ async def delete_user_perman(pool):
     async with pool.acquire() as conn:
         await delete_soft_deleted_user(conn)
         await delete_files(conn)
+
+# 사용자 아이디 찾기
+async def find_id_services(data: FindId, conn: Connection):
+    # find id 스키마에는 name, email만 있다.
+    # 사용자의 name으로 index, id를 가져오는 쿼리 필요
+
+    user_id = await get_lost_id(conn, data.name, data.email)
+
+    if user_id is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "입력하신 정보와 일치하는 이메일이 존재하지 않습니다."
+        )
+
+    # 문자열 길이가 5이상 일때만 아이디 끝자리 2개를 ** 처리하여 사용자에게
+    masked_user_id = user_id
+    if len(user_id) > 4:
+        masked_user_id = user_id[:-2] + "**"
+
+    user_index = await get_user_index(conn, user_id)
+
+    await insert_audit_log(
+        conn = conn,
+        action = "FIND_ID",
+        target_type = "USER",
+        target_index = user_index,
+        actor_user_index = user_index,
+        actor_user_id = user_id,
+        detail = {
+            "reason": "사용자의 아이디 이메일로 발송 (아이디 찾기)",
+            "user_id": user_id
+        }
+    )
+    
+    # 사용자의 아이디를 이메일로 전송
+    msg_text = f"사용자의 아이디는 {masked_user_id} 입니다."
+    msg = MIMEText(msg_text, 'plain', 'utf-8')
+
+    msg['Subject'] = "[FastApi-Community-Backend] 사용자 아이디 전송"
+    msg['From'] = sender_email
+    msg['To'] = data.email
+
+    # 비동기 메일 발송
+    try:
+        await aiosmtplib.send(
+            msg,
+            hostname = smtp_server,
+            port = smtp_port,
+            username = sender_email,
+            password = sender_password
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail = f"이메일을 보내는 과정에서 에러가 발생하였습니다. : {str(e)}"
+        )
+
+    return CommonResponse(message = f"사용자의 아이디는 {masked_user_id}입니다.")
+
+# 사용자 비밀번호 찾기
+async def find_password_services(data: FindPw, conn: Connection):
+
+    matching_email = await check_find_password_matching_email(conn, data.id, data.name, data.email)
+
+    if matching_email is None:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "입력하신 정보와 일치하는 이메일이 존재하지 않습니다."
+        )
+
+    ran_length = random.randint(9, 20)
+    ran_char = string.ascii_letters + string.digits + "@$!%*#?&._-"
+
+    # 영문자, 숫자, 허용되는 특수문자가 무조건 들어가도록 하나씩 리스트에 추가
+    temp_pw_list = [
+        secrets.choice(string.ascii_letters),
+        secrets.choice(string.digits),
+        secrets.choice("@$!%*#?&._-")
+    ]
+
+    # 나머지 값은 영문자, 숫자, 허용 특수문자 랜덤으로 
+    temp_pw_list += [secrets.choice(ran_char) for _ in range(ran_length - 3)]
+    random.shuffle(temp_pw_list)
+
+    # 섞인 리스트를 다시 하나의 문자열로 결합
+    temp_password = "".join(temp_pw_list)
+    hashed_temp_password = hash_password(temp_password)
+
+    user_index = await get_user_index(conn, data.id)
+
+    async with conn.transaction():
+        await userPw_modify(conn, hashed_temp_password, user_index)
+        await insert_audit_log(
+            conn = conn,
+            action = "ISSUE_TEMPORARY_PASSWORD (FIND_PW)",
+            target_type = "USER",
+            target_index = user_index,
+            actor_user_index = user_index,
+            actor_user_id = data.id,
+            detail = {
+                "reason": "사용자의 요청으로 임시 비밀번호를 발급 및 이메일 전송 (비밀번호 찾기)"
+            }
+        )
+
+    # 임시 비밀번호 이메일 전송
+    msg_text = f"임시 비밀번호는 {temp_password}입니다.\n 임시 비밀번호로 로그인 후 즉시 비밀번호를 변경해주세요."
+    msg = MIMEText(msg_text, 'plain', 'utf-8')
+
+    msg['Subject'] = "[FastApi-Community-Backend] 임시 비밀번호 전송"
+    msg['From'] = sender_email
+    msg['To'] = data.email
+
+    # 비동기 메일 발송
+    try:
+        await aiosmtplib.send(
+            msg,
+            hostname = smtp_server,
+            port = smtp_port,
+            username = sender_email,
+            password = sender_password
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail = f"이메일을 보내는 과정에서 에러가 발생하였습니다. : {str(e)}"
+        )
+
+    return CommonResponse(message = f"사용자의 {data.email} 이메일로 임시 비밀번호를 전송하였습니다.")
 
 # 사용자 아이디 변경
 async def userId_modify_services(data: ModiId, conn: Connection, current_user: dict):

@@ -73,6 +73,20 @@ async def get_deleted_user_info(conn: Connection, user_index: int):
 
     return await conn.fetchrow(sql, user_index)
 
+# 사용자의 아이를 찾아주는 로직
+async def get_lost_id(conn: Connection, user_name: str, user_email:str):
+
+    sql = 'SELECT id FROM "user" WHERE name = $1 AND email = $2 AND deleted_at IS NULL'
+
+    return await conn.fetchval(sql, user_name, user_email)
+
+# 사용자의 id, name, email 세개의 정보가 매칭이 되는 email이 있는지 확인
+async def check_find_password_matching_email(conn: Connection, user_id: str, user_name: str, user_email: str):
+
+    sql = 'SELECT email FROM "user" WHERE id = $1 AND name = $2 AND email = $3 AND deleted_at IS NULL'
+
+    return await conn.fetchval(sql, user_id, user_name, user_email)
+
 # ========== 삽입 ==========
 
 # 아이디, 비밀번호, 이름, 이메일을 저장

@@ -109,6 +109,27 @@ class UserPw(BaseModel):
     @classmethod
     def check_password(cls, v): return validate_password_format(v)
 
+class FindId(BaseModel):
+    name: str = Field(..., min_length = 2, max_length = 50)
+    email: EmailStr
+
+    @field_validator('name')
+    @classmethod
+    def check_name(cls, v): return validate_name_format(v)
+
+class FindPw(BaseModel):
+    id: str = Field(..., min_length = 5, max_length = 30)
+    name: str = Field(..., min_length = 2, max_length = 50)
+    email: EmailStr
+
+    @field_validator('id')
+    @classmethod
+    def check_id(cls, v): return validate_id_format(v)
+
+    @field_validator('name')
+    @classmethod
+    def check_name(cls, v): return validate_name_format(v)
+
 class ModiId(BaseModel):
     password: str = Field(..., min_length = 8, max_length = 30)
     new_id: str = Field(..., min_length = 5, max_length =30)
