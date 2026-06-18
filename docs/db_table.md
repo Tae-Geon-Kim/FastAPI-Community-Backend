@@ -3,8 +3,10 @@ erDiagram
 	direction LR
 	user {
 		int index PK ""  
+		varchar name ""
 		varchar id  ""  
 		text password  ""  
+		varchar email ""  
 		timestamp reg_date  ""  
 		timestamp update_date  ""  
 		timestamp deleted_at  ""  
@@ -12,6 +14,7 @@ erDiagram
 		varchar status  ""  
 		int ban_count  ""  
 		timestamp ban_end_at  ""  
+		boolean is_verified ""
 	}
 
 	boards {

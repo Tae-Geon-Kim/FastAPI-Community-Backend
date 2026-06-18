@@ -1,6 +1,8 @@
 import pytest
 from httpx import AsyncClient
 
+from app.db.redis_config import redis_db
+
 # 현재 파일의 모든 테스트 함수를 비동기로 실행하도록 설정
 pytestmark = pytest.mark.asyncio
 
@@ -12,6 +14,9 @@ pytestmark = pytest.mark.asyncio
 # 테스트 데이터
 TEST_USER_ID = "taegeon_1111"
 TEST_USER_PW = "Kim1234!!"
+TEST_USER_NAME = "김태건"
+TEST_USER_EMAIL = "FastapiTest@test.com"
+
 TEST_BOARDS_TITLE = "아스날 우승 실패" * 3
 TEST_BOARDS_CONTENT = "아스날 우승 실패!!!" * 10
 TEST_BOARDS_NEW_TITLE = "토트넘 강등" * 5
@@ -20,9 +25,15 @@ TEST_BOARDS_NEW_CONTENT = "토트넘 강등 위기!!!!!" * 100
 # ==========================================
 # 게시판 API 테스트를 위한 사용자 회원가입 헬퍼 함수
 # ==========================================
-async def setup_test_user(client: AsyncClient, test_userId, test_userPw):
+async def setup_test_user(client: AsyncClient, test_userId, test_userPw, test_userName, test_userEmail):
 
-    await client.post("/users", json={"id": test_userId, "password": test_userPw})
+    # Redis에 이메일 인증 완료 등록
+    await redis_db.setex(f"email_verified:{test_userEmail}", 300, "true")
+
+    await client.post(
+        "/users",
+        json={"id": test_userId, "password": test_userPw, "name": test_userName, "email": test_userEmail}
+    )
 
     await client.post("/auth/login", json={"id": test_userId, "password": test_userPw})
 
@@ -31,7 +42,7 @@ async def setup_test_user(client: AsyncClient, test_userId, test_userPw):
 # ==========================================
 async def test_boards_valid_case(client: AsyncClient):
 
-    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
+    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL)
 
     # 1. 특정 유저의 게시판 생성 (POST /boards)
     create_res = await client.post(
@@ -119,8 +130,11 @@ async def test_allBInfo_noUser_conflict(client: AsyncClient):
 # ==========================================
 async def test_boards_unauthorized_access(client: AsyncClient):
 
+    TEST_USERA_EMAIL = "user_a@test.com"
+    TEST_USERB_EMAIL = "user_b@test.com"
+
     # A로 가입 & 로그인
-    await setup_test_user(client, "userA111", TEST_USER_PW)
+    await setup_test_user(client, "userA111", TEST_USER_PW, TEST_USER_NAME, TEST_USERA_EMAIL)
 
     # A 글 작성
     await client.post(
@@ -136,7 +150,7 @@ async def test_boards_unauthorized_access(client: AsyncClient):
     target_index = all_res.json()["data"]["result"][-1]["posts"][-1]["index"]
 
     # B로 가입 & 로그인
-    await setup_test_user(client, "userB222", TEST_USER_PW)
+    await setup_test_user(client, "userB222", TEST_USER_PW, TEST_USER_NAME, TEST_USERB_EMAIL)
 
     # B가 A의 글 삭제 시도 -> 403 Forbidden
     del_res = await client.request(
@@ -153,7 +167,7 @@ async def test_boards_unauthorized_access(client: AsyncClient):
 # ==========================================
 async def test_boards_not_found(client: AsyncClient):
 
-    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
+    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL)
     GHOST_INDEX = 99999
 
     detail_res = await client.get(f"/boards/{GHOST_INDEX}")
@@ -173,7 +187,7 @@ async def test_boards_not_found(client: AsyncClient):
 # ==========================================
 async def test_boards_wrong_password(client: AsyncClient):
 
-    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
+    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL)
     
     # 글 작성
     await client.post("/boards", json={"title": TEST_BOARDS_TITLE, "content": TEST_BOARDS_CONTENT})
@@ -196,7 +210,7 @@ async def test_boards_wrong_password(client: AsyncClient):
 # ==========================================
 async def test_search_boards_cases(client: AsyncClient):
     
-    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW)
+    await setup_test_user(client, TEST_USER_ID, TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL)
     
     # 검색할 키워드 포함된 글 작성
     unique_keyword = "이걸검색"

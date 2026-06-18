@@ -1,6 +1,8 @@
 import pytest
 from httpx import AsyncClient
 
+from app.db.redis_config import redis_db
+
 # 현재 파일의 모든 테스트 함수를 비동기로 실행하도록 설정
 pytestmark = pytest.mark.asyncio
 
@@ -19,16 +21,26 @@ pytestmark = pytest.mark.asyncio
 # 테스트 데이터
 TEST_USER_ID = "rlaxorjs_20905"
 TEST_USER_PW = "Kimtaegeon1234!?"
+TEST_USER_NAME = "김태건"
+TEST_USER_EMAIL = "FastapiTest@test.com"
+
 TEST_TITLE = "<게시판 파일 업로드, 파일 삭제, 파일 복구 테스트>"
 TEST_CONTENT = "게시판에 파일을 업로드, 파일을 삭제, 파일을 복구하는 로직이 정상적으로 작동하는지 확인하는 테스트입니다."
 
 # ==========================================
 # 유저 가입 / 로그인 및 테스트용 게시판 생성 헬퍼 함수
 # ==========================================
-async def setup_user_and_board(client: AsyncClient, user_id, user_pw):
+async def setup_user_and_board(client: AsyncClient, user_id, user_pw, user_name, user_email):
+
+    # Redis에 이메일 인증 완료 등록
+    await redis_db.setex(f"email_verified:{user_email}", 300, "true")
 
     # 유저 가입 및 로그인 
-    await client.post("/users", json={"id": user_id, "password": user_pw})
+    await client.post(
+        "/users",
+        json={"id": user_id, "password": user_pw, "name": user_name, "email": user_email}
+    )
+
     await client.post("/auth/login", json={"id": user_id, "password": user_pw})
 
     # 게시판 생성 
@@ -56,7 +68,7 @@ async def get_latest_file_index(client: AsyncClient, user_id):
 # ==========================================
 async def test_files_valid_case(client: AsyncClient):
 
-    board_index = await setup_user_and_board(client, TEST_USER_ID, TEST_USER_PW)
+    board_index = await setup_user_and_board(client, TEST_USER_ID, TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL)
 
     # 1. 파일 업로드 (POST /files/boards/{board_index})
     dummy_file = {"file": ("test_doc.txt", b"Hello, this is a test file content!", "text/plain")}
@@ -108,8 +120,8 @@ async def test_files_valid_case(client: AsyncClient):
 # ==========================================
 async def test_upload_invalid_extension(client: AsyncClient):
 
-    board_index = await setup_user_and_board(client, "bad_user_999", TEST_USER_PW)
-    
+    board_index = await setup_user_and_board(client, "bad_user_00", TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL)
+
     # 허용안되는 파일 설정
     bad_file = {"file": ("virus.exe", b"malicious code", "application/x-msdownload")}
     
@@ -125,11 +137,14 @@ async def test_upload_invalid_extension(client: AsyncClient):
 # ==========================================
 async def test_upload_unauthorized_board(client: AsyncClient):
 
+    TEST_USERA_EMAIL = "userA@test.com"
+    TEST_USERB_EMAIL = "userB@test.com"
+
     # 유저 A와 게시판 세팅
-    board_index_A = await setup_user_and_board(client, "userA111", TEST_USER_PW)
+    board_index_A = await setup_user_and_board(client, "userA_00", TEST_USER_PW, TEST_USER_NAME, TEST_USERA_EMAIL)
     
     # 유저 B 세팅 (게시판 하나 생성 & 쿠키 B 로 바뀜)
-    await setup_user_and_board(client, "userB222", TEST_USER_PW)
+    await setup_user_and_board(client, "userB_00", TEST_USER_PW, TEST_USER_NAME, TEST_USERB_EMAIL)
 
     # B가 A의 게시판(board_index_A)에 업로드 시도
     dummy_file = {"file": ("sneaky.txt", b"I am user B", "text/plain")}
@@ -147,14 +162,14 @@ async def test_upload_unauthorized_board(client: AsyncClient):
 # ==========================================
 async def test_delete_file_wrong_password(client: AsyncClient):
 
-    board_index = await setup_user_and_board(client, "wrong_pw_user123", TEST_USER_PW)
+    board_index = await setup_user_and_board(client, "wrong_pw_user_00", TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL)
     
     # 정상 업로드
     await client.post(
         f"/files/boards/{board_index}", 
         files = {"file": ("test.txt", b"hello", "text/plain")}
     )
-    files_index = await get_latest_file_index(client, "wrong_pw_user123")
+    files_index = await get_latest_file_index(client, "wrong_pw_user_00")
 
     # 틀린 비밀번호로 삭제 시도
     del_res = await client.request(

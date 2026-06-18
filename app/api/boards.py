@@ -4,7 +4,7 @@ from asyncpg import Connection
 from app.schemas.boards import CreateBoard, ModiTitle, ModiContent, DeleteBoards, RestoreBoards, PopularOption
 from app.schemas.user import UserLogin
 from app.db.database import get_db
-from app.db.redis_config import redis_db
+from app.db.redis_config import get_redis
 from app.core.security import get_current_user, get_viewer
 from app.schemas.common import CommonResponse
 from app.services.boards import (
@@ -17,9 +17,6 @@ from app.services.boards import (
 
 router = APIRouter()
 # 파일별로 API를 나누기 위해 APIRouter를 사용
-
-async def get_redis():
-    return redis_db
 
 # 특정 유저의 게시판 생성
 @router.post(
@@ -77,8 +74,7 @@ async def search_boards(
     특정 유저의 게시판 목록을 출력
 
     - 사용자의 아이디를 입력받아 해당 유저의 게시판 정보를 출력
-    - 허용되는 id 형식: 영문자, 숫자가 무조건 포함된 5 ~ 30자 (특수문자 허용)
-    - 허용되는 특수문자: @$!%*#?&._-
+    - 허용되는 id 형식: 영문자, 숫자가 무조건 포함된 5 ~ 30자 (선택적으로 특수문자 사용 가능: $!%*#?&._-)
     - 로그인 필요하지 않음.
     """
 )

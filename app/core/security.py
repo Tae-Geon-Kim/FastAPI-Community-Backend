@@ -30,7 +30,7 @@ def hash_password(password: str):
     return hashed_password.decode('utf-8') # string으로 -> DB 저장 필요
 
 # DB에서 해싱처리된 비밀번호 값을 가져와 검증
-def verify(plain_password: str, hashed_password: str):
+def verify_password(plain_password: str, hashed_password: str):
 
     password = bytes(plain_password, 'utf-8')
     hashed_password = bytes(hashed_password, 'utf-8')

@@ -6,7 +6,7 @@ from fastapi_limiter.depends import RateLimiter
 from asyncpg import Connection
 from app.core.security import get_current_user
 from app.db.database import get_db
-from app.db.redis_config import redis_db
+from app.db.redis_config import get_redis
 from app.schemas.common import CommonResponse
 from app.schemas.user import UserLogin
 from app.services.auth import (
@@ -32,6 +32,7 @@ router = APIRouter()
 async def refresh_access_token(
     response: Response,
     refresh_token: str | None = Cookie(default = None),
+    redis_client = Depends(get_redis),
     conn: Connection = Depends(get_db)
 ):
 
@@ -41,9 +42,9 @@ async def refresh_access_token(
             detail = "Refresh Token이 존재하지 않습니다."
         )
     
-    new_access = await refresh_access_token_services(conn, refresh_token)
+    new_access = await refresh_access_token_services(conn, refresh_token, redis_client)
 
-    response.set_cookie(key = "access_token", value = f"Bearer {new_access}", httponly = True, samesite = "lax")
+    response.set_cookie(key = "access_token", value = new_access, httponly = True, samesite = "lax")
 
     return CommonResponse(message = "토큰이 성공적으로 재발급 되었습니다.")
 
@@ -57,17 +58,17 @@ async def refresh_access_token(
     description = """
     사용자의 아이디와 비밀번호를 검증하고 JWT Access, Refresh 토큰을 발급합니다.
 
-     - 허용되는 id 형식: 영문자, 숫자가 무조건 포함한 5 ~ 30자 (특수문자 허용)
-     - 허용되는 password 형식: 영문자, 숫자, 특수문자가 무조건 포함한 8 ~ 30자
-     - 허용되는 특수문자: @$!%*#?&._-
+     - 허용되는 id 형식: 영문자, 숫자가 무조건 포함한 5 ~ 30자 (선택적으로 특수문자 사용 가능: $!%*#?&._-)
+     - 허용되는 password 형식: 영문자, 숫자, 특수문자가 무조건 포함한 8 ~ 30자 (허용되는 특수문자: @$!%*#?&._-)
     """
 )
 async def token_login(
     data: UserLogin,
     response: Response,
+    redis_client = Depends(get_redis),
     conn: Connection = Depends(get_db)
 ):
-    access_token, refresh_token = await token_login_services(conn, data)
+    access_token, refresh_token = await token_login_services(data, conn, redis_client)
 
     response.set_cookie(key = "access_token", value = access_token, httponly = True, samesite = "lax"),
     response.set_cookie(key = "refresh_token", value = refresh_token, httponly = True, samesite = "lax")
@@ -88,10 +89,10 @@ async def token_login(
 )
 async def token_logout(
     response: Response,
+    redis_client = Depends(get_redis),
     current_user: dict = Depends(get_current_user)
 ):
-
-    await redis_db.delete(f"refresh:user:{current_user['index']}")
+    await redis_client.delete(f"refresh:user:{current_user['index']}")
     
     response.delete_cookie(key = "access_token", httponly = True, samesite = "lax")
     response.delete_cookie(key = "refresh_token", httponly = True, samesite = "lax")

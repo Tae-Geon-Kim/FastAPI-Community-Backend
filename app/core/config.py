@@ -51,3 +51,13 @@ class RedisSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
 
 redis_settings = RedisSettings()
+
+class SmtpSettings(BaseSettings):
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_SENDER: str = "danielkim3276@gmail.com"
+    SMTP_PASSWORD: str = "your-app-password"
+
+    model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
+
+smtp_settings = SmtpSettings()

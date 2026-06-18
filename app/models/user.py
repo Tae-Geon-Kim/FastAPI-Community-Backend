@@ -23,10 +23,11 @@ async def get_current_user_info(conn: Connection, user_index: int):
 
     return await conn.fetchrow(sql, user_index)
 
-# 아이디에 맞는 비밀번호 확인
-async def pull_pw_login(conn: Connection, user_id: str):
 
-    sql = 'SELECT index, password, role FROM "user" WHERE id = $1 AND deleted_at IS NULL'
+# 사용자의 아이디로 해당 유저의 index, password, role, is_verified를 가져온다.
+async def get_info_by_id(conn: Connection, user_id: str):
+
+    sql = 'SELECT index, password, role, is_verified FROM "user" WHERE id = $1 AND deleted_at IS NULL'
 
     return await conn.fetchrow(sql, user_id)
 
@@ -36,6 +37,13 @@ async def id_duplicate(conn: Connection, user_id: str):
     sql = 'SELECT id FROM "user" WHERE id = $1'
 
     return await conn.fetchrow(sql, user_id)
+
+# 이메일 중복 확인
+async def email_duplicate(conn: Connection, user_email: str):
+
+    sql = 'SELECT email FROM "user" WHERE email = $1'
+
+    return await conn.fetchval(sql, user_email)
 
 # 삭제 처리되지 않은 유저 중 특정 유저가 존재하는지 확인
 async def check_undeleted_user_exist(conn: Connection, user_index: int):
@@ -67,12 +75,12 @@ async def get_deleted_user_info(conn: Connection, user_index: int):
 
 # ========== 삽입 ==========
 
-# 아이디, 비밀번호 저장
-async def push_id_pw(conn: Connection, user_id: str, user_password: str):
+# 아이디, 비밀번호, 이름, 이메일을 저장
+async def insert_user_basic_info(conn: Connection, user_id: str, user_password: str, user_name: str, user_email: str):
 
-    sql = 'INSERT INTO "user" (id, password) VALUES ($1, $2)'
+    sql = 'INSERT INTO "user" (id, password, name, email) VALUES ($1, $2, $3, $4)'
 
-    return await conn.execute(sql, user_id, user_password)
+    return await conn.execute(sql, user_id, user_password, user_name, user_email)
 
 # ========== 조회 ==========
 
@@ -102,6 +110,13 @@ async def userPw_modify(conn: Connection, new_password: str, user_index: int):
     sql = 'UPDATE "user" SET password = $1, update_date = NOW() WHERE index = $2'
 
     return await conn.execute(sql, new_password, user_index)
+
+# 특정 이메일 값을 가진 유저의 is_verified 값을 True로 업데이트
+async def update_is_verified_true(conn: Connection, email: str):
+
+    sql = 'UPDATE "user" SET is_verified = TRUE WHERE email = $1'
+
+    return await conn.execute(sql, email)
 
 # ========== 삭제 ==========
 

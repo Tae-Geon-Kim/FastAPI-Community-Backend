@@ -19,7 +19,7 @@ from app.models.boards import check_boards_owner, update_total_board_fsize
 from app.models.user import get_user_id_pw
 from app.models.audit_log import insert_audit_log
 from app.core.config import settings
-from app.core.security import verify
+from app.core.security import verify_password
 
 upload_dir = settings.UPLOAD_DIR
 
@@ -137,7 +137,7 @@ async def delete_files_services(file_index: int, data: DeleteFile, conn: Connect
 
     board_index = await get_file_belong(conn, file_index)
 
-    if not verify(data.password, user_info['password']):
+    if not verify_password(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "비밀번호가 일치하지 않습니다."
@@ -190,7 +190,7 @@ async def delete_all_services(board_index: int, data: DeleteAllFile, conn: Conne
     
     user_info = await get_user_id_pw(conn, current_user['index'])
 
-    if not verify(data.password, user_info['password']):
+    if not verify_password(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "비밀번호가 일치하지 않습니다."
@@ -241,7 +241,7 @@ async def restore_file_services(file_index: int, data: RestoreFile, conn: Connec
 
     # 유저 비밀번호 검증
     user_id_pw = await get_user_id_pw(conn, current_user['index'])
-    if not verify(data.password, user_id_pw['password']):
+    if not verify_password(data.password, user_id_pw['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "비밀번호가 일치하지 않습니다."
@@ -313,7 +313,7 @@ async def restore_all_file_services(board_index: int, data: RestoreAllFile, conn
     user_info = await get_user_id_pw(conn, current_user['index'])
     # user의 index 값을 통해서 아이디, 비밀번호를 가져온다.
 
-    if not verify(data.password, user_info['password']):
+    if not verify_password(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "비밀번호가 일치하지 않습니다."

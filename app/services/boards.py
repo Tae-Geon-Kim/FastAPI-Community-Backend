@@ -6,7 +6,7 @@ from asyncpg import Connection
 from fastapi import HTTPException, status
 from fastapi.encoders import jsonable_encoder
 
-from app.core.security import verify
+from app.core.security import verify_password
 from app.db.redis_config import redis_db
 
 from app.models.user import get_user_id_pw, get_user_index
@@ -219,7 +219,7 @@ async def title_modify_services(board_index: int, data: ModiTitle, conn: Connect
     
     user_info = await get_user_id_pw(conn, current_user['index'])
 
-    if not verify(data.password, user_info['password']):
+    if not verify_password(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "비밀번호가 일치하지 않습니다."
@@ -261,7 +261,7 @@ async def content_modify_services(board_index: int, data: ModiContent, conn: Con
 
     user_info = await get_user_id_pw(conn, current_user['index'])
 
-    if not verify(data.password, user_info['password']):
+    if not verify_password(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "비밀번호가 일치하지 않습니다."
@@ -303,7 +303,7 @@ async def boards_delete_services(board_index: int, data: DeleteBoards, conn: Con
     
     user_info = await get_user_id_pw(conn, current_user['index'])
 
-    if not verify(data.password, user_info['password']):
+    if not verify_password(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "비밀번호가 일치하지 않습니다."
@@ -356,7 +356,7 @@ async def restore_board_services(board_index: int, data: RestoreBoards, conn: Co
 
     user_info = await get_user_id_pw(conn, current_user['index'])
 
-    if not verify(data.password, user_info['password']):
+    if not verify_password(data.password, user_info['password']):
         raise HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "비밀번호가 일치하지 않습니다."

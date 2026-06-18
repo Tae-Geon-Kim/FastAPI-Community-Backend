@@ -7,3 +7,6 @@ redis_db = redis.Redis(
     password = redis_settings.REDIS_PASSWORD,
     decode_responses = True
 )
+
+async def get_redis():
+    return redis_db
