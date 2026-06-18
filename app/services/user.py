@@ -12,7 +12,7 @@ from app.models.user import (
     insert_user_basic_info, id_duplicate, email_duplicate, pull_user_info, 
     get_user_id_pw, soft_delete_user, delete_soft_deleted_user, userId_modify, 
     userPw_modify, restore_user_data, get_deleted_user_info, update_is_verified_true,
-    get_lost_id, check_find_password_matching_email, get_user_index
+    get_lost_id, check_find_password_matching_email, get_user_index, userEmail_modify
 )
 
 from app.models.files import (
@@ -29,7 +29,7 @@ from app.models.audit_log import insert_audit_log
 
 from app.schemas.user import (
     UserRegister, EmailVerification, UserLogin,
-    UserPw, ModiId, ModiPw, UserInfo, FindId, FindPw
+    UserPw, ModiId, ModiPw, UserInfo, FindId, FindPw, ModiEmail
 )
 
 from app.schemas.common import CommonResponse
@@ -419,6 +419,52 @@ async def userPw_modify_services(data: ModiPw, conn: Connection, current_user: d
         )
 
     return CommonResponse(message = f"{user_info['id']}님의 비밀번호가 변경되었습니다.")
+
+# 사용자 이메일 변경 
+async def userEmail_modify_services(data: ModiEmail, conn: Connection, current_user: dict, redis_client):
+
+    user_info = await get_user_id_pw(conn, current_user['index'])
+    
+    # 비밀번호 확인
+    if not verify_password(data.password, user_info['password']):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "비밀번호가 일치하지 않습니다."
+        )
+
+    # 이메일 중복 확인
+    if email_duplicate(conn, data.new_email) is None:
+        raise HTTPException(
+            status_code = status.HTTP_409_CONFLICT,
+            detail = "중복되는 이메일이 존재합니다."
+        )
+    
+    # 새 이메일 인증 여부 확인
+    verified_key = f"email_verified:{data.new_email}"
+    is_verified = await redis_client.get(verified_key)
+
+    if not is_verified:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "새로운 이메일 인증이 완료되지 않았습니다."
+        )
+
+    async with conn.transaction():
+        await userEmail_modify(conn, data.new_email, current_user['index'])
+        await insert_audit_log(
+            conn = conn,
+            action = "MODIFY_EMAIL",
+            target_type = "USER",
+            target_index = current_user['index'],
+            actor_user_index = current_user['index'],
+            actor_user_id = current_user['id'],
+            detail = {
+                "reason": "사용자의 요청으로 사용자의 이메일을 변경합니다.",
+                "new_email": data.new_email
+            }
+        )
+
+    return CommonResponse(message = f"사용자의 이메일이 {data.new_email}로 변경되었습니다.")
 
 # 사용자 회원탈퇴 복구 (회원의 데이터 & 복구 가능한 회원의 파일 데이터)
 async def restore_user_services(conn: Connection, data: UserLogin):

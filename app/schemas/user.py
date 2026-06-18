@@ -153,3 +153,11 @@ class ModiPw(BaseModel):
     @field_validator('new_password')
     @classmethod
     def check_new_password(cls, v): return validate_password_format(v)
+
+class ModiEmail(BaseModel):
+    password: str = Field(..., min_length = 8, max_length = 30)
+    new_email : EmailStr
+
+    @field_validator('password')
+    @classmethod
+    def check_new_password(cls, v): return validate_password_format(v)

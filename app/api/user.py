@@ -4,8 +4,8 @@ from asyncpg import Connection
 
 from app.schemas.user import (
     UserRegister, UserLogin, UserId, UserPw, 
-    ModiId, ModiPw, EmailRequest, EmailVerification,
-    FindId, FindPw
+    ModiId, ModiPw, ModiEmail, FindId, FindPw,
+    EmailRequest, EmailVerification,
 )
 
 from app.schemas.common import CommonResponse
@@ -15,7 +15,7 @@ from app.services.user import (
     user_email_duplicate_services, send_verification_email_services,
     check_verification_code_services, user_info_services, user_withdraw_services, 
     userId_modify_services, userPw_modify_services, restore_user_services,
-    find_id_services, find_password_services
+    find_id_services, find_password_services, userEmail_modify_services
 )
 
 from app.db.database import get_db
@@ -206,7 +206,7 @@ async def find_id(
     description = """
     사용자 비밀번호 찾기
 
-    - 이메일 인증을 통해서 본인확인을 진행 (유저의 name -mail -id 매칭되는 값 존재하는지 확인)
+    - 이메일 인증을 통해서 본인확인을 진행 (유저의 name - mail - id 매칭되는 값 존재하는지 확인)
     - 본인인게 확인되면 제약조건에 맞는 임시 비밀번호를 무작위로 생성하여 사용자의 이메일로 보내준다.
 	- DB에는 생성한 임시 비밀번호를 해싱처리하여 보관한다.
 	- 임시 비밀번호로 로그인을 진행한 후 즉시 비밀번호 변경 안내를 한다.
@@ -266,6 +266,28 @@ async def update_my_password(
 
     return await userPw_modify_services(data, conn, current_user)
 
+# 사용자 이메일 변경
+@router.patch(
+    "/me/email",
+    dependencies = [Depends(RateLimiter(times = 5, seconds = 60))],
+    response_model = CommonResponse,
+    status_code = status.HTTP_200_OK,
+    summary = "[유저] 사용자 이메일 변경",
+    description = """
+    사용자 이메일 변경
+
+    - 변경하는 이메일은 중복 및 유효성 (이메일 형태) 확인 필요
+    - 바꾸는 이메일이 사용 가능하면 이메일 인증을 통해서 최종 확인
+    - 이메일을 변경하기 위해서 사용자 비밀번호를 재입력
+    """
+)
+async def update_my_email(
+    data: ModiEmail,
+    redis_client = Depends(get_redis),
+    conn: Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    return await userEmail_modify_services(data, conn, current_user, redis_client)
 
 # 사용자 회원탈퇴 복구 - JWT 기반 로그인 
 # JWT 기반 로그인 방식을 도입해도 여기서 로그인 부분은 기존의 아이디, 비밀번호 입력받는 방식을 사용해야한다.

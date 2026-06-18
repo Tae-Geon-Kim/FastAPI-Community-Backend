@@ -125,6 +125,13 @@ async def userPw_modify(conn: Connection, new_password: str, user_index: int):
 
     return await conn.execute(sql, new_password, user_index)
 
+# 사용자 이메일 변경
+async def userEmail_modify(conn: Connection, new_email: str, user_index: int):
+
+    sql = 'UPDATE "user" SET email = $1, update_date = NOW() WHERE index = $2'
+
+    return await conn.execute(sql, new_email, user_index)
+
 # 특정 이메일 값을 가진 유저의 is_verified 값을 True로 업데이트
 async def update_is_verified_true(conn: Connection, email: str):
 
