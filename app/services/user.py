@@ -137,6 +137,8 @@ async def send_verification_email_services(receiver_email:str, conn: Connection,
             status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail = f"이메일을 보내는 과정에서 에러가 발생하였습니다. : {str(e)}"
         )
+    
+    return CommonResponse(message=f"사용자의 이메일인 {receiver_email}로 인증번호가 포함된 메일을 발송했습니다. 5분 안에 입력해주세요.")
 
 # 인증번호 검증
 async def check_verification_code_services(data: EmailVerification, conn: Connection, redis_client):

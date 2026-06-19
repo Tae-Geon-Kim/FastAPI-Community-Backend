@@ -81,7 +81,7 @@ class EmailRequest(BaseModel):
 
 class EmailVerification(BaseModel):
     email: EmailStr = Field(..., description = "인증번호를 받을 이메일 주소")
-    code: int = Field(..., min_length = 6, max_length = 6, description = "6자리 인증번호")
+    code: str = Field(..., min_length = 6, max_length = 6, description = "6자리 인증번호")
 
 class UserLogin(BaseModel):
     id: str = Field(..., min_length = 5, max_length = 30)
