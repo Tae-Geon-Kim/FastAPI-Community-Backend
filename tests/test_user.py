@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+
 from app.db.redis_config import redis_db
 
 # 현재 파일의 모든 테스트 함수를 비동기로 실행하도록 설정
@@ -220,7 +221,7 @@ async def test_id_modify_duplicate_conflict(client: AsyncClient):
     )
 
     # 유저 1로 로그인하여 토큰 획득
-    login_res = await client.post("/auth/login", json={"id": USER1_ID, "password": USER1_PW})
+    await client.post("/auth/login", json={"id": USER1_ID, "password": USER1_PW})
 
     # 유저 1이 본인의 아이디를 유저 2의 아이디(second_user22!!)로 변경
     mod_res = await client.patch(
@@ -250,7 +251,7 @@ async def test_withdraw_wrong_password(client: AsyncClient):
         json={"id": TARGET_ID, "password": REAL_PW, "email": TARGET_EMAIL, "name": TEST_USER_NAME}
     )
 
-    login_res = await client.post("/auth/login", json={"id": TARGET_ID, "password": REAL_PW})
+    await client.post("/auth/login", json={"id": TARGET_ID, "password": REAL_PW})
 
     # 틀린 비밀번호로 회원탈퇴 시도
     withdraw_res = await client.request(

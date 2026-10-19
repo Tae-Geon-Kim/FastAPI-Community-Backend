@@ -1,18 +1,30 @@
-from fastapi import APIRouter, Depends, status, Path, Query, Request, Response
-from fastapi_limiter.depends import RateLimiter
 from asyncpg import Connection
-from app.schemas.boards import CreateBoard, ModiTitle, ModiContent, DeleteBoards, RestoreBoards, PopularOption
-from app.schemas.user import UserLogin
+from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
+from fastapi_limiter.depends import RateLimiter
+
+from app.core.security import get_current_user, get_viewer
 from app.db.database import get_db
 from app.db.redis_config import get_redis
-from app.core.security import get_current_user, get_viewer
+from app.schemas.boards import (
+    CreateBoard,
+    DeleteBoards,
+    ModiContent,
+    ModiTitle,
+    PopularOption,
+    RestoreBoards,
+)
 from app.schemas.common import CommonResponse
 from app.services.boards import (
-    create_boards_services, certain_boards_info_services,
-    single_board_info_services, all_boards_info_services,
-    title_modify_services, content_modify_services,
-    boards_delete_services, restore_board_services,
-    search_in_title_content_services, get_popular_board_services
+    all_boards_info_services,
+    boards_delete_services,
+    certain_boards_info_services,
+    content_modify_services,
+    create_boards_services,
+    get_popular_board_services,
+    restore_board_services,
+    search_in_title_content_services,
+    single_board_info_services,
+    title_modify_services,
 )
 
 router = APIRouter()

@@ -1,21 +1,22 @@
-import uvicorn
-import traceback
 import time
-import logging
-import redis.asyncio as redis
+import traceback
 from contextlib import asynccontextmanager
+
+import redis.asyncio as redis
+import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_limiter import FastAPILimiter
-from app.db.database import create_db_pool
-from app.api.boards import router as boards_router
-from app.api.user import router as user_router
-from app.api.files import router as files_router
-from app.api.auth import router as auth_router
+
 from app.api.admin import router as admin_router
-from app.core.logger import logger
+from app.api.auth import router as auth_router
+from app.api.boards import router as boards_router
+from app.api.files import router as files_router
+from app.api.user import router as user_router
 from app.core.config import redis_settings
+from app.core.logger import logger
 from app.core.scheduler import start_scheduler, stop_scheduler
+from app.db.database import create_db_pool
 
 # app.state: 수많은 파일들이 공통으로 접근 가능한 일종의 공통 보관함
 

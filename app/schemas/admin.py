@@ -1,6 +1,9 @@
-from pydantic import BaseModel, Field, field_validator, ConfigDict
 from enum import Enum
-from app.schemas.boards import validate_title_format, validate_content_format
+
+from pydantic import BaseModel, Field, field_validator
+
+from app.schemas.boards import validate_content_format, validate_title_format
+
 
 # 관리자 공지사항 생성
 class CreateNotice(BaseModel):

@@ -1,8 +1,7 @@
+
 import asyncpg
-import logging
-from asyncpg import Connection, Pool
-from fastapi import FastAPI, Depends, Request, status, HTTPException
-from contextlib import asynccontextmanager
+from fastapi import HTTPException, Request, status
+
 from app.core.config import settings
 
 # create_db_pool로 DB 접속 정보를 따로 안빼면 각 api마다 접속 정보를 하드코딩 해야한다.

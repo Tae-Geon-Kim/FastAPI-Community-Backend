@@ -1,7 +1,8 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from app.services.user import anonymize_user, delete_user_perman
+
 from app.services.boards import delete_boards_perman
 from app.services.files import delete_files_perman
+from app.services.user import anonymize_user, delete_user_perman
 
 scheduler = AsyncIOScheduler()
 

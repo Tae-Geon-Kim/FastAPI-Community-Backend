@@ -1,41 +1,57 @@
 import random
 import secrets
 import string
-import aiosmtplib
-
+from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
+
+import aiosmtplib
 from asyncpg import Connection
 from fastapi import HTTPException, status
-from datetime import datetime, timezone, timedelta
 
-from app.models.user import (
-    insert_user_basic_info, id_duplicate, email_duplicate, pull_user_info, 
-    get_user_id_pw, soft_delete_user, delete_soft_deleted_user, userId_modify, 
-    userPw_modify, restore_user_data, get_deleted_user_info, update_is_verified_true,
-    get_lost_id, check_find_password_matching_email, get_user_index, userEmail_modify
-)
-
-from app.models.files import (
-    soft_delete_all_user_files, delete_files, restore_all_user_files,
-    check_restore_exceeding_boards_total_fsize
-)
-
-from app.models.boards import (
-    soft_delete_all_user_boards, delete_boards, recalculate_all_user_boards_total_fsize,
-    update_all_user_boards_total_fsize
-)
-
-from app.models.audit_log import insert_audit_log
-
-from app.schemas.user import (
-    UserRegister, EmailVerification, UserLogin,
-    UserPw, ModiId, ModiPw, UserInfo, FindId, FindPw, ModiEmail
-)
-
-from app.schemas.common import CommonResponse
-
-from app.core.security import hash_password, verify_password
 from app.core.config import settings, smtp_settings
+from app.core.security import hash_password, verify_password
+from app.models.audit_log import insert_audit_log
+from app.models.boards import (
+    recalculate_all_user_boards_total_fsize,
+    update_all_user_boards_total_fsize,
+)
+from app.models.files import (
+    check_restore_exceeding_boards_total_fsize,
+    delete_files,
+    restore_all_user_files,
+    soft_delete_all_user_files,
+)
+from app.models.user import (
+    check_find_password_matching_email,
+    delete_soft_deleted_user,
+    email_duplicate,
+    get_deleted_user_info,
+    get_lost_id,
+    get_user_id_pw,
+    get_user_index,
+    id_duplicate,
+    insert_user_basic_info,
+    pull_user_info,
+    restore_user_data,
+    soft_delete_user,
+    update_is_verified_true,
+    userEmail_modify,
+    userId_modify,
+    userPw_modify,
+)
+from app.schemas.common import CommonResponse
+from app.schemas.user import (
+    EmailVerification,
+    FindId,
+    FindPw,
+    ModiEmail,
+    ModiId,
+    ModiPw,
+    UserInfo,
+    UserLogin,
+    UserPw,
+    UserRegister,
+)
 from app.services.auth import restore_login
 
 allow_max_total_fsize = settings.FILE_TOTAL_MAX_SIZE

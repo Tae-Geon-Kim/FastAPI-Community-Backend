@@ -1,25 +1,34 @@
 import os
 import uuid
+from datetime import datetime, timedelta, timezone
+
 import aiofiles
 from asyncpg import Connection
-from fastapi import HTTPException, status, UploadFile
-from datetime import datetime, timezone, timedelta
-from app.schemas.files import DeleteFile, DeleteAllFile, RestoreFile, RestoreAllFile
-from app.schemas.user import UserLogin
-from app.schemas.common import CommonResponse
-from app.models.files import (
-    get_total_fsize, upload_files_db,
-    check_deleted_file_belong, check_undeleted_file_belong,
-    soft_delete_one_file, soft_delete_all_board_files, get_file_belong,
-    get_softDelete_fsize, restore_one_file, check_board_deleted_files_exist,
-    get_total_softDelete_fsize, restore_all_board_files, get_deleted_file_info,
-    get_delete_file_path, delete_files, user_get_restorable_fsize, user_restore_all_restorable_files
-)
-from app.models.boards import check_boards_owner, update_total_board_fsize
-from app.models.user import get_user_id_pw
-from app.models.audit_log import insert_audit_log
+from fastapi import HTTPException, UploadFile, status
+
 from app.core.config import settings
 from app.core.security import verify_password
+from app.models.audit_log import insert_audit_log
+from app.models.boards import check_boards_owner, update_total_board_fsize
+from app.models.files import (
+    check_board_deleted_files_exist,
+    check_undeleted_file_belong,
+    delete_files,
+    get_delete_file_path,
+    get_deleted_file_info,
+    get_file_belong,
+    get_softDelete_fsize,
+    get_total_fsize,
+    restore_one_file,
+    soft_delete_all_board_files,
+    soft_delete_one_file,
+    upload_files_db,
+    user_get_restorable_fsize,
+    user_restore_all_restorable_files,
+)
+from app.models.user import get_user_id_pw
+from app.schemas.common import CommonResponse
+from app.schemas.files import DeleteAllFile, DeleteFile, RestoreAllFile, RestoreFile
 
 upload_dir = settings.UPLOAD_DIR
 
@@ -396,7 +405,7 @@ async def delete_files_perman_services(conn: Connection):
         try:
             os.remove(file_path)
             print("파일 삭제에 성공하였습니다.")
-        except Exception as e:
+        except Exception:
             print("파일 삭제에 실패하였습니다.")
 
     await delete_files(conn)

@@ -1,18 +1,13 @@
-from fastapi import (
-    APIRouter, Depends, HTTPException, Cookie,
-    status, Response
-)
-from fastapi_limiter.depends import RateLimiter
 from asyncpg import Connection
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi_limiter.depends import RateLimiter
+
 from app.core.security import get_current_user
 from app.db.database import get_db
 from app.db.redis_config import get_redis
 from app.schemas.common import CommonResponse
 from app.schemas.user import UserLogin
-from app.services.auth import (
-    refresh_access_token_services,
-    token_login_services
-)
+from app.services.auth import refresh_access_token_services, token_login_services
 
 router = APIRouter()
 

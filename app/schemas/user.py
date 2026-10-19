@@ -1,7 +1,9 @@
 import re
-from pydantic import BaseModel, Field, field_validator, ConfigDict, EmailStr
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
 
 # CommonResponse JWT 토큰 인증 data 
 class TokenResponse(BaseModel):

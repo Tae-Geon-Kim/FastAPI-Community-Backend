@@ -1,14 +1,14 @@
 import uuid
+from datetime import datetime, timedelta, timezone
+
 import bcrypt
 from asyncpg import Connection
-from datetime import timedelta, datetime, timezone
-from fastapi import HTTPException, status, Depends, Response, Request
-from jose import jwt, JWTError
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException, Request, Response, status
+from jose import JWTError, jwt
+
 from app.core.config import jwt_auth
 from app.db.database import get_db
 from app.models.user import get_current_user_info, get_user_index
-
 
 secret_key = jwt_auth.SECRET_KEY
 algorithm = jwt_auth.ALGORITHM

@@ -1,9 +1,12 @@
 import re
-from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
-from typing import Optional, Any
 from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from app.schemas.user import validate_password_format
+
 
 # 특정 유저 게시판 조회 / 전체 게시판 조회 모두에서 사용
 class BoardFileResponse(BaseModel):

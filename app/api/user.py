@@ -1,26 +1,39 @@
+from asyncpg import Connection
 from fastapi import APIRouter, Depends, status
 from fastapi_limiter.depends import RateLimiter
-from asyncpg import Connection
 
-from app.schemas.user import (
-    UserRegister, UserLogin, UserId, UserPw, 
-    ModiId, ModiPw, ModiEmail, FindId, FindPw,
-    EmailRequest, EmailVerification,
-)
-
-from app.schemas.common import CommonResponse
-
-from app.services.user import (
-    register_user_services, user_id_duplicate_services,
-    user_email_duplicate_services, send_verification_email_services,
-    check_verification_code_services, user_info_services, user_withdraw_services, 
-    userId_modify_services, userPw_modify_services, restore_user_services,
-    find_id_services, find_password_services, userEmail_modify_services
-)
-
+from app.core.security import get_current_user
 from app.db.database import get_db
 from app.db.redis_config import get_redis, redis_db
-from app.core.security import get_current_user
+from app.schemas.common import CommonResponse
+from app.schemas.user import (
+    EmailRequest,
+    EmailVerification,
+    FindId,
+    FindPw,
+    ModiEmail,
+    ModiId,
+    ModiPw,
+    UserId,
+    UserLogin,
+    UserPw,
+    UserRegister,
+)
+from app.services.user import (
+    check_verification_code_services,
+    find_id_services,
+    find_password_services,
+    register_user_services,
+    restore_user_services,
+    send_verification_email_services,
+    user_email_duplicate_services,
+    user_id_duplicate_services,
+    user_info_services,
+    user_withdraw_services,
+    userEmail_modify_services,
+    userId_modify_services,
+    userPw_modify_services,
+)
 
 router = APIRouter()
 

@@ -314,7 +314,7 @@ async def user_restore_all_restorable_files(conn: Connection, board_index: int):
 # 게시판 삭제로 인해 같이 삭제된 파일들만 복구 (게시판 복구시 사용)
 async def restore_cascade_board_files(conn: Connection, board_index: int, days: int):
 
-    sql = f"""
+    sql = """
         UPDATE files
         SET deleted_by = NULL, deleted_at = NULL
         WHERE board_index = $1

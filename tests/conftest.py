@@ -1,13 +1,13 @@
 import os
 import shutil
+
+import asyncpg
 import pytest
 import pytest_asyncio
-import asyncpg
-import redis.asyncio as redis
-from httpx import AsyncClient, ASGITransport
-
 from fastapi import Request, Response
 from fastapi_limiter.depends import RateLimiter
+from httpx import ASGITransport, AsyncClient
+
 
 async def mock_rate_limit(self, request: Request, response: Response):
     pass
@@ -26,11 +26,12 @@ os.environ["DB_NAME"] = TEST_DB_NAME
 if os.environ.get("GITHUB_ACTIONS") != "true":
     os.environ["DB_PORT"] = "15432"
 
-from app.main import app
+from app.core.config import settings
 from app.db.database import get_db
 from app.db.redis_config import redis_db
-from app.core.config import settings
+from app.main import app
 from app.services import files as file_services
+
 
 @pytest_asyncio.fixture()
 async def db_pool():

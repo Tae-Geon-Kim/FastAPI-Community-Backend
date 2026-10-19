@@ -2,10 +2,9 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.user import UserLogin, ModiId, ModiPw
-from app.schemas.boards import CreateBoard, ModiTitle, ModiContent, DeleteBoards
-from app.schemas.files import DeleteFile, DeleteAllFile
-
+from app.schemas.boards import CreateBoard, ModiContent, ModiTitle
+from app.schemas.files import DeleteAllFile, DeleteFile
+from app.schemas.user import ModiId, ModiPw, UserLogin
 
 '''
  -schemas/user.py 에서 test 해야되는 schema
@@ -93,7 +92,7 @@ def test_modiPw_valid():
 
 # 정상적인 게시판 제목 & 게시판 내용 - CreateBoard 성공
 def test_create_board_valid():
-    data = CreateBoard(
+    CreateBoard(
         title = "아스날 우승 실패",
         content = "아스날 우승 실패!!!" * 10
     )
@@ -148,14 +147,14 @@ def test_modi_content_invalid_new_content():
 
 # 게시판 제목 변경 성공
 def test_modi_title_valid():
-    data = ModiTitle(
+    ModiTitle(
         password = "Kim1234!!",
         new_title = "아스날 우승 실패 실패 실패" * 2
     )
 
 # 게시판 내용 변경 성공
 def test_modi_content_valid():
-    data = ModiContent(
+    ModiContent(
         password = "Kim1234!!",
         new_content = "아스날 우승 실패 실패 실패" * 10
     )

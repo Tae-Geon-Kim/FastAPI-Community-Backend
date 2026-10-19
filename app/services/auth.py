@@ -1,17 +1,19 @@
-import hashlib 
-from fastapi import HTTPException, status
-from jose import jwt, JWTError, ExpiredSignatureError
+import hashlib
+
 from asyncpg import Connection
-from app.schemas.user import UserLogin
-from app.core.security import(
-    verify_password,
+from fastapi import HTTPException, status
+from jose import ExpiredSignatureError, JWTError, jwt
+
+from app.core.config import jwt_auth
+from app.core.security import (
     create_access_token,
     create_refresh_token,
-    credentials_exception
+    credentials_exception,
+    verify_password,
 )
-from app.models.user import get_info_by_id, pull_pw_restore_login
 from app.models.audit_log import insert_audit_log
-from app.core.config import jwt_auth
+from app.models.user import get_info_by_id, pull_pw_restore_login
+from app.schemas.user import UserLogin
 
 secret_key = jwt_auth.SECRET_KEY
 algorithm = jwt_auth.ALGORITHM
@@ -66,7 +68,7 @@ async def token_login_services(data: UserLogin, conn: Connection, redis_client):
         )
 
     # 로그인은 성공했는데 is_verified는 False인 상황
-    if user_info['is_verified'] == False:
+    if user_info['is_verified'] == False:  # noqa: E712 NULL은 통과시키는 기존 동작 유지
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "이메일 인증이 완료되지 않았습니다. 이메일 인증을 진행해주세요."

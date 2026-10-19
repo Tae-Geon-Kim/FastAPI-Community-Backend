@@ -1,6 +1,7 @@
-import os
 import logging
+import os
 from logging.handlers import TimedRotatingFileHandler
+
 from app.core.config import log_setting
 
 logging_dir = log_setting.LOGGING_DIR

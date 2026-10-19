@@ -1,33 +1,54 @@
 import json
 import math
-from datetime import datetime, timezone, timedelta
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+
 from asyncpg import Connection
 from fastapi import HTTPException, status
 from fastapi.encoders import jsonable_encoder
 
 from app.core.security import verify_password
-from app.db.redis_config import redis_db
-
-from app.models.user import get_user_id_pw, get_user_index
 from app.models.audit_log import insert_audit_log
-from app.schemas.common import CommonResponse
-from app.schemas.boards import (
-    CreateBoard, BoardInfo, AllBoardInfo, AllBoardInfoResponse,
-    ModiTitle, ModiContent, DeleteBoards, RestoreBoards, PopularOption
-)
 from app.models.boards import (
-    insert_boards_db, pull_board_info_by_index, certain_user_boards_info,
-    all_user_boards_info, check_boards_owner, title_modify, content_modify,
-    soft_delete_board, delete_boards, check_deleted_boards_owner,
-    restore_board, search_in_title_content, total_search_in_title_content,
-    total_certain_user_boards_info, get_total_boards_num, update_view_count,
-    get_popular_top5_board, insert_boards_view_info, update_total_board_fsize
+    all_user_boards_info,
+    certain_user_boards_info,
+    check_boards_owner,
+    check_deleted_boards_owner,
+    content_modify,
+    delete_boards,
+    get_popular_top5_board,
+    get_total_boards_num,
+    insert_boards_db,
+    insert_boards_view_info,
+    pull_board_info_by_index,
+    restore_board,
+    search_in_title_content,
+    soft_delete_board,
+    title_modify,
+    total_certain_user_boards_info,
+    total_search_in_title_content,
+    update_total_board_fsize,
 )
 from app.models.files import (
-    soft_delete_all_board_files, delete_files, restore_all_board_files,
-    get_total_fsize, restore_cascade_board_files,
+    delete_files,
+    get_total_fsize,
+    restore_cascade_board_files,
+    soft_delete_all_board_files,
 )
+from app.models.user import get_user_id_pw, get_user_index
+from app.schemas.boards import (
+    AllBoardInfo,
+    AllBoardInfoResponse,
+    BoardInfo,
+    CreateBoard,
+    DeleteBoards,
+    ModiContent,
+    ModiTitle,
+    PopularOption,
+    RestoreBoards,
+)
+from app.schemas.common import CommonResponse
+
 
 def convert_mb(size_bytes: int) -> str:
     if size_bytes is None or size_bytes <= 0:
