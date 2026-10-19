@@ -12,22 +12,26 @@ class Settings(BaseSettings):
 
     UPLOAD_DIR: str = "upload"
 
-    FILE_MAX_SIZE: int = 5242880 # 5MB
-    FILE_TOTAL_MAX_SIZE: int = 26214400 # 25MB
-    
-    model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
+    FILE_MAX_SIZE: int = 5242880  # 5MB
+    FILE_TOTAL_MAX_SIZE: int = 26214400  # 25MB
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
 
 settings = Settings()
+
 
 class JWT_Auth(BaseSettings):
     SECRET_KEY: str = "your-secret-key"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
-    
-    model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
-    
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
 jwt_auth = JWT_Auth()
+
 
 class Logging(BaseSettings):
     LOGGING_DIR: str = "log"
@@ -37,20 +41,24 @@ class Logging(BaseSettings):
     BACKUP: int = 7
 
     FORMAT: str = "%(asctime)s %(levelname)s %(message)s"
-    DATEFMT: str =  "%m/%d/%Y %I:%M:%S %p"
+    DATEFMT: str = "%m/%d/%Y %I:%M:%S %p"
 
-    model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
 
 log_setting = Logging()
+
 
 class RedisSettings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str | None = None
-    
-    model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
 
 redis_settings = RedisSettings()
+
 
 class SmtpSettings(BaseSettings):
     SMTP_SERVER: str = "smtp.gmail.com"
@@ -58,6 +66,7 @@ class SmtpSettings(BaseSettings):
     SMTP_SENDER: str = "danielkim3276@gmail.com"
     SMTP_PASSWORD: str = "your-app-password"
 
-    model_config = SettingsConfigDict(env_file = ".env", extra = "ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
 
 smtp_settings = SmtpSettings()

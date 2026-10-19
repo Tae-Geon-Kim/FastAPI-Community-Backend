@@ -5,13 +5,14 @@ Revises: a2a59fbe5a70
 Create Date: 2026-06-15 15:30:21.575397
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '7f84ed4e56e0'
-down_revision: Union[str, Sequence[str], None] = 'a2a59fbe5a70'
+revision: str = "7f84ed4e56e0"
+down_revision: Union[str, Sequence[str], None] = "a2a59fbe5a70"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -33,6 +34,7 @@ def upgrade() -> None:
         ALTER TABLE public."user"
         ADD COLUMN is_verified BOOLEAN DEFAULT FALSE
     """)
+
 
 def downgrade() -> None:
     """Downgrade schema."""

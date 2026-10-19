@@ -11,6 +11,8 @@ from httpx import ASGITransport, AsyncClient
 
 async def mock_rate_limit(self, request: Request, response: Response):
     pass
+
+
 RateLimiter.__call__ = mock_rate_limit
 
 TEST_DB_NAME = "Test_CommunityBackendDB"
@@ -42,18 +44,20 @@ async def db_pool():
         host="127.0.0.1",
         port=settings.DB_PORT,
         max_size=5,
-        min_size=1
+        min_size=1,
     )
     yield pool
     await pool.close()
+
 
 @pytest_asyncio.fixture()
 async def db_connection(db_pool):
     async with db_pool.acquire() as connection:
         transaction = connection.transaction()
-        await transaction.start() 
-        yield connection 
-        await transaction.rollback() 
+        await transaction.start()
+        yield connection
+        await transaction.rollback()
+
 
 @pytest_asyncio.fixture()
 async def client(db_connection):
@@ -64,35 +68,34 @@ async def client(db_connection):
     app.dependency_overrides[get_db] = override_get_db
 
     async with AsyncClient(
-        transport = ASGITransport(
-            app = app,
-            raise_app_exceptions = True
-        ),
-        base_url = "http://test"
+        transport=ASGITransport(app=app, raise_app_exceptions=True),
+        base_url="http://test",
     ) as ac:
         yield ac
 
     app.dependency_overrides.clear()
 
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_upload_dir():
     TEST_UPLOAD_DIR = "./test_uploads_temp"
-    
+
     if os.path.exists(TEST_UPLOAD_DIR):
         shutil.rmtree(TEST_UPLOAD_DIR)
     os.makedirs(TEST_UPLOAD_DIR, exist_ok=True)
-    
+
     original_upload_dir = file_services.upload_dir
     file_services.upload_dir = TEST_UPLOAD_DIR
-    
+
     yield
-    
+
     if os.path.exists(TEST_UPLOAD_DIR):
         shutil.rmtree(TEST_UPLOAD_DIR)
-        
+
     file_services.upload_dir = original_upload_dir
 
-@pytest_asyncio.fixture(autouse = True)
+
+@pytest_asyncio.fixture(autouse=True)
 async def flush_redis():
     await redis_db.flushdb()
     yield

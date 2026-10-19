@@ -16,28 +16,31 @@ access_token_expire_minutes = jwt_auth.ACCESS_TOKEN_EXPIRE_MINUTES
 refresh_token_expire_days = jwt_auth.REFRESH_TOKEN_EXPIRE_DAYS
 
 credentials_exception = HTTPException(
-    status_code = status.HTTP_401_UNAUTHORIZED,
-    detail = "유효하지 않은 인증 자격입니다.",
-    headers = {"WWW-Authenticate": "Bearer"}
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="유효하지 않은 인증 자격입니다.",
+    headers={"WWW-Authenticate": "Bearer"},
 )
 
+
 # 비밀번호를 해싱해서 암호화 후 반환 (return 값: string)
-def hash_password(password: str):   
+def hash_password(password: str):
 
-    password = bytes(password, 'utf-8') # 암호화는 bytes에서 가능 -> bytes 변환
-    hashed_password = bcrypt.hashpw(password, bcrypt.gensalt()) # hashed에는 bytes가 
+    password = bytes(password, "utf-8")  # 암호화는 bytes에서 가능 -> bytes 변환
+    hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())  # hashed에는 bytes가
 
-    return hashed_password.decode('utf-8') # string으로 -> DB 저장 필요
+    return hashed_password.decode("utf-8")  # string으로 -> DB 저장 필요
+
 
 # DB에서 해싱처리된 비밀번호 값을 가져와 검증
 def verify_password(plain_password: str, hashed_password: str):
 
-    password = bytes(plain_password, 'utf-8')
-    hashed_password = bytes(hashed_password, 'utf-8')
+    password = bytes(plain_password, "utf-8")
+    hashed_password = bytes(hashed_password, "utf-8")
 
     # checkpw(password:bytes, hashed_password: bytes)
 
-    return bcrypt.checkpw(password, hashed_password) # 반환 값: boolean
+    return bcrypt.checkpw(password, hashed_password)  # 반환 값: boolean
+
 
 # access token 생성
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
@@ -48,16 +51,19 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes = access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=access_token_expire_minutes
+        )
 
     to_encode.update({"exp": expire})
 
     # JWT access token 생성
-    encode_jwt = jwt.encode(to_encode, secret_key, algorithm = algorithm)
+    encode_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
     return encode_jwt
 
+
 # refresh token 생성
-def create_refresh_token(data:dict, expires_delta: timedelta | None = None):
+def create_refresh_token(data: dict, expires_delta: timedelta | None = None):
 
     to_encode = data.copy()
 
@@ -65,13 +71,14 @@ def create_refresh_token(data:dict, expires_delta: timedelta | None = None):
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(days = refresh_token_expire_days)
+        expire = datetime.now(timezone.utc) + timedelta(days=refresh_token_expire_days)
 
     to_encode.update({"exp": expire})
 
     # JWT refresh token 생성
-    encode_jwt = jwt.encode(to_encode, secret_key, algorithm = algorithm)
+    encode_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
     return encode_jwt
+
 
 # 토큰 확인
 def verify_token(request: Request):
@@ -80,11 +87,11 @@ def verify_token(request: Request):
 
     if token is None:
         raise credentials_exception
-    
+
     actual_token = token.split(" ")[1] if token.startswith("Bearer ") else token
 
     try:
-        payload = jwt.decode(actual_token, secret_key, algorithms = [algorithm])
+        payload = jwt.decode(actual_token, secret_key, algorithms=[algorithm])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -92,40 +99,38 @@ def verify_token(request: Request):
     except JWTError:
         raise credentials_exception
 
+
 async def get_current_user(
-    current_user_num: str = Depends(verify_token),
-    conn: Connection = Depends(get_db)
+    current_user_num: str = Depends(verify_token), conn: Connection = Depends(get_db)
 ):
     user_info = await get_current_user_info(conn, int(current_user_num))
 
     if not user_info:
         raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "존재하지 않는 사용자입니다."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="존재하지 않는 사용자입니다.",
         )
-    
-    if user_info['deleted_at'] is not None:
+
+    if user_info["deleted_at"] is not None:
         raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "탈퇴 처리된 사용자입니다. 접근 할 수 없습니다."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="탈퇴 처리된 사용자입니다. 접근 할 수 없습니다.",
         )
-    
+
     return user_info
-    
-async def require_admin(
-    current_user: dict = Depends(get_current_user)
-):
+
+
+async def require_admin(current_user: dict = Depends(get_current_user)):
     if current_user.get("role") != "ADMIN":
         raise HTTPException(
-            status_code = status.HTTP_403_FORBIDDEN,
-            detail = "관리자만 접근 가능합니다. (Access Denied)"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="관리자만 접근 가능합니다. (Access Denied)",
         )
     return current_user
 
+
 async def get_viewer(
-    request: Request,
-    response: Response,
-    conn: Connection = Depends(get_db)
+    request: Request, response: Response, conn: Connection = Depends(get_db)
 ):
     viewer_info = {"user_index": None, "anonymous_id": None}
 
@@ -134,7 +139,7 @@ async def get_viewer(
     if token:
         actual_token = token.split(" ")[1] if token.startswith("Bearer ") else token
         try:
-            payload = jwt.decode(actual_token, secret_key, algorithms = [algorithm])
+            payload = jwt.decode(actual_token, secret_key, algorithms=[algorithm])
             username: str = payload.get("sub")
 
             if username:
@@ -143,20 +148,20 @@ async def get_viewer(
                     viewer_info["user_index"] = user_record
         except JWTError:
             pass
-    
+
     if viewer_info["user_index"] is None:
         anonymous_id = request.cookies.get("anonymous_id")
 
         if not anonymous_id:
             anonymous_id = str(uuid.uuid4())
             response.set_cookie(
-                key = "anonymous_id",
-                value = anonymous_id,
-                max_age = 31536000,
-                httponly = True,
-                samesite = "lax"
+                key="anonymous_id",
+                value=anonymous_id,
+                max_age=31536000,
+                httponly=True,
+                samesite="lax",
             )
-        
+
         viewer_info["anonymous_id"] = anonymous_id
 
     return viewer_info

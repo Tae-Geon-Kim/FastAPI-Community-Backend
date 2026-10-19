@@ -2,6 +2,7 @@ from asyncpg import Connection
 
 # ========== 확인 / 검증 / 데이터 받아오기 ==========
 
+
 # 특정 유저의 인덱스에 대응하는 유저의 아이디와 비밀번호를 불러온다. (탈퇴하지 않은 회원의)
 async def get_user_id_pw(conn: Connection, user_index: int):
 
@@ -9,12 +10,14 @@ async def get_user_id_pw(conn: Connection, user_index: int):
 
     return await conn.fetchrow(sql, user_index)
 
+
 # 삭제안된 특정 유저의 아이디를 통해서 해당 유저의 인덱스 값을 불러온다.
 async def get_user_index(conn: Connection, user_id: str):
 
     sql = 'SELECT index FROM "user" WHERE id = $1 AND deleted_at IS NULL'
 
     return await conn.fetchval(sql, user_id)
+
 
 # 특정 유저의 인덱스를 통해서 해당 유저의 index, id, role, deleted_at을 불러온다.
 async def get_current_user_info(conn: Connection, user_index: int):
@@ -31,12 +34,14 @@ async def get_info_by_id(conn: Connection, user_id: str):
 
     return await conn.fetchrow(sql, user_id)
 
+
 # 아이디 중복 확인
 async def id_duplicate(conn: Connection, user_id: str):
 
     sql = 'SELECT id FROM "user" WHERE id = $1'
 
     return await conn.fetchrow(sql, user_id)
+
 
 # 이메일 중복 확인
 async def email_duplicate(conn: Connection, user_email: str):
@@ -45,12 +50,14 @@ async def email_duplicate(conn: Connection, user_email: str):
 
     return await conn.fetchval(sql, user_email)
 
+
 # 삭제 처리되지 않은 유저 중 특정 유저가 존재하는지 확인
 async def check_undeleted_user_exist(conn: Connection, user_index: int):
 
     sql = 'SELECT index FROM "user" WHERE index = $1 AND deleted_at IS NULL'
 
     return await conn.fetchval(sql, user_index)
+
 
 # 삭제 처리와 무관하게 전체 유저 중에서 특정 유저가 존재하는지 확인
 async def check_user_exist(conn: Connection, user_index: int):
@@ -59,12 +66,14 @@ async def check_user_exist(conn: Connection, user_index: int):
 
     return await conn.fetchval(sql, user_index)
 
+
 # 아이디에 맞는 비밀번호를 확인 (삭제 처리된 유저의)
 async def pull_pw_restore_login(conn: Connection, user_id: str):
 
     sql = 'SELECT index, password FROM "user" WHERE id = $1 AND deleted_at IS NOT NULL'
 
     return await conn.fetchrow(sql, user_id)
+
 
 # 삭제 처리된 유저의 id, deleted_by, deleted_at 을 가져온다
 async def get_deleted_user_info(conn: Connection, user_index: int):
@@ -73,30 +82,40 @@ async def get_deleted_user_info(conn: Connection, user_index: int):
 
     return await conn.fetchrow(sql, user_index)
 
+
 # 사용자의 아이를 찾아주는 로직
-async def get_lost_id(conn: Connection, user_name: str, user_email:str):
+async def get_lost_id(conn: Connection, user_name: str, user_email: str):
 
     sql = 'SELECT id FROM "user" WHERE name = $1 AND email = $2 AND deleted_at IS NULL'
 
     return await conn.fetchval(sql, user_name, user_email)
 
+
 # 사용자의 id, name, email 세개의 정보가 매칭이 되는 email이 있는지 확인
-async def check_find_password_matching_email(conn: Connection, user_id: str, user_name: str, user_email: str):
+async def check_find_password_matching_email(
+    conn: Connection, user_id: str, user_name: str, user_email: str
+):
 
     sql = 'SELECT email FROM "user" WHERE id = $1 AND name = $2 AND email = $3 AND deleted_at IS NULL'
 
     return await conn.fetchval(sql, user_id, user_name, user_email)
 
+
 # ========== 삽입 ==========
 
+
 # 아이디, 비밀번호, 이름, 이메일을 저장
-async def insert_user_basic_info(conn: Connection, user_id: str, user_password: str, user_name: str, user_email: str):
+async def insert_user_basic_info(
+    conn: Connection, user_id: str, user_password: str, user_name: str, user_email: str
+):
 
     sql = 'INSERT INTO "user" (id, password, name, email) VALUES ($1, $2, $3, $4)'
 
     return await conn.execute(sql, user_id, user_password, user_name, user_email)
 
+
 # ========== 조회 ==========
+
 
 # 사용자 정보 조회
 async def pull_user_info(conn: Connection, user_index: int):
@@ -109,7 +128,9 @@ async def pull_user_info(conn: Connection, user_index: int):
 
     return await conn.fetchrow(sql, user_index)
 
+
 # ========== 변경 ==========
+
 
 # 사용자 아이디 변경
 async def userId_modify(conn: Connection, new_id: str, user_index: int):
@@ -118,12 +139,14 @@ async def userId_modify(conn: Connection, new_id: str, user_index: int):
 
     return await conn.execute(sql, new_id, user_index)
 
+
 # 사용자 비밀번호 변경
 async def userPw_modify(conn: Connection, new_password: str, user_index: int):
 
     sql = 'UPDATE "user" SET password = $1, update_date = NOW() WHERE index = $2'
 
     return await conn.execute(sql, new_password, user_index)
+
 
 # 사용자 이메일 변경
 async def userEmail_modify(conn: Connection, new_email: str, user_index: int):
@@ -132,6 +155,7 @@ async def userEmail_modify(conn: Connection, new_email: str, user_index: int):
 
     return await conn.execute(sql, new_email, user_index)
 
+
 # 특정 이메일 값을 가진 유저의 is_verified 값을 True로 업데이트
 async def update_is_verified_true(conn: Connection, email: str):
 
@@ -139,7 +163,9 @@ async def update_is_verified_true(conn: Connection, email: str):
 
     return await conn.execute(sql, email)
 
+
 # ========== 삭제 ==========
+
 
 # 사용자 삭제처리
 async def soft_delete_user(conn: Connection, deleted_by: str, user_index: int):
@@ -150,6 +176,7 @@ async def soft_delete_user(conn: Connection, deleted_by: str, user_index: int):
     """
 
     return await conn.execute(sql, deleted_by, user_index)
+
 
 # soft deleted 된 데이터를 기간 (유저 30일, 관리자 100일)에 맞춰 익명화
 async def delete_soft_deleted_user(conn: Connection):
@@ -171,6 +198,7 @@ async def delete_soft_deleted_user(conn: Connection):
 
     return await conn.execute(sql)
 
+
 # 특정 유저를 즉시 hard delete (실제로 hard delete x / dummy data)
 async def hard_delete_user(conn: Connection, user_index: int):
 
@@ -188,7 +216,9 @@ async def hard_delete_user(conn: Connection, user_index: int):
 
     return await conn.execute(sql, user_index)
 
+
 # ========== 복구 ==========
+
 
 # 사용자 회원탈퇴 복구 (user 정보)
 async def restore_user_data(conn: Connection, user_id: str):

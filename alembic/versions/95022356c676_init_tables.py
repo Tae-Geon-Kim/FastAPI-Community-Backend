@@ -1,16 +1,17 @@
 """init_tables
 
 Revision ID: 95022356c676
-Revises: 
+Revises:
 Create Date: 2026-05-08 13:10:46.729490
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '95022356c676'
+revision: str = "95022356c676"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -63,9 +64,10 @@ def upgrade() -> None:
         );
     """)
 
+
 def downgrade() -> None:
     """Downgrade schema."""
 
-    op.execute('DROP TABLE IF EXISTS public.files CASCADE;')
-    op.execute('DROP TABLE IF EXISTS public.boards CASCADE;')
+    op.execute("DROP TABLE IF EXISTS public.files CASCADE;")
+    op.execute("DROP TABLE IF EXISTS public.boards CASCADE;")
     op.execute('DROP TABLE IF EXISTS public."user" CASCADE;')

@@ -10,10 +10,11 @@ from typing import Sequence, Union
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'abc6689d37a8'
-down_revision: Union[str, Sequence[str], None] = '95022356c676'
+revision: str = "abc6689d37a8"
+down_revision: Union[str, Sequence[str], None] = "95022356c676"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
 
 def upgrade() -> None:
     """Upgrade schema."""
@@ -22,6 +23,7 @@ def upgrade() -> None:
         ALTER TABLE public."user"
         ADD COLUMN role VARCHAR(20) DEFAULT 'USER' NOT NULL;
     """)
+
 
 def downgrade() -> None:
     """Downgrade schema."""
