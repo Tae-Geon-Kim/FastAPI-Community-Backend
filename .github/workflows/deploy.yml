@@ -102,6 +102,8 @@ jobs:
   # --------------------------------------------------
   deploy:
     needs: test
+    # PR/수동 실행이 self-hosted runner에 닿지 않도록 main push에서만 배포
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted 
     timeout-minutes: 10
     steps:
