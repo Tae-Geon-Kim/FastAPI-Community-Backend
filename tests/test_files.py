@@ -27,30 +27,41 @@ TEST_USER_EMAIL = "FastapiTest@test.com"
 TEST_TITLE = "<게시판 파일 업로드, 파일 삭제, 파일 복구 테스트>"
 TEST_CONTENT = "게시판에 파일을 업로드, 파일을 삭제, 파일을 복구하는 로직이 정상적으로 작동하는지 확인하는 테스트입니다."
 
+
 # ==========================================
 # 유저 가입 / 로그인 및 테스트용 게시판 생성 헬퍼 함수
 # ==========================================
-async def setup_user_and_board(client: AsyncClient, user_id, user_pw, user_name, user_email):
+async def setup_user_and_board(
+    client: AsyncClient, user_id, user_pw, user_name, user_email
+):
 
     # Redis에 이메일 인증 완료 등록
     await redis_db.setex(f"email_verified:{user_email}", 300, "true")
 
-    # 유저 가입 및 로그인 
+    # 유저 가입 및 로그인
     await client.post(
         "/users",
-        json={"id": user_id, "password": user_pw, "name": user_name, "email": user_email}
+        json={
+            "id": user_id,
+            "password": user_pw,
+            "name": user_name,
+            "email": user_email,
+        },
     )
 
     await client.post("/auth/login", json={"id": user_id, "password": user_pw})
 
-    # 게시판 생성 
+    # 게시판 생성
     await client.post("/boards", json={"title": TEST_TITLE, "content": TEST_CONTENT})
-    
-    # 방금 만든 게시판 번호 가져오기 
+
+    # 방금 만든 게시판 번호 가져오기
     board_res = await client.get(f"/boards/users/{user_id}")
-    board_index = board_res.json()["data"]["result"][-1]["index"] # 항상 가장 마지막에 만든 게시판 인덱스 가져오기
-    
+    board_index = board_res.json()["data"]["result"][-1][
+        "index"
+    ]  # 항상 가장 마지막에 만든 게시판 인덱스 가져오기
+
     return board_index
+
 
 # ==========================================
 # 파일 인덱스 조회 헬퍼 함수 - 가장 최근 게시물에 업로드된 첫번째 파일의 인덱스를 가져온다.
@@ -60,23 +71,25 @@ async def get_latest_file_index(client: AsyncClient, user_id):
     board_res = await client.get(f"/boards/users/{user_id}")
     files_list = board_res.json()["data"]["result"][-1].get("files", [])
     if files_list:
-        return files_list[-1]["index"] # 가장 마지막에 업로드된 파일 인덱스
+        return files_list[-1]["index"]  # 가장 마지막에 업로드된 파일 인덱스
     return None
+
 
 # ==========================================
 # 정상 작동 통합 테스트
 # ==========================================
 async def test_files_valid_case(client: AsyncClient):
 
-    board_index = await setup_user_and_board(client, TEST_USER_ID, TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL)
+    board_index = await setup_user_and_board(
+        client, TEST_USER_ID, TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL
+    )
 
     # 1. 파일 업로드 (POST /files/boards/{board_index})
-    dummy_file = {"file": ("test_doc.txt", b"Hello, this is a test file content!", "text/plain")}
-    
-    upload_res = await client.post(
-        f"/files/boards/{board_index}",
-        files = dummy_file
-    )
+    dummy_file = {
+        "file": ("test_doc.txt", b"Hello, this is a test file content!", "text/plain")
+    }
+
+    upload_res = await client.post(f"/files/boards/{board_index}", files=dummy_file)
     assert upload_res.status_code == 201
     print("\n[성공] 단일 파일 업로드 완료")
 
@@ -86,51 +99,46 @@ async def test_files_valid_case(client: AsyncClient):
 
     # 2. 단일 파일 삭제 (DELETE /files/boards/{board_index}/files/{file_index}/soft)
     del_res = await client.request(
-        "DELETE",
-        f"/files/{files_index}",
-        json = {"password": TEST_USER_PW}
+        "DELETE", f"/files/{files_index}", json={"password": TEST_USER_PW}
     )
     assert del_res.status_code == 200
 
     # 3. 단일 파일 복구 (POST /files/boards/{board_index}/files/{file_index}/restore)
     res_res = await client.post(
-        f"/files/{files_index}/restore",
-        json = {"password": TEST_USER_PW}
+        f"/files/{files_index}/restore", json={"password": TEST_USER_PW}
     )
     assert res_res.status_code == 200
 
     # 4. 파일 전체 삭제 (DELETE /files/boards/{board_index})
     del_all_res = await client.request(
-        "DELETE",
-        f"/files/boards/{board_index}",
-        json = {"password": TEST_USER_PW}
+        "DELETE", f"/files/boards/{board_index}", json={"password": TEST_USER_PW}
     )
     assert del_all_res.status_code == 200
 
     # 5. 파일 전체 복구 (POST /files/boards/{board_index}/restore)
     res_all_res = await client.post(
-        f"/files/boards/{board_index}/restore",
-        json = {"password": TEST_USER_PW}
+        f"/files/boards/{board_index}/restore", json={"password": TEST_USER_PW}
     )
     assert res_all_res.status_code == 200
     print("[성공] 파일 CRUD 정상 라이프사이클 완료")
+
 
 # ==========================================
 # 예외 처리: 허용되지 않는 확장자 업로드 시도
 # ==========================================
 async def test_upload_invalid_extension(client: AsyncClient):
 
-    board_index = await setup_user_and_board(client, "bad_user_00", TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL)
+    board_index = await setup_user_and_board(
+        client, "bad_user_00", TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL
+    )
 
     # 허용안되는 파일 설정
     bad_file = {"file": ("virus.exe", b"malicious code", "application/x-msdownload")}
-    
-    upload_res = await client.post(
-        f"/files/boards/{board_index}", 
-        files = bad_file
-    )
+
+    upload_res = await client.post(f"/files/boards/{board_index}", files=bad_file)
     assert upload_res.status_code == 415
     assert "허용되는 확장자가 아닙니다" in upload_res.json()["detail"]
+
 
 # ==========================================
 # 예외 처리: 타인의 게시판에 파일 업로드 시도
@@ -141,42 +149,44 @@ async def test_upload_unauthorized_board(client: AsyncClient):
     TEST_USERB_EMAIL = "userB@test.com"
 
     # 유저 A와 게시판 세팅
-    board_index_A = await setup_user_and_board(client, "userA_00", TEST_USER_PW, TEST_USER_NAME, TEST_USERA_EMAIL)
-    
+    board_index_A = await setup_user_and_board(
+        client, "userA_00", TEST_USER_PW, TEST_USER_NAME, TEST_USERA_EMAIL
+    )
+
     # 유저 B 세팅 (게시판 하나 생성 & 쿠키 B 로 바뀜)
-    await setup_user_and_board(client, "userB_00", TEST_USER_PW, TEST_USER_NAME, TEST_USERB_EMAIL)
+    await setup_user_and_board(
+        client, "userB_00", TEST_USER_PW, TEST_USER_NAME, TEST_USERB_EMAIL
+    )
 
     # B가 A의 게시판(board_index_A)에 업로드 시도
     dummy_file = {"file": ("sneaky.txt", b"I am user B", "text/plain")}
-    
-    upload_res = await client.post(
-        f"/files/boards/{board_index_A}", 
-        files = dummy_file
-    )
-    
+
+    upload_res = await client.post(f"/files/boards/{board_index_A}", files=dummy_file)
+
     assert upload_res.status_code == 403
     assert "본인의 게시글에만" in upload_res.json()["detail"]
+
 
 # ==========================================
 # 예외 처리: 삭제 시 비밀번호 틀림
 # ==========================================
 async def test_delete_file_wrong_password(client: AsyncClient):
 
-    board_index = await setup_user_and_board(client, "wrong_pw_user_00", TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL)
-    
+    board_index = await setup_user_and_board(
+        client, "wrong_pw_user_00", TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL
+    )
+
     # 정상 업로드
     await client.post(
-        f"/files/boards/{board_index}", 
-        files = {"file": ("test.txt", b"hello", "text/plain")}
+        f"/files/boards/{board_index}",
+        files={"file": ("test.txt", b"hello", "text/plain")},
     )
     files_index = await get_latest_file_index(client, "wrong_pw_user_00")
 
     # 틀린 비밀번호로 삭제 시도
     del_res = await client.request(
-        "DELETE",
-        f"/files/{files_index}",
-        json = {"password": "WrongPassword99!!"}
+        "DELETE", f"/files/{files_index}", json={"password": "WrongPassword99!!"}
     )
-    
+
     assert del_res.status_code == 401
     assert "비밀번호" in del_res.json()["detail"]

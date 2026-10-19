@@ -1,15 +1,13 @@
 import asyncio
+import os
+import sys
 import urllib.parse
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
-
-import sys
-import os
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
@@ -94,6 +92,7 @@ async def run_async_migrations() -> None:
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
+
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""

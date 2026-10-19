@@ -1,25 +1,27 @@
-import uvicorn
-import traceback
 import time
-import logging
-import redis.asyncio as redis
+import traceback
 from contextlib import asynccontextmanager
+
+import redis.asyncio as redis
+import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_limiter import FastAPILimiter
-from app.db.database import create_db_pool
-from app.api.boards import router as boards_router
-from app.api.user import router as user_router
-from app.api.files import router as files_router
-from app.api.auth import router as auth_router
+
 from app.api.admin import router as admin_router
-from app.core.logger import logger
+from app.api.auth import router as auth_router
+from app.api.boards import router as boards_router
+from app.api.files import router as files_router
+from app.api.user import router as user_router
 from app.core.config import redis_settings
+from app.core.logger import logger
 from app.core.scheduler import start_scheduler, stop_scheduler
+from app.db.database import create_db_pool
 
 # app.state: 수많은 파일들이 공통으로 접근 가능한 일종의 공통 보관함
 
-# 전체에서 딱 한번만 실행하게 하는 데코레이터 - 프로그램 전체에서 시작할 때 1번, 끝날 때 1번 
+
+# 전체에서 딱 한번만 실행하게 하는 데코레이터 - 프로그램 전체에서 시작할 때 1번, 끝날 때 1번
 # 서버가 켜질 때: 데코레이터 안의 코드가 실행되다가 yield를 만나서 일시 정지
 # 서버 끄는 순간: 정지되어 있던 코드가 다시 깨어나 yield 아래의 코드 (DB, Redis 종료)가 실행되고 완전히 끝
 @asynccontextmanager
@@ -29,13 +31,15 @@ async def lifespan(app: FastAPI):
     logger.info("DB 커넥션 풀 준비 끝")
 
     redis_pw = redis_settings.REDIS_PASSWORD
-    redis_url = f"redis://:{redis_pw}@redis-cache-container:6379/1" if redis_pw else "redis://redis-cache-container:6379/1"
-        
+    redis_url = (
+        f"redis://:{redis_pw}@redis-cache-container:6379/1"
+        if redis_pw
+        else "redis://redis-cache-container:6379/1"
+    )
+
     redis_connection = redis.from_url(
-        redis_url,
-        encoding = "utf-8",
-        decode_responses = True
-    )   
+        redis_url, encoding="utf-8", decode_responses=True
+    )
 
     await FastAPILimiter.init(redis_connection)
     await start_scheduler(app.state.db_pool)
@@ -50,7 +54,8 @@ async def lifespan(app: FastAPI):
         await app.state.db_pool.close()
         logger.info("DB 연결 종료")
 
-app = FastAPI(lifespan = lifespan)
+
+app = FastAPI(lifespan=lifespan)
 
 # 이 부분은 수정 필요
 app.add_middleware(
@@ -64,9 +69,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.middleware("http")
 async def log_request(request: Request, call_next):
-    
+
     try:
         start_time = time.time()
         response = await call_next(request)
@@ -79,7 +85,8 @@ async def log_request(request: Request, call_next):
     except Exception as e:
         logger.error(f"error on {request.url.path}: {e}\n {traceback.format_exc()}")
 
-        return Response(content = "서버 에러가 발생했습니다.", status_code = 500)
+        return Response(content="서버 에러가 발생했습니다.", status_code=500)
+
 
 @app.middleware("http")
 async def add_cache_control_header(request: Request, call_next):
@@ -88,14 +95,15 @@ async def add_cache_control_header(request: Request, call_next):
 
     # 모든 Method 무조건 캐시 금지
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        
+
     return response
 
-app.include_router(admin_router, prefix = "/admin", tags = ["Admin"])
-app.include_router(auth_router, prefix = "/auth", tags = ["Auth"])
-app.include_router(user_router, prefix = "/users", tags = ["Users"])
-app.include_router(boards_router, prefix = "/boards", tags = ["Boards"])
-app.include_router(files_router, prefix = "/files", tags = ["Files"])
+
+app.include_router(admin_router, prefix="/admin", tags=["Admin"])
+app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+app.include_router(user_router, prefix="/users", tags=["Users"])
+app.include_router(boards_router, prefix="/boards", tags=["Boards"])
+app.include_router(files_router, prefix="/files", tags=["Files"])
 
 if __name__ == "__main__":
-        uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host="0.0.0.0", port=8000)

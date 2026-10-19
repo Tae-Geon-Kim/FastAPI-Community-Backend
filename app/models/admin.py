@@ -2,6 +2,7 @@ from asyncpg import Connection
 
 # ========== 조회 ==========
 
+
 # 관리자 전체 유저 조회
 async def admin_get_all_users(conn: Connection):
 
@@ -22,7 +23,9 @@ async def admin_get_all_users(conn: Connection):
 
 
 # 관리자 특정 유저 정보 상세 조회
-async def admin_get_specific_user(conn: Connection, user_index: int, limit: int, offset: int):
+async def admin_get_specific_user(
+    conn: Connection, user_index: int, limit: int, offset: int
+):
 
     sql = """
         SELECT
@@ -72,6 +75,7 @@ async def admin_get_specific_board(conn: Connection, board_index: int):
 
 # ========== 삭제 (값 업데이트) ==========
 
+
 # 관리자 특정 유저를 ban 처리
 async def admin_ban(conn: Connection, user_index: int, ban_days: int):
 
@@ -85,6 +89,7 @@ async def admin_ban(conn: Connection, user_index: int, ban_days: int):
     """
 
     return await conn.execute(sql, user_index, ban_days)
+
 
 # 관리자 특정 유저 ban 4회 됐을 때의 상태값 처리
 async def admin_user_4ban_settings(conn: Connection, user_index: int):
@@ -100,6 +105,7 @@ async def admin_user_4ban_settings(conn: Connection, user_index: int):
 
     return await conn.execute(sql, user_index)
 
+
 # 관리자 특정 유저를 unban 처리
 async def admin_unban(conn: Connection, user_index: int):
 
@@ -114,7 +120,9 @@ async def admin_unban(conn: Connection, user_index: int):
 
     return await conn.execute(sql, user_index)
 
+
 # ========== 데이터 가져오기 ==========
+
 
 # 관리자 특정 유저의 ban_count를 가쟈오는 쿼리
 async def admin_get_banCount(conn: Connection, user_index: int):

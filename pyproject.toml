@@ -1,0 +1,14 @@
+[tool.ruff]
+target-version = "py312"
+required-version = "==0.16.10"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# 앱 import 전에 테스트용 환경변수를 먼저 설정해야 한다
+"tests/conftest.py" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+known-third-party = ["alembic"]

@@ -1,5 +1,7 @@
+from typing import Any, Optional
+
 from pydantic import BaseModel
-from typing import Optional, Any
+
 
 # 응답 규격화
 class CommonResponse(BaseModel):
