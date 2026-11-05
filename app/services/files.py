@@ -3,10 +3,12 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import aiofiles
+import aiofiles.os
 from asyncpg import Connection
 from fastapi import HTTPException, UploadFile, status
 
 from app.core.config import settings
+from app.core.logger import logger
 from app.core.security import verify_password
 from app.models.audit_log import insert_audit_log
 from app.models.boards import check_boards_owner, update_total_board_fsize
@@ -423,13 +425,12 @@ async def delete_files_perman_services(conn: Connection):
 
     for record in file_path_record:
         file_path = record["file_path"]
-        if not os.path.exists(file_path):
-            print("파일이 이미 삭제되었거나 존재하지않습니다.")
-            continue
         try:
-            os.remove(file_path)
-            print("파일 삭제에 성공하였습니다.")
-        except Exception:
-            print("파일 삭제에 실패하였습니다.")
+            await aiofiles.os.remove(file_path)
+            logger.info(f"파일 삭제에 성공하였습니다: {file_path}")
+        except FileNotFoundError:
+            logger.info(f"파일이 이미 삭제되었거나 존재하지않습니다: {file_path}")
+        except OSError:
+            logger.exception(f"파일 삭제에 실패하였습니다: {file_path}")
 
     await delete_files(conn)

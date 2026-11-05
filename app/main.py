@@ -82,7 +82,7 @@ async def log_request(request: Request, call_next):
         response.headers["X-Process-Time"] = str(process_time)
 
         return response
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - 처리되지 않은 모든 예외를 로깅 후 500으로 응답하는 최상위 핸들러
         logger.error(f"error on {request.url.path}: {e}\n {traceback.format_exc()}")
 
         return Response(content="서버 에러가 발생했습니다.", status_code=500)

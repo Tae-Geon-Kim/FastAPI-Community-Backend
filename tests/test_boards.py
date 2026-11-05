@@ -271,3 +271,41 @@ async def test_search_boards_cases(client: AsyncClient):
     meta_data = paging_res.json()["data"]["meta"]
     assert "total_boards" in meta_data
     assert meta_data["limit"] == 2
+
+
+async def test_popular_boards_filter_by_period(client: AsyncClient, db_connection):
+
+    await setup_test_user(
+        client, TEST_USER_ID, TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL
+    )
+
+    ages_and_views = {
+        "3일 전 인기글": (3, 10),
+        "20일 전 인기글": (20, 20),
+        "60일 전 인기글": (60, 30),
+    }
+    for title, (age_days, view_count) in ages_and_views.items():
+        res = await client.post(
+            "/boards", json={"title": title, "content": TEST_BOARDS_CONTENT}
+        )
+        assert res.status_code == 201
+        await db_connection.execute(
+            """
+            UPDATE boards
+            SET reg_date = NOW() - make_interval(days => $2), view_count = $3
+            WHERE title = $1
+            """,
+            title,
+            age_days,
+            view_count,
+        )
+
+    expected = {
+        "WEEKLY": {"3일 전 인기글"},
+        "MONTH": {"3일 전 인기글", "20일 전 인기글"},
+        "ALL": {"3일 전 인기글", "20일 전 인기글", "60일 전 인기글"},
+    }
+    for option, titles in expected.items():
+        res = await client.get("/boards/popular", params={"popular_option": option})
+        assert res.status_code == 200, option
+        assert {board["title"] for board in res.json()["data"]} == titles, option

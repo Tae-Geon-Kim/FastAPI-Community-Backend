@@ -48,15 +48,15 @@ async def refresh_access_token_services(
         return new_access
 
     # 토큰 만료 에러
-    except ExpiredSignatureError:
+    except ExpiredSignatureError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="만료된 토큰입니다. 다시 로그인해주세요.",
-        )
+        ) from e
 
     # 다른 모든 JWT error
-    except JWTError:
-        raise credentials_exception
+    except JWTError as e:
+        raise credentials_exception from e
 
 
 # JWT Token 사용자 로그인

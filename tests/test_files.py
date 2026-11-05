@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.db.redis_config import redis_db
+from app.services.files import delete_files_perman_services
 
 # 현재 파일의 모든 테스트 함수를 비동기로 실행하도록 설정
 pytestmark = pytest.mark.asyncio
@@ -190,3 +191,36 @@ async def test_delete_file_wrong_password(client: AsyncClient):
 
     assert del_res.status_code == 401
     assert "비밀번호" in del_res.json()["detail"]
+
+
+async def test_delete_files_perman_removes_disk_files_and_rows(
+    client: AsyncClient, db_connection, tmp_path
+):
+    board_index = await setup_user_and_board(
+        client, TEST_USER_ID, TEST_USER_PW, TEST_USER_NAME, TEST_USER_EMAIL
+    )
+
+    existing_file = tmp_path / "expired.txt"
+    existing_file.write_text("expired")
+    missing_file = tmp_path / "already_gone.txt"
+
+    for path in (existing_file, missing_file):
+        await db_connection.execute(
+            """
+            INSERT INTO files
+                (original_name, stored_name, file_path, file_size, board_index,
+                 deleted_at, deleted_by)
+            VALUES ($1, $1, $2, 1, $3, NOW() - INTERVAL '31 days', 'USER')
+            """,
+            path.name,
+            str(path),
+            board_index,
+        )
+
+    await delete_files_perman_services(db_connection)
+
+    assert not existing_file.exists()
+    remaining = await db_connection.fetchval(
+        "SELECT COUNT(*) FROM files WHERE board_index = $1", board_index
+    )
+    assert remaining == 0

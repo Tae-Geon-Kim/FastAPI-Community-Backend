@@ -3,11 +3,20 @@ target-version = "py312"
 required-version = "==0.16.10"
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I"]
+select = [
+    "E4", "E7", "E9", "F", "I",
+    # CLAUDE.md 개발 규칙을 lint로 강제
+    "S608",  # f-string / 문자열 연결로 SQL 생성 금지
+    "T20",   # 프로덕션 코드에서 print() 금지
+    "ASYNC", # async 경로의 블로킹 I/O 금지
+    "BLE",   # except Exception 같은 포괄 예외 처리 금지
+    "B904",  # except 안에서 다시 raise할 때 원인 예외 연결
+]
 
 [tool.ruff.lint.per-file-ignores]
 # 앱 import 전에 테스트용 환경변수를 먼저 설정해야 한다
 "tests/conftest.py" = ["E402"]
+"tests/**" = ["T20"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

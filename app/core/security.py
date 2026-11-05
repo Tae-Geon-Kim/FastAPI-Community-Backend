@@ -96,8 +96,8 @@ def verify_token(request: Request):
         if username is None:
             raise credentials_exception
         return username
-    except JWTError:
-        raise credentials_exception
+    except JWTError as e:
+        raise credentials_exception from e
 
 
 async def get_current_user(
