@@ -197,23 +197,23 @@ async def search_in_title_content(
 
 
 # 게시글에서 조회수를 기준으로 TOP5 가져오기 (전체 기간 / 최근 7일 / 최근 30일 기준) - 공지사항 게시글은 제외
-async def get_popular_top5_board(conn: Connection, time_condition: str):
+async def get_popular_top5_board(conn: Connection, days: int | None):
 
-    sql = f"""
+    sql = """
         WITH Top5_List AS (
             SELECT
                 index, title, content, view_count, category, reg_date,
                 ROW_NUMBER() OVER (ORDER BY view_count DESC, index DESC) as ranking
             FROM boards
             WHERE deleted_at IS NULL
-            AND category != 'NOTICE' 
-            {time_condition}
+            AND category != 'NOTICE'
+            AND ($1::int IS NULL OR reg_date >= NOW() - make_interval(days => $1::int))
         )
         SELECT * FROM Top5_List
         WHERE ranking <= 5;
     """
 
-    return await conn.fetch(sql)
+    return await conn.fetch(sql, days)
 
 
 # ========== 개수 확인 ==========

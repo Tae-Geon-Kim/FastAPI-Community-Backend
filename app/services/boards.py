@@ -506,13 +506,13 @@ async def get_popular_board_services(
 ):
 
     if popular_option == PopularOption.ALL:
-        time_condition = ""
+        days = None
         period_output = "전체기간"
     elif popular_option == PopularOption.WEEKLY:
-        time_condition = "AND reg_date >= NOW() - INTERVAL '7 days'"
+        days = 7
         period_output = "주간"
     else:  # MONTH
-        time_condition = "AND reg_date >= NOW() - INTERVAL '30 days'"
+        days = 30
         period_output = "월간"
 
     redis_key = f"popular_boards: {popular_option}"
@@ -525,7 +525,7 @@ async def get_popular_board_services(
             message=f"{period_output} 인기글 조회에 성공하였습니다.", data=result
         )
 
-    rows = await get_popular_top5_board(conn, time_condition)
+    rows = await get_popular_top5_board(conn, days)
     result = jsonable_encoder([dict(row) for row in rows])
 
     # 전체 게시글이 단 한개도 존재하지 않는 경우

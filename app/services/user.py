@@ -152,11 +152,11 @@ async def send_verification_email_services(
             username=sender_email,
             password=sender_password,
         )
-    except Exception as e:
+    except aiosmtplib.SMTPException as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"이메일을 보내는 과정에서 에러가 발생하였습니다. : {str(e)}",
-        )
+        ) from e
 
     return CommonResponse(
         message=f"사용자의 이메일인 {receiver_email}로 인증번호가 포함된 메일을 발송했습니다. 5분 안에 입력해주세요."
@@ -308,11 +308,11 @@ async def find_id_services(data: FindId, conn: Connection):
             username=sender_email,
             password=sender_password,
         )
-    except Exception as e:
+    except aiosmtplib.SMTPException as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"이메일을 보내는 과정에서 에러가 발생하였습니다. : {str(e)}",
-        )
+        ) from e
 
     return CommonResponse(message=f"사용자의 아이디는 {masked_user_id}입니다.")
 
@@ -381,11 +381,11 @@ async def find_password_services(data: FindPw, conn: Connection):
             username=sender_email,
             password=sender_password,
         )
-    except Exception as e:
+    except aiosmtplib.SMTPException as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"이메일을 보내는 과정에서 에러가 발생하였습니다. : {str(e)}",
-        )
+        ) from e
 
     return CommonResponse(
         message=f"사용자의 {data.email} 이메일로 임시 비밀번호를 전송하였습니다."
