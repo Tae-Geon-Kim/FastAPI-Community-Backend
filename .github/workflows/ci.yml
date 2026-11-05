@@ -116,3 +116,18 @@ jobs:
 
       - name: Ruff format
         run: ruff format --check --diff .
+
+  ci-pass:
+    if: always()
+    needs: [ci-test, docker-build, lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every job to succeed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "needs results: $RESULTS"
+          for result in $RESULTS; do
+            test "$result" = success
+          done
