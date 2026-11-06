@@ -29,6 +29,7 @@
 - Production code should use logging instead of `print()`.
 - Database schema changes must include an Alembic migration.
 - Do not modify `main` directly. Work on a branch and use pull requests.
+- PRs that change CI, lint, dependency, or existing migration files (see `.github/scripts/protected-paths.sh`) need the `allow-protected-change` label. Agents must never add this label; ask a human to review and add it.
 
 ## Verification
 

@@ -1,0 +1,47 @@
+name: Protected paths
+
+# pull_request_target은 PR 브랜치가 아닌 main의 워크플로·스크립트로 실행된다.
+# 그래서 PR 안에서 이 검사를 수정하거나 지워도 그 PR에는 적용되지 않는다.
+# PR 코드는 체크아웃하지 않고 변경 파일 목록만 API로 읽는다.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: protected-paths-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  protected-paths:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+
+      - name: Check changed files
+        # 기본 셸과 달리 pipefail이 켜져서 gh api 실패 시 통과가 아니라 실패한다
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HAS_APPROVAL_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'allow-protected-change') }}
+        run: |
+          if gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" \
+              --jq '.[] | [.status, .filename, (.previous_filename // "")] | @tsv' \
+              | .github/scripts/protected-paths.sh; then
+            exit 0
+          fi
+          if [ "$HAS_APPROVAL_LABEL" = "true" ]; then
+            echo "allow-protected-change 라벨이 있어 통과"
+            exit 0
+          fi
+          echo "::error::CI·lint·의존성·migration 설정을 바꾸는 PR입니다. 사람이 검토한 뒤 allow-protected-change 라벨을 붙여야 머지할 수 있습니다."
+          exit 1
